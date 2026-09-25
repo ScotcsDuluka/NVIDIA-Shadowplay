@@ -1,5 +1,32 @@
 /* Build Tool SPA — hash router + views (bridge = window.chrome.webview.hostObjects.async.host) */
-const bridge = () => window.chrome.webview.hostObjects.async.host;
+const pending = new Map();
+let rpcSeq = 0;
+chrome.webview.addEventListener("message", (e) => {
+  try {
+    const d = typeof e.data === "string" ? JSON.parse(e.data) : e.data;
+    if (d.id && pending.has(d.id)) { pending.get(d.id)(d.result); pending.delete(d.id); }
+  } catch {}
+});
+function rpc(method, ...args) {
+  return new Promise((resolve) => {
+    const id = "r" + (++rpcSeq);
+    pending.set(id, resolve);
+    chrome.webview.postMessage(JSON.stringify({ id, method, args }));
+  });
+}
+const bridge = () => ({
+  GetStatus: () => rpc("status"),
+  StartBuild: (clean) => rpc("startBuild", clean === true),
+  GetLog: (since) => rpc("log", since | 0),
+  GetVersionConfig: () => rpc("version"),
+  SaveVersionConfig: (j) => rpc("saveVersion", typeof j === "string" ? j : JSON.stringify(j)),
+  GetPreview: () => rpc("preview"),
+  LaunchApp: () => rpc("launch"),
+  OpenFolder: () => rpc("openFolder"),
+});
+
+window.onerror = (m, src, l, c) => { try { chrome.webview.postMessage("JSERR: " + m + " @" + l + ":" + c); } catch {} };
+window.addEventListener("unhandledrejection", (e) => { try { chrome.webview.postMessage("JSREJ: " + e.reason); } catch {} });
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -118,6 +145,9 @@ function pollLog() {
 /* ── Version ── */
 views.version = async function () {
   const c = await versionCfg();
+  const sampleText = c.hardcore
+    ? c.version + "." + c.buildNo + ".61"
+    : "3.41." + c.buildNo + ".61 (unlock)";
   $("#main").innerHTML = `
     <h1>Version (Hardcore)</h1>
     <div class="sub">บังคับเวอร์ชันเดียวกันทุกโปรเจค — BuildVer นับปกติทุก build</div>
@@ -133,7 +163,7 @@ views.version = async function () {
       <label class="f">VERSION (Major.Minor เช่น 3.41)</label>
       <input type="text" id="vVersion" value="${esc(c.version)}">
       <label class="f">ตัวอย่าง FileVersion ที่จะได้</label>
-      <div class="stat"><div class="v green" id="vSample">${sample()}</div></div>
+      <div class="stat"><div class="v green" id="vSample">${esc(sampleText)}</div></div>
       <div class="row" style="margin-top:16px">
         <button class="primary" id="btnSaveVer">บันทึก</button>
         <span class="sub" id="saveState"></span>

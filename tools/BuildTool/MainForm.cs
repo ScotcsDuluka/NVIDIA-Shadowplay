@@ -1,4 +1,5 @@
-using Microsoft.Web.WebView2.Core;
+﻿using Microsoft.Web.WebView2.Core;
+using System.Text.Json;
 using Microsoft.Web.WebView2.WinForms;
 
 namespace BuildTool;
@@ -7,6 +8,17 @@ public class MainForm : Form
 {
     private readonly WebView2 _web = new() { Dock = DockStyle.Fill };
     private readonly Bridge _bridge;
+
+    public static void UiLog(string line)
+    {
+        try
+        {
+            File.AppendAllText(
+                Path.Combine(AppContext.BaseDirectory, "..", "Build", "Build-Config", "ui-log.txt"),
+                "[" + DateTime.Now.ToString("HH:mm:ss.fff") + "] " + line + Environment.NewLine);
+        }
+        catch { }
+    }
 
     public MainForm()
     {
@@ -28,6 +40,8 @@ public class MainForm : Form
 
         Controls.Add(_web);
 
+        UiLog("form created");
+
         Load += async (_, _) =>
         {
             try
@@ -38,6 +52,44 @@ public class MainForm : Form
 
                 var core = _web.CoreWebView2;
                 core.Settings.AreDefaultContextMenusEnabled = false;
+                _web.CoreWebView2InitializationCompleted += (_, e) => UiLog("core init ok=" + e.IsSuccess);
+                core.WebMessageReceived += async (_, e) =>
+                {
+                    try
+                    {
+                        using var doc = JsonDocument.Parse(e.WebMessageAsJson);
+                        var rootEl = doc.RootElement;
+                        if (rootEl.ValueKind != JsonValueKind.Object || !rootEl.TryGetProperty("id", out var idEl))
+                        {
+                            UiLog("JS: " + e.WebMessageAsJson);
+                            return;
+                        }
+                        var id = idEl.GetString();
+                        var method = rootEl.TryGetProperty("method", out var mEl) ? mEl.GetString() : "";
+                        var args = rootEl.TryGetProperty("args", out var aEl) && aEl.ValueKind == JsonValueKind.Array ? aEl : default;
+
+                        string result = method switch
+                        {
+                            "status" => _bridge.GetStatus(),
+                            "startBuild" => _bridge.StartBuild(args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 && args[0].GetBoolean()),
+                            "log" => _bridge.GetLog(args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 ? args[0].GetInt32() : 0),
+                            "version" => _bridge.GetVersionConfig(),
+                            "saveVersion" => _bridge.SaveVersionConfig(args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 ? args[0].GetRawText() : "{}"),
+                            "preview" => _bridge.GetPreview(),
+                            "launch" => _bridge.LaunchApp(),
+                            "openFolder" => _bridge.OpenFolder(),
+                            _ => JsonSerializer.Serialize(new { error = "unknown method " + method }),
+                        };
+                        var resp = JsonSerializer.Serialize(new { id, result });
+                        core.PostWebMessageAsJson(resp);
+                    }
+                    catch (Exception ex)
+                    {
+                        UiLog("RPC failed: " + ex.Message);
+                    }
+                };
+                core.NavigationCompleted += (_, e) => UiLog("nav done ok=" + e.IsSuccess + " err=" + e.WebErrorStatus);
+                core.ProcessFailed += (_, e) => UiLog("PROCESS FAILED: " + e.ProcessFailedKind);
                 core.Settings.IsStatusBarEnabled = false;
                 core.SetVirtualHostNameToFolderMapping(
                     "app.local",

@@ -1,5 +1,5 @@
 ﻿{
-    "buildUtc":  "2026-09-25T09:55:02.2818041Z",
+    "buildUtc":  "2026-09-25T10:28:24.4822496Z",
     "configuration":  "Release",
     "solution":  "Project/NVIDIA ShadowPlay.sln",
     "output":  "Build/NVIDIA ShadowPlay",
@@ -11,20 +11,6 @@
     "testsExcluded":  true,
     "buildResult":  "MSBuild exit 0",
     "pendingArtifacts":  [
-                             "NVIDIA Notifier: C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA Notifier.exe\\bin\\Release\\net10.0-windows10.0.26100.0",
-                             "NVIDIA ShadowPlay: C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe\\bin\\Release\\net10.0-windows10.0.26100.0",
-                             "C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe\\bin\\Release\\net10.0-windows10.0.26100.0\\NAudio.dll",
-                             "C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe\\bin\\Release\\net10.0-windows10.0.26100.0\\NAudio.Asio.dll",
-                             "C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe\\bin\\Release\\net10.0-windows10.0.26100.0\\NAudio.Core.dll",
-                             "C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe\\bin\\Release\\net10.0-windows10.0.26100.0\\NAudio.Midi.dll",
-                             "C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe\\bin\\Release\\net10.0-windows10.0.26100.0\\NAudio.Wasapi.dll",
-                             "C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe\\bin\\Release\\net10.0-windows10.0.26100.0\\NAudio.WinForms.dll",
-                             "C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe\\bin\\Release\\net10.0-windows10.0.26100.0\\NAudio.WinMM.dll",
-                             "C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe\\bin\\Release\\net10.0-windows10.0.26100.0\\Vortice.Direct3D11.dll",
-                             "C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe\\bin\\Release\\net10.0-windows10.0.26100.0\\Vortice.DirectX.dll",
-                             "C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe\\bin\\Release\\net10.0-windows10.0.26100.0\\Vortice.DXGI.dll",
-                             "C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe\\bin\\Release\\net10.0-windows10.0.26100.0\\Vortice.Mathematics.dll",
-                             "C:\\My Project\\NVIDIA-Shadowplay\\Project\\ShadowPlay\\FFmpeg",
                              "ShadowPlay\\nvspcap.dll"
                          ]
 }
