@@ -116,8 +116,8 @@ int NvLauncherCefMain(void) {
   params->supervise = !cl->HasSwitch("no-supervise");
   params->self_exit_ms =
       ParseUnsigned(cl->GetSwitchValue("self-exit-ms").ToString(), 0);
-  params->width = ParseInt(cl->GetSwitchValue("width").ToString(), 1000);
-  params->height = ParseInt(cl->GetSwitchValue("height").ToString(), 640);
+  params->width = ParseInt(cl->GetSwitchValue("width").ToString(), 1152);
+  params->height = ParseInt(cl->GetSwitchValue("height").ToString(), 648);
 
   // ── single-instance guard (browser process) ──────────────────────────
   // One named mutex per root dir: a second double-click must not stack a

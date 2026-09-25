@@ -2791,3 +2791,13 @@ without killing the rest. Verified: minimize click reaches the host
 ("borrow caption frame" in launcher-cef.log). NOTE for future agents:
 ui\index.html is owner-editable — never re-add removed elements or
 assume IDs exist; keep app.js guard-based.
+
+PERF 2026-09-25 (owner: "หน่วงๆ"): the ambient starfield layer
+(body::after) animated background-position on a fixed full-window layer
+= full-window repaint EVERY FRAME (Chromium 73 has no compositor path
+for background-position), plus the SERVICES sheen animated `left`. Both
+converted to transform-only animations (compositor-accelerated):
+starfield = oversized fixed layer + translate3d drift; sheens = fixed
+offset + translateX keyframes/transition. Rule for this lane: only
+transform/opacity may animate; left/top/width/background-position kill
+the framerate in CEF 73.

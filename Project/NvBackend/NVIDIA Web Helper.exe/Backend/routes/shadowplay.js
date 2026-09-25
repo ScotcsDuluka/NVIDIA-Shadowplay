@@ -299,6 +299,16 @@ module.exports = function shadowplayRoutes(app, ctx) {
         res.status(200).json({});
     });
 
+    // ── Launch (genuine NvShadowPlayAPI.js:1157/1181 — GET state + POST) ──
+    // The osc boot path requests this; the 404 was the only boot error in
+    // the CDP log. Standalone: no launch pipeline — answer the empty state.
+    app.post('/ShadowPlay/v.1.0/Launch', function (req, res) {
+        res.status(200).json({});
+    });
+    app.get('/ShadowPlay/v.1.0/Launch', function (req, res) {
+        res.status(200).json({});
+    });
+
     // ── misc settings surfaces ──────────────────────────────────────
     app.get('/Settings/v.1.0/Language', function (req, res) {
         res.status(200).json(sectionOr('language', { language: '' }));

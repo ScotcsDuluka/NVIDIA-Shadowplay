@@ -49,20 +49,41 @@ inline const char* AugmentationSource() {
   "if(unlockFn()||uTries>150){clearInterval(uTimer);}} ,300);"
   "}catch(e){}"
   // Auto-open: standalone backends leave the page parked on the bare base
-  // state (nothing navigates into main). Once base is active, walk in
-  // through the page's own display service (oscDisplayService.openOSC —
-  // navigates to the menu AND sets html.oscengine-open for the backdrop
-  // CSS). Retry ~12s, then leave the page alone.
+  // state (nothing navigates into main). Two open paths, both production-
+  // shaped: (1) POST /ShadowPlay/v.1.0/OpenOscState — the genuine host
+  // signal (NvShadowPlayAPI.js:1058-1097 relays it to the DisplayOscState
+  // socket channel; measured: the page does NOT navigate on it standalone,
+  // kept for parity/logging); (2) the page's own oscDisplayService.openOSC
+  // via the unlock shim (window.__oscOpen) — the measured-working path.
+  // Fire once base is active. Retry ~12s, then leave the page alone.
   "try{var oTries=0;"
   "var oTimer=setInterval(function(){oTries++;"
   "try{if(window.angular&&document.querySelector('.base')){"
-  "var inj2=window.angular.element(document.body).injector();"
-  "var st2=inj2.get('$state');"
-  "if(st2.current.name==='base'){st2.go('main.main-menu');"
+  "var xa=new XMLHttpRequest();"
+  "xa.open('POST','/ShadowPlay/v.1.0/OpenOscState',true);"
+  "xa.setRequestHeader('Content-Type','application/json');"
+  "xa.send('{}');"
   "if(window.__oscOpen){window.__oscOpen();}"
-  "clearInterval(oTimer);}}"
-  "}catch(e){}"
+  "clearInterval(oTimer);}}catch(e){}"
   "if(oTries>40){clearInterval(oTimer);}}"
+  ",300);"
+  "}catch(e){}"
+  // Visibility bridge: the host window is created HIDDEN and the HOST is
+  // the one that sets html.oscengine-open (FlipOscDisplayState inside
+  // QUERY_WIN_OPEN_OSC) — so watching the class here deadlocks. Mirror the
+  // ROUTE instead: $state entering main.* = menu open -> QUERY_WIN_OPEN_OSC
+  // (host shows the window + sets the class); back to base = close.
+  "try{window.__oscWinVis=false;"
+  "var vTimer=setInterval(function(){"
+  "try{if(window.angular&&document.body){"
+  "var inj3=window.angular.element(document.body).injector();"
+  "if(!inj3)return;"
+  "var st3=inj3.get('$state').current.name;"
+  "var open=(st3.indexOf('main')===0);"
+  "if(open!==window.__oscWinVis){"
+  "window.__oscWinVis=open;"
+  "window.cefQuery({request:JSON.stringify({command:open?'QUERY_WIN_OPEN_OSC':'QUERY_WIN_CLOSE_OSC',enableInput:open}),persistent:false,onSuccess:function(){},onFailure:function(){}});}"
+  "}}catch(e){}}"
   ",300);"
   "}catch(e){}"
   "})();";

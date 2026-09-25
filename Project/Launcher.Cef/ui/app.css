@@ -65,17 +65,23 @@ body::before {
               radial-gradient(circle at 70% 60%, rgba(0,212,255,0.04) 0%, transparent 60%);
 }
 body::after {
-  content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  content: ''; position: fixed; top: -50%; left: -50%; right: -50%; bottom: -50%;
   z-index: 0; pointer-events: none;
+  will-change: transform;
   background-image:
     radial-gradient(2px 2px at 20% 30%, rgba(118,185,0,0.4), transparent),
     radial-gradient(2px 2px at 40% 70%, rgba(118,185,0,0.3), transparent),
     radial-gradient(2px 2px at 80% 40%, rgba(0,212,255,0.3), transparent),
     radial-gradient(2px 2px at 90% 80%, rgba(0,212,255,0.2), transparent);
-  background-size: 200% 200%;
-  animation: float 20s linear infinite;
+  animation: float 24s linear infinite;
 }
-@keyframes float { 0%,100% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } }
+/* transform-only drift (compositor): animating background-position on a
+   fixed full-window layer repainted the WHOLE WINDOW every frame — the
+   "หน่วง" report. */
+@keyframes float {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(4%, 4%, 0); }
+}
 
 nav, main, section, footer { position: relative; z-index: 1; }
 
@@ -209,11 +215,13 @@ main {
 }
 @keyframes obt3-run { to { transform: translateX(-52px); } }
 .svc-banner::before {
-  content: ""; position: absolute; top: 0; left: -60%; width: 40%; height: 100%; z-index: 2;
+  content: ""; position: absolute; top: 0; left: 0; width: 40%; height: 100%; z-index: 2;
   background: linear-gradient(100deg, transparent, rgba(118,185,0,.13), transparent);
+  transform: translateX(-150%);
   animation: obt3-sheen 4.5s ease-in-out infinite; pointer-events: none;
+  will-change: transform;
 }
-@keyframes obt3-sheen { 0%,60% { left: -60%; } 100% { left: 130%; } }
+@keyframes obt3-sheen { 0%,60% { transform: translateX(-150%); } 100% { transform: translateX(330%); } }
 .obt3-inner { padding: 1.1rem 1.5rem 1.2rem; position: relative; z-index: 2; display: flex; flex-direction: column; flex: 1; min-height: 0; }
 .obt3-head { display: flex; align-items: baseline; margin-bottom: .8rem; }
 .obt3-head > * + * { margin-left: .7rem; }
@@ -278,9 +286,10 @@ main {
 .btn-primary::before {
   content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
-  transition: left 0.5s ease;
+  transform: translateX(0);
+  transition: transform 0.5s ease;
 }
-.btn-primary:hover::before { left: 100%; }
+.btn-primary:hover::before { transform: translateX(200%); }
 .btn-primary:hover { background: var(--nvidia-green-hover); transform: translateY(-3px) scale(1.02); }
 .btn-primary:active { transform: translateY(0); }
 

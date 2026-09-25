@@ -12,8 +12,8 @@ struct LauncherLaunchParams {
   bool supervise = true;      // --no-supervise (smoke/proof runs)
   bool gpu_accel = true;      // NVIDIA Share.json nv-gpu-accel parity switch
   unsigned self_exit_ms = 0;  // --self-exit-ms=N watchdog (smoke runs); 0=off
-  int width = 1000;           // --width=W
-  int height = 640;           // --height=H
+  int width = 1152;           // --width=W (16:9)
+  int height = 648;           // --height=H
 };
 
 LauncherLaunchParams* GetLaunchParams();

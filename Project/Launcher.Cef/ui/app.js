@@ -135,11 +135,8 @@
     el.tglEngine.setAttribute('aria-checked', cef ? 'true' : 'false');
     if (el.lblWinform) el.lblWinform.classList.toggle('active', !cef);
     if (el.lblCef) el.lblCef.classList.toggle('active', cef);
-    if (el.modeDesc) {
-      el.modeDesc.textContent = cef
-        ? 'CEF chain: Container \u2192 Web Helper \u2192 Share (:59001)'
-        : 'WinForm family \u2014 hub-managed overlay';
-    }
+    // modeDesc is owner-authored static copy ("Two Engine Regimes") —
+    // the active label highlight above is the state indicator.
   }
 
   // ── Host push (launcher_script.h augmentation) ──────────────────────
@@ -180,14 +177,26 @@
   });
 
   // ── Buttons ─────────────────────────────────────────────────────────
+  // OPEN OVERLAY feedback: never read back the mutated label (a fast
+  // double-click used to capture "SENT" as the "original" text and get
+  // stuck there) — restore the fixed label, and ignore clicks while the
+  // feedback cycle is running.
+  var overlayBusy = false;
   on(el.btnOpenOverlay, 'click', function () {
     var b = this;
+    if (overlayBusy) return;
+    overlayBusy = true;
+    b.textContent = 'SENDING';
     rpc('LAUNCHER_OPEN_OVERLAY').then(function (r) {
-      var ok = r && r.ok;
-      var old = b.textContent;
-      b.textContent = ok ? 'SENT' : 'HUB OFFLINE';
-      setTimeout(function () { b.textContent = old; }, 1200);
-    }).catch(function () {});
+      b.textContent = (r && r.ok) ? 'SENT' : 'HUB OFFLINE';
+      setTimeout(function () {
+        b.textContent = 'OPEN OVERLAY';
+        overlayBusy = false;
+      }, 1200);
+    }).catch(function () {
+      b.textContent = 'OPEN OVERLAY';
+      overlayBusy = false;
+    });
   });
 
   on(el.btnObt3, 'click', function () {

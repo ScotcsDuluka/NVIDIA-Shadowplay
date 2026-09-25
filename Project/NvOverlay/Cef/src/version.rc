@@ -36,7 +36,7 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "CompanyName", "ShadowPlay rebuild"
-            VALUE "FileDescription", "NVIDIA Share (CEF OSC host)"
+            VALUE "FileDescription", "NVIDIA GeForce Overlay"
             VALUE "FileVersion", SHARE_FILEVERSION_STR
             VALUE "InternalName", "NVIDIA Share"
             VALUE "LegalCopyright", "ShadowPlay rebuild project (reference: NVIDIA GFE 3.28 owner layout)"
