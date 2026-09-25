@@ -201,7 +201,7 @@ if ((Test-Path (Join-Path $backendOut 'package.json')) -and (Get-Command npm.cmd
 }
 
 # NvContainer -> owner folder. The worker contract follows the requested Dev layout.
-$containerBin = Join-Path $ProjectRoot ("NvContainer\NVIDIA Container.exe\bin\Release\{0}" -f $TargetFramework)
+$containerBin = Join-Path $ProjectRoot ("NvContainer\NvContainer.exe\bin\Release\{0}" -f $TargetFramework)
 $containerOut = Join-Path $BuildRoot 'NvContainer'
 Copy-RuntimeFiles $containerBin $containerOut 'NVIDIA Container'
 $containerConfig = [ordered]@{
@@ -230,7 +230,7 @@ $containerConfig | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path
 # NVIDIA ShadowPlay.exe + NVIDIA ShadowPlay Helper.exe). ExePath("NvBackend.exe")
 # resolves here; the overlay also links NvBackend.dll in-process (kept in
 # NvOverlay\WinForm by the dedupe keep-rule).
-$hubBin = Join-Path $ProjectRoot ("NvBackend\NVIDIA Backend.exe\bin\Release\{0}" -f $TargetFramework)
+$hubBin = Join-Path $ProjectRoot ("NvBackend\NvBackend.exe\bin\Release\{0}" -f $TargetFramework)
 Copy-RuntimeFiles $hubBin (Join-Path $BuildRoot 'NvBackend') 'NvBackend'
 
 # Gallery.Video
@@ -240,7 +240,7 @@ Copy-RuntimeFiles $galleryBin $galleryOut 'Gallery.Video'
 
 # Overlay WinForm owners. (NVIDIA API was moved to NvBackend\NVIDIA Backend —
 # its types ship in-process with the overlay via ProjectReference.)
-$controlsBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvControls\NVIDIA Controls.dll\bin\Release\{0}" -f $TargetFramework)
+$controlsBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvControls\NvControls.dll\bin\Release\{0}" -f $TargetFramework)
 $notifierBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA Notifier.exe\bin\Release\{0}" -f $TargetFramework)
 $overlayWinBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA ShadowPlay.exe\bin\Release\{0}" -f $TargetFramework)
 

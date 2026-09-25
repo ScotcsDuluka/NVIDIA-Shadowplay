@@ -1,12 +1,13 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
 		<!-- OWNER (2026-09-25): WinForm TCP hub identity is NVIDIA Backend.exe
 			 (WinForm family: NVIDIA ShadowPlay.exe + Notifier + this hub +
 			 nvsphelper64.exe). Namespace/StartupObject stay NVIDIA_API. -->
-		<AssemblyName>NVIDIA Backend</AssemblyName>
+		<AssemblyName>NvBackend</AssemblyName>
 		<RootNamespace>NVIDIA_API</RootNamespace>
+		<Description>NVIDIA Backend</Description>
 		<StartupObject>NVIDIA_API.My.MyApplication</StartupObject>
 		<UseWindowsForms>true</UseWindowsForms>
 		<MyType>WindowsForms</MyType>
