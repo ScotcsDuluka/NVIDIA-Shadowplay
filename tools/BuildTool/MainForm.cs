@@ -1,6 +1,6 @@
 ﻿using Microsoft.Web.WebView2.Core;
-using System.Text.Json;
 using Microsoft.Web.WebView2.WinForms;
+using System.Text.Json;
 
 namespace BuildTool;
 
@@ -8,6 +8,7 @@ public class MainForm : Form
 {
     private readonly WebView2 _web = new() { Dock = DockStyle.Fill };
     private readonly Bridge _bridge;
+    private SynchronizationContext _uiSync;
 
     public static void UiLog(string line)
     {
@@ -42,6 +43,7 @@ public class MainForm : Form
 
         UiLog("form created");
 
+        _uiSync = SynchronizationContext.Current;
         Load += async (_, _) =>
         {
             try
@@ -58,63 +60,17 @@ public class MainForm : Form
                 var core = _web.CoreWebView2;
                 core.Settings.AreDefaultContextMenusEnabled = false;
                 _web.CoreWebView2InitializationCompleted += (_, e) => UiLog("core init ok=" + e.IsSuccess);
-                core.WebMessageReceived += async (_, e) =>
-                {
-                    try
-                    {
-                        // postMessage(string) arrives DOUBLE-ENCODED as a JSON string
-                        var outer = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
-                        JsonElement payload = outer;
-                        if (outer.ValueKind == JsonValueKind.String)
-                        {
-                            UiLog("JS: " + outer.GetString());
-                            payload = JsonDocument.Parse(outer.GetString()).RootElement;
-                        }
-                        if (payload.ValueKind != JsonValueKind.Object || !payload.TryGetProperty("id", out var idEl))
-                        {
-                            UiLog("JS(raw): " + e.WebMessageAsJson);
-                            return;
-                        }
-                        var id = idEl.GetString();
-                        var method = payload.TryGetProperty("method", out var mEl) ? mEl.GetString() : "";
-                        var args = payload.TryGetProperty("args", out var aEl) && aEl.ValueKind == JsonValueKind.Array ? aEl : default;
-
-                        string result = method switch
-                        {
-                            "status" => _bridge.GetStatus(),
-                            "startBuild" => _bridge.StartBuild(args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 && args[0].GetBoolean()),
-                            "log" => _bridge.GetLog(args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 ? args[0].GetInt32() : 0),
-                            "version" => _bridge.GetVersionConfig(),
-                            "saveVersion" => _bridge.SaveVersionConfig(args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 ? args[0].GetRawText() : "{}"),
-                            "preview" => _bridge.GetPreview(),
-                            "launch" => _bridge.LaunchApp(),
-                            "openFolder" => _bridge.OpenFolder(),
-                            _ => JsonSerializer.Serialize(new { error = "unknown method " + method }),
-                        };
-                        var resp = JsonSerializer.Serialize(new { id, result });
-                        core.PostWebMessageAsJson(resp);
-                    }
-                    catch (Exception ex)
-                    {
-                        UiLog("RPC failed: " + ex.Message);
-                    }
-                };
-                core.NavigationCompleted += (_, e) => UiLog("nav done ok=" + e.IsSuccess + " err=" + e.WebErrorStatus);
-                core.ProcessFailed += (_, e) => UiLog("PROCESS FAILED: " + e.ProcessFailedKind);
-                core.Settings.IsStatusBarEnabled = false;
                 core.SetVirtualHostNameToFolderMapping(
                     "app.local",
                     Path.Combine(AppContext.BaseDirectory, "wwwroot"),
                     CoreWebView2HostResourceAccessKind.Allow);
-                core.AddHostObjectToScript("host", _bridge);
-                core.NewWindowRequested += (_, e) =>
-                {
-                    e.Handled = true;   // แอปเดสก์ท็อป - ไม่เปิดหน้าต่าง CEF ใหม่
-                };
+                core.AddHostObjectToScript("hostLegacy", _bridge);   // สำรอง - SPA หลักใช้ postMessage RPC
+                core.WebMessageReceived += RpcReceived;
                 core.Navigate("https://app.local/index.html");
             }
             catch (Exception ex)
             {
+                UiLog("init failed: " + ex.Message);
                 MessageBox.Show(
                     "WebView2 init failed: " + ex.Message +
                     "\n\nติดตั้ง WebView2 Runtime: https://developer.microsoft.com/microsoft-edge/webview2/",
@@ -124,4 +80,80 @@ public class MainForm : Form
             }
         };
     }
+
+    // ─── postMessage RPC dispatcher ───
+    // JS: chrome.webview.postMessage(JSON.stringify({id, method, args}))
+    // C#: dispatch บน background thread -> ตอบกลับ PostWebMessageAsJson({id, result})
+    private async void RpcReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        JsonElement payload;
+        try
+        {
+            // postMessage(payload): payload ที่เป็น JSON text จะถูก wrap เป็น JSON string
+            // (double-encoded) - decode ชั้นนอกก่อนเสมอ
+            var outer = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+            payload = outer.ValueKind == JsonValueKind.String
+                ? JsonDocument.Parse(outer.GetString()).RootElement
+                : outer;
+        }
+        catch (Exception ex)
+        {
+            UiLog("envelope failed: " + ex.Message);
+            return;
+        }
+
+        // ข้อความธรรมดา (DOM debug ฯลฯ) = ไม่ใช่ RPC - บันทึกแล้วจบ
+        if (payload.ValueKind != JsonValueKind.Object)
+        {
+            UiLog("JS note: " + payload.GetRawText());
+            return;
+        }
+        if (!payload.TryGetProperty("id", out var idEl))
+        {
+            UiLog("JS note: " + payload.GetRawText());
+            return;
+        }
+        var id = idEl.GetString();
+        var method = payload.TryGetProperty("method", out var mEl) ? mEl.GetString() : "";
+        var args = payload.TryGetProperty("args", out var aEl) && aEl.ValueKind == JsonValueKind.Array
+            ? aEl.Clone()
+            : (JsonElement?)default;
+
+        var core = _web.CoreWebView2;
+        await Task.Run(async () =>
+        {
+            try
+            {
+                string result = method switch
+                {
+                    "status" => _bridge.GetStatus(),
+                    "startBuild" => _bridge.StartBuild(ArgsBool(args, 0)),
+                    "log" => _bridge.GetLog(ArgsInt(args, 0)),
+                    "version" => _bridge.GetVersionConfig(),
+                    "saveVersion" => _bridge.SaveVersionConfig(ArgsStr(args, 0)),
+                    "preview" => _bridge.GetPreview(),
+                    "launch" => _bridge.LaunchApp(),
+                    "openFolder" => _bridge.OpenFolder(),
+                    _ => JsonSerializer.Serialize(new { error = "unknown method " + method }),
+                };
+                var resp = JsonSerializer.Serialize(new { id, result });
+                _uiSync.Post(_ => core.PostWebMessageAsJson(resp), null);
+            }
+            catch (Exception ex)
+            {
+                UiLog("RPC '" + method + "' failed: " + ex.Message);
+                var errResp = JsonSerializer.Serialize(new { id, error = ex.Message });
+                _uiSync.Post(_ => core.PostWebMessageAsJson(errResp), null);
+            }
+        });
+    }
+
+    private static bool ArgsBool(JsonElement? args, int idx) =>
+        args.HasValue && args.Value.GetArrayLength() > idx && args.Value[idx].ValueKind == JsonValueKind.True;
+
+    private static int ArgsInt(JsonElement? args, int idx) =>
+        args.HasValue && args.Value.GetArrayLength() > idx ? args.Value[idx].GetInt32() : 0;
+
+    private static string ArgsStr(JsonElement? args, int idx) =>
+        args.HasValue && args.Value.GetArrayLength() > idx ? args.Value[idx].GetRawText() : "{}";
 }

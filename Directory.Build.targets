@@ -81,7 +81,7 @@
     </PropertyGroup>
 
     <PropertyGroup>
-      <_Bl1Version Condition="'$(HardcoreVersion)' != ''">$(HardcoreVersion).$(SharedBuildNumber).61</_Bl1Version>
+      <_Bl1Version Condition="'$(HardcoreVersion)' != ''">$([System.Text.RegularExpressions.Regex]::Replace('$(HardcoreVersion)', '\$build', '$(SharedBuildNumber)'))</_Bl1Version>
       <_Bl1Version Condition="'$(HardcoreVersion)' == ''">3.41.$(SharedBuildNumber).61</_Bl1Version>
       <_Bl1InfoVersion>$(_Bl1Version)</_Bl1InfoVersion>
       <!-- Contract application: only where a project didn't set its own.

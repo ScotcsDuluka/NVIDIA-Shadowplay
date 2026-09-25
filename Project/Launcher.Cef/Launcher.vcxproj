@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launcher.vcxproj - Launcher CEF lane host body.
+  Produces Launcher.dll: CefApp/CefClient, the cefQuery message-router
+  bridge (LAUNCHER_* command namespace), the process supervisor (Main.vb
+  contract port), the loopback UI static server and the state-push
+  pipeline. The root Launcher.exe (Bootstrap project) loads this DLL from
+  NvOverlay\Cef\ — the shared CEF runtime slot of the osc NVIDIA Share.exe
+  lane, so libcef.dll / cef.pak / locales are never duplicated.
+-->
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectName>Launcher</ProjectName>
+    <WindowsTargetPlatformVersion>10.0.26100.0</WindowsTargetPlatformVersion>
+    <ImportDirectoryBuildProps>false</ImportDirectoryBuildProps>
+    <ImportDirectoryBuildTargets>false</ImportDirectoryBuildTargets>
+    <ProjectGuid>{7E4F2A91-6C3D-4B58-9A10-E2F5B8D7C6A3}</ProjectGuid>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <PlatformToolset>v145</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup>
+    <CefSdk Condition="'$(CefSdk)'==''">C:\My Project\cef-sdk\cef73\</CefSdk>
+    <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <TargetName>Launcher</TargetName>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <WarningLevel>Level4</WarningLevel>
+      <TreatWarningAsError>false</TreatWarningAsError>
+      <DisableSpecificWarnings>4100;4127;4244;4481;4512;4701;4702;4996</DisableSpecificWarnings>
+      <AdditionalIncludeDirectories>$(CefSdk);$(ProjectDir)src</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_WIN32;_WINDOWS;UNICODE;_UNICODE;WINVER=0x0601;_WIN32_WINNT=0x601;NOMINMAX;WIN32_LEAN_AND_MEAN;_HAS_EXCEPTIONS=0;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>false</ExceptionHandling>
+      <RuntimeTypeInfo>false</RuntimeTypeInfo>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <StringPooling>true</StringPooling>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Release'">MultiThreaded</RuntimeLibrary>
+      <RuntimeLibrary Condition="'$(Configuration)'=='Debug'">MultiThreadedDebug</RuntimeLibrary>
+      <Optimization Condition="'$(Configuration)'=='Release'">MaxSpeed</Optimization>
+      <InlineFunctionExpansion Condition="'$(Configuration)'=='Release'">AnySuitable</InlineFunctionExpansion>
+      <PreprocessorDefinitions Condition="'$(Configuration)'=='Release'">NDEBUG;_NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization Condition="'$(Configuration)'=='Debug'">Disabled</Optimization>
+      <BasicRuntimeChecks Condition="'$(Configuration)'=='Debug'">EnableFastChecks</BasicRuntimeChecks>
+    </ClCompile>
+    <Link>
+      <AdditionalLibraryDirectories>"$(CefSdk)Release";%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libcef.lib;comctl32.lib;rpcrt4.lib;shlwapi.lib;ws2_32.lib;user32.lib;gdi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\NvOverlay\Cef\libcef_dll_wrapper.vcxproj">
+      <Project>{A1B2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\launcher_main.cpp" />
+    <ClCompile Include="src\launcher_app.cpp" />
+    <ClCompile Include="src\launcher_client.cpp" />
+    <ClCompile Include="src\launcher_query_handler.cpp" />
+    <ClCompile Include="src\launcher_supervisor.cpp" />
+    <ClCompile Include="src\launcher_http_server.cpp" />
+    <ClCompile Include="src\launcher_win.cpp" />
+    <ClCompile Include="src\launcher_util.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\launcher_app.h" />
+    <ClInclude Include="src\launcher_client.h" />
+    <ClInclude Include="src\launcher_query_handler.h" />
+    <ClInclude Include="src\launcher_supervisor.h" />
+    <ClInclude Include="src\launcher_http_server.h" />
+    <ClInclude Include="src\launcher_win.h" />
+    <ClInclude Include="src\launcher_util.h" />
+    <ClInclude Include="src\launcher_script.h" />
+    <ClInclude Include="src\launcher_main.h" />
+    <ClInclude Include="src\launcher_json.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="src\version.rc" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

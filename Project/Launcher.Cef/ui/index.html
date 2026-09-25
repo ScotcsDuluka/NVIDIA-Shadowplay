@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<title>NVIDIA ShadowPlay</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+  <!-- Title bar: whole area drags the borderless host window (buttons excluded) -->
+  <header id="titlebar">
+    <div class="brand">
+      <svg class="eye" viewBox="0 0 48 34" aria-hidden="true">
+        <path fill="#76b900" d="M24 33.6 5.1 24.4 0 0l15.9 11.2L24 0l8.1 11.2L48 0l-5.1 24.4L24 33.6Zm0-4.6 14.6-7.1L42 7.4 30.2 15 24 6.3 17.8 15 6 7.4l3.4 14.5L24 29Z"/>
+      </svg>
+      <span class="brand-name">NVIDIA <b>SHADOWPLAY</b></span>
+      <span class="brand-chip">LAUNCHER</span>
+    </div>
+    <div class="winbtns">
+      <button id="btnMin" class="winbtn" title="Minimize" aria-label="Minimize">
+        <svg viewBox="0 0 12 12"><path d="M1 6h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+      <button id="btnClose" class="winbtn winbtn-close" title="Close" aria-label="Close">
+        <svg viewBox="0 0 12 12"><path d="M2 2l8 8M10 2l-8 8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero card">
+      <div class="accent-bar"></div>
+      <div class="hero-tag">GAME RECORDING SUITE</div>
+      <h1 class="hero-title">NVIDIA <span>ShadowPlay</span></h1>
+      <p class="hero-desc">
+        Capture, record and share your greatest gaming moments.
+        The launcher supervises the capture family and the overlay
+        lanes&thinsp;&mdash;&thinsp;everything on this page is live system state.
+      </p>
+      <div class="hero-art" aria-hidden="true">
+        <div class="orbit"><div class="rec-dot"></div></div>
+        <div class="halo"></div>
+      </div>
+      <div class="hero-meta">
+        <span class="meta-chip" id="chipEngine">ENGINE LANE</span>
+        <span class="meta-chip" id="chipCef">CEF LANE</span>
+        <span class="meta-chip" id="chipHub">API HUB</span>
+      </div>
+    </section>
+
+    <!-- Services + Features -->
+    <section class="side">
+      <div class="card">
+        <div class="card-title">SERVICES</div>
+        <ul class="svc">
+          <li>
+            <span class="dot" id="dotOverlay"></span>
+            <div class="svc-text">
+              <div class="svc-name">OVERLAY API</div>
+              <div class="svc-state" id="stateOverlay">STOPPED</div>
+            </div>
+          </li>
+          <li>
+            <span class="dot" id="dotNotifier"></span>
+            <div class="svc-text">
+              <div class="svc-name">NOTIFIER API</div>
+              <div class="svc-state" id="stateNotifier">STOPPED</div>
+            </div>
+          </li>
+          <li>
+            <span class="dot" id="dotNvApi"></span>
+            <div class="svc-text">
+              <div class="svc-name">NVIDIA API</div>
+              <div class="svc-state" id="stateNvApi">STOPPED</div>
+            </div>
+          </li>
+        </ul>
+        <div class="svc-divider"></div>
+        <button id="btnOpenOverlay" class="btn btn-primary">OPEN OVERLAY</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">FEATURES</div>
+        <label class="feat">
+          <div class="feat-text">
+            <div class="feat-name">OVERLAY ENABLED</div>
+            <div class="feat-desc">Hub keeps the overlay stack alive</div>
+          </div>
+          <span class="toggle" id="tglOverlay" role="switch" aria-checked="false" tabindex="0"></span>
+        </label>
+        <label class="feat">
+          <div class="feat-text">
+            <div class="feat-name">ENGINE OVERLAY</div>
+            <div class="feat-desc">CEF chain: Container &rarr; Web Helper &rarr; Share</div>
+          </div>
+          <span class="toggle" id="tglEngine" role="switch" aria-checked="false" tabindex="0"></span>
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <div class="foot-left">
+      <span class="ver" id="verTag">v3.41 &middot; CEF 73</span>
+      <span class="bridge" id="bridgeState"></span>
+    </div>
+    <div class="foot-right">
+      <button id="btnObt3" class="btn btn-ghost">OBT3</button>
+      <button id="btnExit" class="btn btn-danger">EXIT ALL</button>
+    </div>
+  </footer>
+
+<script src="app.js"></script>
+</body>
+</html>

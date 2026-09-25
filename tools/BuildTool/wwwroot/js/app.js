@@ -152,9 +152,7 @@ function pollLog() {
 /* ── Version ── */
 views.version = async function () {
   const c = await versionCfg();
-  const sampleText = c.hardcore
-    ? c.version + "." + c.buildNo + ".61"
-    : "3.41." + c.buildNo + ".61 (unlock)";
+  const sampleText = String(c.version).replace("$build", c.buildNo);
   $("#main").innerHTML = `
     <h1>Version (Hardcore)</h1>
     <div class="sub">บังคับเวอร์ชันเดียวกันทุกโปรเจค — BuildVer นับปกติทุก build</div>
@@ -188,9 +186,8 @@ views.version = async function () {
       <input type="text" id="vCopyright" value="${esc(c.copyright)}">
     </div>`;
   const sample = () => {
-    const on = $("#hc").checked;
     const v = $("#vVersion").value.trim() || "3.41";
-    $("#vSample").textContent = on ? `${v}.${c.buildNo}.61` : `3.41.${c.buildNo}.61 (unlock)`;
+    $("#vSample").textContent = v.replace("$build", c.buildNo);
   };
   $("#hc").onchange = () => { sample(); };
   $("#vVersion").oninput = sample;

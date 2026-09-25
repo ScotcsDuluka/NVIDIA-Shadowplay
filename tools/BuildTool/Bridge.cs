@@ -318,6 +318,7 @@ public class Bridge
                 WorkingDirectory = _root,
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
+                CreateNoWindow = true,
             };
             using var p = Process.Start(psi);
             var outp = p.StandardOutput.ReadToEnd().Trim();
