@@ -139,10 +139,10 @@ function pollLog() {
       box.textContent += r.lines.join("\n") + "\n";
       box.scrollTop = box.scrollHeight;
     }
-    $("#bstate").textContent = r.running ? "กำลัง build (BuildVer จะ +1 เมื่อสำเร็จ)..." : "พร้อม";
+    const st = $("#bstate"); if (st) st.textContent = r.running ? "กำลัง build (BuildVer จะ +1 เมื่อสำเร็จ)..." : "พร้อม";
     if (!r.running) {
       $("#btnBuild").disabled = $("#btnClean").disabled = false;
-      if (r.exit === 0) $("#bstate").textContent = "BUILD OK — BuildVer " + (JSON.parse(await bridge().GetStatus()).buildNo);
+      if (r.exit === 0) { const st2 = $("#bstate"); if (st2) st2.textContent = "BUILD OK — BuildVer " + (JSON.parse(await bridge().GetStatus()).buildNo); }
       clearInterval(buildTimer);
       refreshSide();
     }

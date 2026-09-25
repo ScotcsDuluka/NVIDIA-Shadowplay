@@ -59,17 +59,19 @@ public class MainForm : Form
                     {
                         // postMessage(string) arrives DOUBLE-ENCODED as a JSON string
                         var outer = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
-                        var rootEl = outer.ValueKind == JsonValueKind.String
-                            ? JsonDocument.Parse(outer.GetString()).RootElement
-                            : outer;
-                        if (rootEl.ValueKind != JsonValueKind.Object || !rootEl.TryGetProperty("id", out var idEl))
+                        if (outer.ValueKind == JsonValueKind.String)
+                        {
+                            UiLog("JS: " + outer.GetString());
+                            return;
+                        }
+                        if (outer.ValueKind != JsonValueKind.Object || !outer.TryGetProperty("id", out var idEl))
                         {
                             UiLog("JS: " + e.WebMessageAsJson);
                             return;
                         }
                         var id = idEl.GetString();
-                        var method = rootEl.TryGetProperty("method", out var mEl) ? mEl.GetString() : "";
-                        var args = rootEl.TryGetProperty("args", out var aEl) && aEl.ValueKind == JsonValueKind.Array ? aEl : default;
+                        var method = outer.TryGetProperty("method", out var mEl) ? mEl.GetString() : "";
+                        var args = outer.TryGetProperty("args", out var aEl) && aEl.ValueKind == JsonValueKind.Array ? aEl : default;
 
                         string result = method switch
                         {
