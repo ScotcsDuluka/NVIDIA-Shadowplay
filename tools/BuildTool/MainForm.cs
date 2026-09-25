@@ -46,8 +46,13 @@ public class MainForm : Form
         {
             try
             {
+                var envOpts = new CoreWebView2EnvironmentOptions();
+                // GPU ของเครื่องนี้ render WebView2 เป็นดำ (เหมือน CEF เดิม) - บังคับ software rendering
+                envOpts.AdditionalBrowserArguments = "--disable-gpu";
                 var env = await CoreWebView2Environment.CreateAsync(
-                    userDataFolder: Path.Combine(root, "Build", "Build-Config", "webview2"));
+                    browserExecutableFolder: null,
+                    userDataFolder: Path.Combine(root, "Build", "Build-Config", "webview2"),
+                    options: envOpts);
                 await _web.EnsureCoreWebView2Async(env);
 
                 var core = _web.CoreWebView2;
@@ -59,19 +64,20 @@ public class MainForm : Form
                     {
                         // postMessage(string) arrives DOUBLE-ENCODED as a JSON string
                         var outer = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        JsonElement payload = outer;
                         if (outer.ValueKind == JsonValueKind.String)
                         {
                             UiLog("JS: " + outer.GetString());
-                            return;
+                            payload = JsonDocument.Parse(outer.GetString()).RootElement;
                         }
-                        if (outer.ValueKind != JsonValueKind.Object || !outer.TryGetProperty("id", out var idEl))
+                        if (payload.ValueKind != JsonValueKind.Object || !payload.TryGetProperty("id", out var idEl))
                         {
-                            UiLog("JS: " + e.WebMessageAsJson);
+                            UiLog("JS(raw): " + e.WebMessageAsJson);
                             return;
                         }
                         var id = idEl.GetString();
-                        var method = outer.TryGetProperty("method", out var mEl) ? mEl.GetString() : "";
-                        var args = outer.TryGetProperty("args", out var aEl) && aEl.ValueKind == JsonValueKind.Array ? aEl : default;
+                        var method = payload.TryGetProperty("method", out var mEl) ? mEl.GetString() : "";
+                        var args = payload.TryGetProperty("args", out var aEl) && aEl.ValueKind == JsonValueKind.Array ? aEl : default;
 
                         string result = method switch
                         {
