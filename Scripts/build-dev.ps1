@@ -24,13 +24,26 @@ $LayoutFile  = Join-Path $ConfigRoot 'dev-layout.json'
 if (-not (Test-Path -LiteralPath $Solution)) { throw "Canonical solution missing: $Solution" }
 if (-not (Test-Path -LiteralPath $LayoutFile)) { throw "Layout config missing: $LayoutFile" }
 
+# CEF C++ lane needs BOTH the CEF SDK and the VS C++ workload. Until the SDK
+# is transferred (handoff §5), build the no-CEF solution filter instead of
+# failing on the three vcxproj — the CEF owner stages as PENDING either way.
+$SolutionToBuild = $Solution
+$NoCefFilter = Join-Path $ProjectRoot 'NVIDIA ShadowPlay Dev (no CEF).slnf'
+if (-not (Test-Path -LiteralPath 'C:\My Project\cef-sdk\cef73')) {
+    if (Test-Path -LiteralPath $NoCefFilter) { $SolutionToBuild = $NoCefFilter }
+    else { throw 'CEF SDK missing and no-CEF solution filter missing: ' + $NoCefFilter }
+}
+
 $Layout = Get-Content -LiteralPath $LayoutFile -Raw | ConvertFrom-Json
 
 $msbuildCandidates = @(
     'C:\Visual Studio\MSBuild\Current\Bin\MSBuild.exe',
     'C:\Program Files\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe',
     'C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe',
-    'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe'
+    'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe',
+    'C:\Program Files\Microsoft Visual Studio\18\BuildTools\MSBuild\Current\Bin\MSBuild.exe',
+    'C:\Program Files\Microsoft Visual Studio\18\Professional\MSBuild\Current\Bin\MSBuild.exe',
+    'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe'
 )
 $MSBuild = $msbuildCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
 if (-not $MSBuild) { throw 'MSBuild.exe not found' }
@@ -96,16 +109,17 @@ Ensure-Dir $BuildRoot
 Ensure-Dir $ConfigRoot
 
 Write-Host '=== NVIDIA SHADOWPLAY DEV BUILD ===' -ForegroundColor Cyan
-Write-Host "Solution : $Solution"
+Write-Host "Solution : $SolutionToBuild"
+if ($SolutionToBuild -ne $Solution) { Write-Host '(CEF SDK absent — no-CEF filter: C++ CEF lane deferred)' -ForegroundColor Yellow }
 Write-Host "Output   : $BuildRoot"
 Write-Host "Layout   : $LayoutFile"
 
 Write-Host '== Restore ==' -ForegroundColor Cyan
-& $MSBuild $Solution /t:Restore /p:Configuration=$Configuration /m:1 /nr:false /v:minimal /nologo
+& $MSBuild $SolutionToBuild /t:Restore /p:Configuration=$Configuration /m:1 /nr:false /v:minimal /nologo
 if ($LASTEXITCODE -ne 0) { throw "RESTORE FAILED (exit $LASTEXITCODE)" }
 
 Write-Host '== Build ==' -ForegroundColor Cyan
-& $MSBuild $Solution /t:Build /p:Configuration=$Configuration /m:1 /nr:false /v:minimal /nologo
+& $MSBuild $SolutionToBuild /t:Build /p:Configuration=$Configuration /m:1 /nr:false /v:minimal /nologo
 if ($LASTEXITCODE -ne 0) { throw "DEV BUILD FAILED (exit $LASTEXITCODE)" }
 
 # Root layout directories are created from the layout specification.
@@ -386,7 +400,7 @@ Write-Host "OWNER DEDUPE: pruned $pruned duplicate binary file(s)." -ForegroundC
 $manifest = [ordered]@{
     buildUtc = [DateTime]::UtcNow.ToString('o')
     configuration = $Configuration
-    solution = 'Project/NVIDIA ShadowPlay.sln'
+    solution = if ($SolutionToBuild -ne $Solution) { 'Project/NVIDIA ShadowPlay Dev (no CEF).slnf' } else { 'Project/NVIDIA ShadowPlay.sln' }
     output = 'Build/NVIDIA ShadowPlay'
     layout = 'Build/Build-Config/dev-layout.json'
     protectedReferences = @('IDK This is/dist','IDK This is/deploy')
