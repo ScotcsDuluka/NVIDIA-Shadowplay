@@ -2766,3 +2766,28 @@ WS_EX_LAYERED bit is removed once opaque so CEF GPU compositing is never
 layered). CEF usage is real: browser process + --type= subprocesses of
 the root Launcher.exe, page served over loopback HTTP, shared libcef.dll
 in NvOverlay\Cef.
+
+FIX 2026-09-25 (owner: "กดอะไรไม่ได้เลย" — window froze): the caption
+strip after an animated restore ran SetWindowPos(SWP_FRAMECHANGED)
+SYNCHRONOUSLY inside WM_SIZE(SIZE_RESTORED) — the frame change re-entered
+WM_SIZE and starved the message pump (whole window unclickable, owner
+killed it via Task Manager). Fix: WM_SIZE now only SetTimer(2, 350ms);
+the strip runs in WM_TIMER after the restore animation, guarded by a
+caption-present check; Minimize() cancels the pending timer when
+re-minimizing. Post-fix restore verified responding=True, no re-entry.
+Animation contract now: open = 160ms layered fade; minimize/close borrow
+WS_CAPTION for the DWM animation, dropped after restore. Note:
+bl1_version.h (Build-Config bl1-cpp.targets, prefix LAUNCHER) must exist
+in src\ before RC — regenerated per build by the owner's build system.
+
+FIX 2026-09-25 (owner: "กดได้แต่ไม่ทำงาน" — buttons dead): the owner
+edits ui\index.html themselves (trimmed hero chips/tech-info/bridge/
+version, renamed service labels + mode title to ENGINE TYPE). app.js
+dereferenced removed elements — `bridgeState` first: null.textContent at
+load threw and detached EVERY button handler (page renders, buttons
+dead). Fix: app.js fully null-safe ($) + guarded `on()` attach helper +
+per-section render guards — any element may now be removed/renamed
+without killing the rest. Verified: minimize click reaches the host
+("borrow caption frame" in launcher-cef.log). NOTE for future agents:
+ui\index.html is owner-editable — never re-add removed elements or
+assume IDs exist; keep app.js guard-based.

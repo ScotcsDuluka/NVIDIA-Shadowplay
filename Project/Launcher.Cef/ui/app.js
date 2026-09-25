@@ -2,13 +2,20 @@
    RPC: window.cefQuery (the osc page contract) carrying JSON requests,
    LAUNCHER_* command namespace. State arrives two ways:
      - host push: window.__LauncherState(stateObject)  (1s supervisor poll)
-     - pull: LAUNCHER_GET_STATE every 2s (fallback when pushes stall)   */
+     - pull: LAUNCHER_GET_STATE every 2s (fallback when pushes stall)
+
+   NULL-SAFE BY CONTRACT: the HTML is owner-editable (elements may be
+   removed/renamed freely). Every lookup and every handler attach is
+   guarded — a missing element must degrade that one feature, never kill
+   the script (a single throw at load detaches EVERY button). */
 (function () {
   'use strict';
 
+  function $(id) { return document.getElementById(id); }
+
   // ── RPC bridge ──────────────────────────────────────────────────────
   var bridgeUp = typeof window.cefQuery === 'function';
-  var bridgeTag = document.getElementById('bridgeState');
+  var bridgeTag = $('bridgeState');
 
   function rpc(command, extra) {
     return new Promise(function (resolve, reject) {
@@ -27,37 +34,45 @@
       });
     });
   }
-  if (!bridgeUp) {
-    bridgeTag.textContent = 'BRIDGE OFFLINE';
-    bridgeTag.className = 'bridge off';
-  } else {
-    bridgeTag.textContent = 'BRIDGE LIVE';
+  if (bridgeTag) {
+    if (!bridgeUp) {
+      bridgeTag.textContent = 'BRIDGE OFFLINE';
+      bridgeTag.className = 'bridge off';
+    } else {
+      bridgeTag.textContent = 'BRIDGE LIVE';
+    }
   }
 
-  // ── Elements ────────────────────────────────────────────────────────
+  // ── Elements (any may be absent) ────────────────────────────────────
   var el = {
-    dotOverlay: document.getElementById('dotOverlay'),
-    dotNotifier: document.getElementById('dotNotifier'),
-    dotNvApi: document.getElementById('dotNvApi'),
-    stateOverlay: document.getElementById('stateOverlay'),
-    stateNotifier: document.getElementById('stateNotifier'),
-    stateNvApi: document.getElementById('stateNvApi'),
-    chipEngine: document.getElementById('chipEngine'),
-    chipCef: document.getElementById('chipCef'),
-    chipHub: document.getElementById('chipHub'),
-    tglOverlay: document.getElementById('tglOverlay'),
-    tglEngine: document.getElementById('tglEngine'),
-    lblWinform: document.getElementById('lblWinform'),
-    lblCef: document.getElementById('lblCef'),
-    modeDesc: document.getElementById('modeDesc'),
-    btnOpenOverlay: document.getElementById('btnOpenOverlay'),
-    btnObt3: document.getElementById('btnObt3'),
-    btnExit: document.getElementById('btnExit'),
-    btnMin: document.getElementById('btnMin'),
-    btnClose: document.getElementById('btnClose')
+    dotOverlay: $('dotOverlay'),
+    dotNotifier: $('dotNotifier'),
+    dotNvApi: $('dotNvApi'),
+    stateOverlay: $('stateOverlay'),
+    stateNotifier: $('stateNotifier'),
+    stateNvApi: $('stateNvApi'),
+    chipEngine: $('chipEngine'),
+    chipCef: $('chipCef'),
+    chipHub: $('chipHub'),
+    tglOverlay: $('tglOverlay'),
+    tglEngine: $('tglEngine'),
+    lblWinform: $('lblWinform'),
+    lblCef: $('lblCef'),
+    modeDesc: $('modeDesc'),
+    btnOpenOverlay: $('btnOpenOverlay'),
+    btnObt3: $('btnObt3'),
+    btnExit: $('btnExit'),
+    btnMin: $('btnMin'),
+    btnClose: $('btnClose')
   };
 
+  // Guarded event attach: a missing element skips silently.
+  function on(node, ev, fn) {
+    if (node) node.addEventListener(ev, fn);
+  }
+
   function setDot(dot, stateEl, cls, label) {
+    if (!dot) return;
     dot.className = 'dot' + (cls ? ' ' + cls : '');
     if (stateEl) stateEl.textContent = label;
   }
@@ -84,16 +99,16 @@
       (s.nvApi && s.nvApi.running) ? 'RUNNING' : 'STOPPED');
 
     var lanes = s.lanes || {};
-    el.chipEngine.className = 'lane-chip' + (lanes.container ? ' on' : '');
-    el.chipCef.className = 'lane-chip' + (lanes.cefOverlay ? ' on' : '');
-    el.chipHub.className = 'lane-chip' + ((s.nvApi && s.nvApi.running) ? ' on' : '');
+    if (el.chipEngine) el.chipEngine.className = 'lane-chip' + (lanes.container ? ' on' : '');
+    if (el.chipCef) el.chipCef.className = 'lane-chip' + (lanes.cefOverlay ? ' on' : '');
+    if (el.chipHub) el.chipHub.className = 'lane-chip' + ((s.nvApi && s.nvApi.running) ? ' on' : '');
 
     syncToggle(el.tglOverlay, s.overlayEnabled);
     syncMode(!!s.engineOverlay);
   }
 
   function syncToggle(t, on) {
-    if (typeof on !== 'boolean') return;
+    if (!t || typeof on !== 'boolean') return;
     if (t.dataset.userHold === '1') {
       // User just interacted; the authoritative 1s push re-syncs later.
       if (t.dataset.pending === String(on)) t.dataset.userHold = '';
@@ -106,6 +121,7 @@
 
   // Overlay Mode switch: false = WINFORM lane, true = CEF lane.
   function syncMode(cef) {
+    if (!el.tglEngine) return;
     if (el.tglEngine.dataset.userHold === '1') {
       if (el.tglEngine.dataset.pending === String(cef)) el.tglEngine.dataset.userHold = '';
       return;
@@ -117,11 +133,13 @@
   function applyMode(cef) {
     el.tglEngine.classList.toggle('cef', cef);
     el.tglEngine.setAttribute('aria-checked', cef ? 'true' : 'false');
-    el.lblWinform.classList.toggle('active', !cef);
-    el.lblCef.classList.toggle('active', cef);
-    el.modeDesc.textContent = cef
-      ? 'CEF chain: Container \u2192 Web Helper \u2192 Share (:59001)'
-      : 'WinForm family \u2014 hub-managed overlay';
+    if (el.lblWinform) el.lblWinform.classList.toggle('active', !cef);
+    if (el.lblCef) el.lblCef.classList.toggle('active', cef);
+    if (el.modeDesc) {
+      el.modeDesc.textContent = cef
+        ? 'CEF chain: Container \u2192 Web Helper \u2192 Share (:59001)'
+        : 'WinForm family \u2014 hub-managed overlay';
+    }
   }
 
   // ── Host push (launcher_script.h augmentation) ──────────────────────
@@ -133,7 +151,7 @@
   setInterval(pull, 2000);
 
   // ── Toggles (user action only — config.json is the source of truth) ─
-  el.tglOverlay.addEventListener('click', function () {
+  on(el.tglOverlay, 'click', function () {
     var on = !this.classList.contains('on');
     this.dataset.userHold = '1';
     this.dataset.pending = String(on);
@@ -149,20 +167,20 @@
     applyMode(cef);
     rpc('LAUNCHER_SET_ENGINE_OVERLAY', { value: cef }).catch(function () {});
   }
-  el.tglEngine.addEventListener('click', function () {
+  on(el.tglEngine, 'click', function () {
     setMode(!this.classList.contains('cef'));
   });
-  el.lblWinform.addEventListener('click', function () {
+  on(el.lblWinform, 'click', function () {
     if (!el.tglEngine.classList.contains('cef')) return;  // already WINFORM
     setMode(false);
   });
-  el.lblCef.addEventListener('click', function () {
+  on(el.lblCef, 'click', function () {
     if (el.tglEngine.classList.contains('cef')) return;  // already CEF
     setMode(true);
   });
 
   // ── Buttons ─────────────────────────────────────────────────────────
-  el.btnOpenOverlay.addEventListener('click', function () {
+  on(el.btnOpenOverlay, 'click', function () {
     var b = this;
     rpc('LAUNCHER_OPEN_OVERLAY').then(function (r) {
       var ok = r && r.ok;
@@ -172,14 +190,14 @@
     }).catch(function () {});
   });
 
-  el.btnObt3.addEventListener('click', function () {
+  on(el.btnObt3, 'click', function () {
     rpc('LAUNCHER_OPEN_OBT3').catch(function () {});
   });
 
   // EXIT ALL is armed by a first click (old RadioButton2 kills the whole
   // family — a single accidental click must not do that).
   var exitArm = null;
-  el.btnExit.addEventListener('click', function () {
+  on(el.btnExit, 'click', function () {
     var b = this;
     if (b.classList.contains('armed')) {
       clearTimeout(exitArm);
@@ -196,17 +214,20 @@
     }, 3000);
   });
 
-  el.btnMin.addEventListener('click', function () {
+  on(el.btnMin, 'click', function () {
     rpc('LAUNCHER_MINIMIZE').catch(function () {});
   });
-  el.btnClose.addEventListener('click', function () {
+  on(el.btnClose, 'click', function () {
     rpc('LAUNCHER_CLOSE').catch(function () {});
   });
 
   // ── Window drag (titlebar mousedown, buttons excluded) ──────────────
-  document.getElementById('titlebar').addEventListener('mousedown', function (e) {
-    if (e.button !== 0) return;
-    if (e.target.closest && e.target.closest('button')) return;
-    rpc('LAUNCHER_DRAG').catch(function () {});
-  });
+  var titlebar = $('titlebar');
+  if (titlebar) {
+    titlebar.addEventListener('mousedown', function (e) {
+      if (e.button !== 0) return;
+      if (e.target.closest && e.target.closest('button')) return;
+      rpc('LAUNCHER_DRAG').catch(function () {});
+    });
+  }
 })();
