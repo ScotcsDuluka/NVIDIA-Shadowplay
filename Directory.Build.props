@@ -35,6 +35,18 @@
     <SharedBuildNumberFile Condition="'$(SharedBuildNumberFile)' == ''">$(MSBuildThisFileDirectory)Build\Build-Config\build.txt</SharedBuildNumberFile>
     <SharedBuildNumber Condition="'$(SharedBuildNumber)' == ''">0</SharedBuildNumber>
     <GitShaFile Condition="'$(GitShaFile)' == ''">$(MSBuildThisFileDirectory)obj\bl1-commit.txt</GitShaFile>
+
   </PropertyGroup>
+
+  <!-- ============================================================================
+       Hardcore version + identity (owner 2026-09-25)
+       Build.exe (UI) writes version.props from version.json - force version
+       on every assembly when Hardcore ON (unlock = no HardcoreVersion here).
+       ============================================================================ -->
+  <PropertyGroup>
+    <HardcoreVersion Condition="'$(HardcoreVersion)' == ''"></HardcoreVersion>
+  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)Build\Build-Config\version.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Build\Build-Config\version.props')" />
 
 </Project>

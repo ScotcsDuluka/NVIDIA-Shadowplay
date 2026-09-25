@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
 
   <!-- ============================================================================
        Directory.Build.targets — owner-tree build support.
@@ -81,7 +81,8 @@
     </PropertyGroup>
 
     <PropertyGroup>
-      <_Bl1Version>3.41.$(SharedBuildNumber).61</_Bl1Version>
+      <_Bl1Version Condition="'$(HardcoreVersion)' != ''">$(HardcoreVersion).$(SharedBuildNumber).61</_Bl1Version>
+      <_Bl1Version Condition="'$(HardcoreVersion)' == ''">3.41.$(SharedBuildNumber).61</_Bl1Version>
       <_Bl1InfoVersion>$(_Bl1Version)</_Bl1InfoVersion>
       <!-- Contract application: only where a project didn't set its own.
            Overlay's IncrementBuild re-sets FileVersion/InformationalVersion
