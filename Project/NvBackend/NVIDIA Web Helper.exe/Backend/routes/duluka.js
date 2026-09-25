@@ -90,9 +90,17 @@ module.exports = function dulukaRoutes(app, ctx) {
     app.get('/Account/v.1.0/UserToken', function (req, res) {
         const a = account();
         if (!a.loggedIn || !a.token) {
-            res.status(401).json({
-                type: 'Error', code: '401', codeText: 'NotLoggedIn',
-                message: 'Duluka account not logged in'
+            // Guest-mode parity shim (2026-09-25, CDP-verified on the Intel
+            // machine): the osc boot resolve (main/resolve/hardwareInfo)
+            // hard-requires a user id from this token — answering 401 makes
+            // the uiRouter resolve reject and the #/base ui-view stays EMPTY
+            // (the "black screen": container 1920x1080, zero children).
+            // A deterministic guest token lets the page boot; a real Duluka
+            // login still takes precedence below.
+            res.status(200).json({
+                token: 'guest-standalone',
+                user: { name: 'Guest', guest: true },
+                provider: 'guest'
             });
             return;
         }

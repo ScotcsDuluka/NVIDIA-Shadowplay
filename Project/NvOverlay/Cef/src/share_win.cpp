@@ -152,10 +152,11 @@ HWND CreateHostWindow(HINSTANCE hinstance, bool show, int width, int height,
   wc.hIcon = LoadIconW(hinstance, MAKEINTRESOURCEW(IDI_ICON1));
   wc.hIconSm = LoadIconW(hinstance, MAKEINTRESOURCEW(IDI_ICON1));
   wc.hCursor = LoadCursor(NULL, IDC_ARROW);
-  // No class background brush: the white COLOR_WINDOW fill is what flashed
-  // through before CEF attached its child view. CEF paints its own
-  // background (settings.background_color, black) once initialized.
-  wc.hbrBackground = NULL;
+  // Dark brush instead of COLOR_WINDOW/NULL: the Launcher.Cef lane adopted
+  // this first ("Share lane lesson") — with no brush the pre-CEF surface is
+  // undefined garbage that reads as a giant black box until the child view
+  // paints its first frame.
+  wc.hbrBackground = CreateSolidBrush(RGB(0x16, 0x17, 0x19));
   wc.lpszClassName = kHostWindowClass;
   RegisterClassExW(&wc);
 

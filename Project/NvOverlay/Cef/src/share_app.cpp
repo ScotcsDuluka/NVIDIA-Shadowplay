@@ -32,6 +32,12 @@ void ShareApp::OnBeforeCommandLineProcessing(
     command_line->AppendSwitch("disable-gpu");
     shareproof::LogLine("nv-gpu-accel=false -> --disable-gpu");
   }
+  // The osc page loads from file:// (genuine Share.exe model — the backend
+  // is API-only) and pulls its templates + l10n JSON via XHR relative to
+  // that file origin. Chromium blocks file:// XHR by default, which left
+  // the ui-view container empty (full-size, zero content) — the "black
+  // screen". The genuine host runs with file access allowed.
+  command_line->AppendSwitch("allow-file-access-from-files");
 }
 
 void ShareApp::OnContextInitialized() {
@@ -63,7 +69,14 @@ void ShareApp::OnContextInitialized() {
   });
 
   CefWindowInfo info;
-  RECT bounds = {0, 0, 1280, 800};
+  // Child bounds MUST match the host window's actual client area — the
+  // host is a full-screen overlay (CreateHostWindow overrides the passed
+  // width/height with SM_CXSCREEN/SM_CYSCREEN), so a hardcoded 1280x800
+  // child left the rest of the overlay window unpainted.
+  RECT bounds;
+  if (!GetClientRect(hwnd, &bounds)) {
+    bounds = RECT{0, 0, 1280, 800};
+  }
   info.SetAsChild(hwnd, bounds);
   CefBrowserSettings settings;
   CefBrowserHost::CreateBrowser(info, client.get(), params->url, settings,

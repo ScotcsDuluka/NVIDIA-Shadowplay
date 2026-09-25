@@ -92,6 +92,56 @@ bool PortAlive(unsigned port) {
   return alive;
 }
 
+// Minimal HTTP GET: does <path> answer 200 on this loopback origin? Used to
+// tell OUR backend (serves the osc bundle same-origin, /index.html -> 200)
+// from the GENUINE Web Helper (API-only — every static path 404s; verified
+// via CDP 2026-09-25, docs/osc/25).
+bool HttpPathOk(unsigned port, const std::string& path) {
+  WSADATA wsa;
+  if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) return false;
+  bool ok = false;
+  SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (s != INVALID_SOCKET) {
+    sockaddr_in a{};
+    a.sin_family = AF_INET;
+    a.sin_port = htons(static_cast<u_short>(port));
+    a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    if (connect(s, reinterpret_cast<sockaddr*>(&a), sizeof(a)) == 0) {
+      std::string req = "GET " + path + " HTTP/1.0\r\n"
+                        "Host: 127.0.0.1\r\nConnection: close\r\n\r\n";
+      if (send(s, req.c_str(), (int)req.size(), 0) > 0) {
+        char buf[512] = {};
+        int n = recv(s, buf, sizeof(buf) - 1, 0);
+        if (n > 0) {
+          buf[n] = 0;
+          ok = strncmp(buf, "HTTP/1.", 7) == 0 &&
+               strstr(buf, " 200 ") != NULL;
+        }
+      }
+    }
+    closesocket(s);
+  }
+  WSACleanup();
+  return ok;
+}
+
+// file:/// URL for a local path (spaces percent-encoded — "NVIDIA ShadowPlay"
+// and "My Project" both contain them).
+std::string FileUrl(const std::wstring& path) {
+  std::string u = sharewin::WideToUtf8(path);
+  for (size_t i = 0; i < u.size(); ++i) {
+    if (u[i] == '\\') u[i] = '/';
+  }
+  std::string enc;
+  enc.reserve(u.size() + 8);
+  for (size_t i = 0; i < u.size(); ++i) {
+    unsigned char c = static_cast<unsigned char>(u[i]);
+    if (c == ' ') enc += "%20";
+    else enc += static_cast<char>(c);
+  }
+  return "file:///" + enc;
+}
+
 }  // namespace
 
 ShareLaunchParams* GetLaunchParams() { return Params(); }
@@ -218,8 +268,12 @@ int NvShareCefMain(void) {
                        std::to_string(HostCtx()->secret.size()));
   shareproof::SetField("oscRoot", sharejson::Escape(osc_root));
 
-  // URL: --url= override; else backend origin when --backend-port is set,
-  // else the nv-url-relative basename on our own static server.
+  // URL: --url= override; else the backend origin when --backend-port is
+  // set — BUT only if that backend actually serves the osc bundle (our
+  // NvBackend does, /index.html -> 200). The GENUINE Web Helper is API-only
+  // (every static path 404s — the original black screen), so fall back to
+  // the genuine Share.exe model: file://<exeDir>/<nv-url-relative>, which
+  // CDP-proven boots the full osc UI (docs/osc/25).
   if (cl->HasSwitch("url")) {
     params->url = cl->GetSwitchValue("url").ToString();
   } else if (params->backend_port > 0) {
@@ -228,8 +282,19 @@ int NvShareCefMain(void) {
     if (slash != std::string::npos && slash + 1 < cfg.nv_url_relative.size()) {
       page = cfg.nv_url_relative.substr(slash + 1);
     }
-    params->url = "http://127.0.0.1:" +
-                  std::to_string(params->backend_port) + "/" + page;
+    const std::string origin =
+        "http://127.0.0.1:" + std::to_string(params->backend_port);
+    if (HttpPathOk(params->backend_port, "/" + page)) {
+      params->url = origin + "/" + page;
+      shareproof::LogLine("backend serves the osc bundle — same-origin mode");
+    } else {
+      const std::wstring rel =
+          sharewin::Utf8ToWide(cfg.nv_url_relative);
+      params->url = FileUrl(sharewin::GetExeDir() + L"\\" + rel);
+      shareproof::LogLine(
+          "backend is API-only (static 404) — file:// fallback (genuine "
+          "Share.exe model), page=" + sharewin::WideToUtf8(rel));
+    }
   } else {
     std::string page = "index.html";
     size_t slash = cfg.nv_url_relative.find_last_of('/');
