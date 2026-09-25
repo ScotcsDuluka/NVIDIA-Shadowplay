@@ -55,17 +55,28 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
         }
         return 0;
       }
+      if (wparam == 2) {
+        // Restore animation done — drop the borrowed caption (if still
+        // present; Minimize() cancels this timer when re-minimizing).
+        // NEVER restyle inside WM_SIZE itself: a frame change there can
+        // re-enter WM_SIZE and starve the message pump (the
+        // "กดอะไรไม่ได้เลย" freeze). Deferring via this timer fixes it.
+        KillTimer(hwnd, 2);
+        if (GetWindowLongPtrW(hwnd, GWL_STYLE) & WS_CAPTION) {
+          SetWindowLongPtrW(hwnd, GWL_STYLE,
+                            GetWindowLongPtrW(hwnd, GWL_STYLE) & ~WS_CAPTION);
+          SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                       SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE |
+                           SWP_NOZORDER | SWP_NOACTIVATE);
+        }
+        return 0;
+      }
       break;
     case WM_SIZE:
       if (wparam == SIZE_RESTORED) {
-        // Restored from an animated minimize: drop the borrowed caption
-        // frame again (see Minimize()). NCCALCSIZE keeps the client rect
-        // identical, so the frame change is invisible.
-        SetWindowLongPtrW(hwnd, GWL_STYLE,
-                          GetWindowLongPtrW(hwnd, GWL_STYLE) & ~WS_CAPTION);
-        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE |
-                         SWP_NOZORDER | SWP_NOACTIVATE);
+        // Restored from an animated minimize — schedule the caption
+        // strip (see WM_TIMER id 2).
+        SetTimer(hwnd, 2, 350, NULL);
       }
       break;
     case WM_CLOSE:
