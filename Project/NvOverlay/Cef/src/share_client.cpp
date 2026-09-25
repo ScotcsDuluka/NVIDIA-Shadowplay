@@ -174,6 +174,11 @@ void ShareClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type,
                           const RectList& dirtyRects, const void* buffer,
                           int width, int height) {
   if (type != PET_VIEW || width <= 0 || height <= 0 || !buffer) return;
+  // Present-rate cap: the page repaints at its own pace; a fullscreen
+  // layered update per paint burns CPU (7MB copy + composition). 30fps
+  // cap keeps the overlay responsive at a fraction of the cost.
+  const DWORD now = GetTickCount();
+  if (now - last_present_ < 30) return;
   const size_t needed = static_cast<size_t>(width) * height * 4;
   if (osr_w_ != width || osr_h_ != height) {
     osr_frame_.assign(static_cast<const unsigned char*>(buffer),
@@ -188,6 +193,11 @@ void ShareClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type,
   } else {
     memcpy(osr_frame_.data(), buffer, needed);
   }
+  // Skip identical frames (idle page = zero presents). One sampled row
+  // compare per 64KB block catches real changes cheaply.
+  if (!osr_frame_.empty() && osr_frame_ == presented_frame_) return;
+  presented_frame_ = osr_frame_;
+  last_present_ = now;
   PresentOsrFrame();
 }
 

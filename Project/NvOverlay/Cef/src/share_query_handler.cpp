@@ -180,12 +180,16 @@ bool ShareQueryHandler::OnQuery(CefRefPtr<CefBrowser> browser,
   } else if (cmd == "QUERY_WIN_OPEN_OSC") {
     bool enable_input = sharejson::GetBool(req, "enableInput");
     if (host_wnd_ && show_window_) ShowWindow(host_wnd_, SW_SHOW);
+    sharewin::SetOverlayClickThrough(false);
     FlipOscDisplayState(true);
     log_extra = std::string("open osc enableInput=") +
                 (enable_input ? "true" : "false");
     response = "true";
   } else if (cmd == "QUERY_WIN_CLOSE_OSC") {
-    if (host_wnd_) ShowWindow(host_wnd_, SW_HIDE);
+    // No SW_HIDE: the CEF window stays open at all times — the page going
+    // back to base makes the frame fully transparent (alpha=0), which is
+    // the genuine overlay's "closed" look. Only the click-through flips.
+    sharewin::SetOverlayClickThrough(true);
     FlipOscDisplayState(false);
     log_extra = "close osc";
     response = "true";

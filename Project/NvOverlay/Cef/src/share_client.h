@@ -118,6 +118,8 @@ class ShareClient : public CefClient,
   HDC osr_dc_ = NULL;
   HBITMAP osr_bmp_ = NULL;
   void* osr_bits_ = NULL;
+  std::vector<unsigned char> presented_frame_;
+  DWORD last_present_ = 0;
 
   IMPLEMENT_REFCOUNTING(ShareClient);
 };

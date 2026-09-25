@@ -184,20 +184,8 @@ LRESULT CALLBACK HostWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
         RECT r;
         GetWindowRect(hwnd, &r);
         int x = pt.x - r.left, y = pt.y - r.top;
-        bool opaque = ShareClient::active_client_->IsPixelOpaque(x, y);
-        LONG ex = GetWindowLongW(hwnd, GWL_EXSTYLE);
-        bool transparent_now = (ex & WS_EX_TRANSPARENT) != 0;
-        if (opaque == transparent_now) {
-          SetWindowLongW(hwnd, GWL_EXSTYLE,
-                         transparent_now ? (ex & ~WS_EX_TRANSPARENT)
-                                         : (ex | WS_EX_TRANSPARENT));
-          // FRAMECHANGED is required or the new style never applies — the
-          // window stays stuck in the old click-through mode.
-          SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
-                       SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
-                           SWP_NOACTIVATE | SWP_FRAMECHANGED);
-        }
-        if (opaque) ShareClient::active_client_->ForwardMouseMove(x, y, false);
+        if (ShareClient::active_client_->IsPixelOpaque(x, y))
+          ShareClient::active_client_->ForwardMouseMove(x, y, false);
       }
       break;
     case WM_LBUTTONDOWN:
@@ -244,6 +232,20 @@ LRESULT CALLBACK HostWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
 
 void SetHostCloseRequestCallback(void (*cb)(void)) {
   g_close_request_cb = cb;
+}
+
+void SetOverlayClickThrough(bool transparent) {
+  HWND hwnd = FindWindowW(L"NvShareHostWindow", NULL);
+  if (!hwnd) return;
+  LONG ex = GetWindowLongW(hwnd, GWL_EXSTYLE);
+  bool now = (ex & WS_EX_TRANSPARENT) != 0;
+  if (now == transparent) return;
+  SetWindowLongW(hwnd, GWL_EXSTYLE,
+                 transparent ? (ex | WS_EX_TRANSPARENT)
+                             : (ex & ~WS_EX_TRANSPARENT));
+  SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+               SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE |
+                   SWP_FRAMECHANGED);
 }
 
 HWND CreateHostWindow(HINSTANCE hinstance, bool show, int width, int height,

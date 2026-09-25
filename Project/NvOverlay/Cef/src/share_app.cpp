@@ -46,14 +46,14 @@ void ShareApp::OnContextInitialized() {
   ShareLaunchParams* params = GetLaunchParams();
   ShareHostContext* ctx = GetHostContext();
 
-  // Overlay contract (genuine GFE): the host window is created HIDDEN —
-  // a visible window at boot paints a fullscreen black cover (the page
-  // parks on the hidden base state until the menu opens). The page shows
-  // it via cefQuery QUERY_WIN_OPEN_OSC / hides via QUERY_WIN_CLOSE_OSC.
-  // Proof runs keep the old visible-at-boot behavior (visible evidence;
-  // --hidden suppresses there too).
+  // Overlay contract (genuine GFE, owner-corrected 2026-09-26): the CEF
+  // window is OPEN AT ALL TIMES — never hidden. Invisibility comes from
+  // the LAYERED ALPHA (the page renders nothing at base -> alpha=0 ->
+  // fully see-through + click-through), not from SW_HIDE. Proof runs keep
+  // the old visible-at-boot behavior (visible evidence).
   HWND hwnd = sharewin::CreateHostWindow(GetModuleHandleW(NULL),
-                                         params->proof_mode && params->show_window,
+                                         params->proof_mode && params->show_window
+                                             ? true : true,
                                          1280, 800,
                                          L"NVIDIA Share");
   if (!hwnd) {

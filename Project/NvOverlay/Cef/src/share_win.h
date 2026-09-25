@@ -35,6 +35,10 @@ HWND CreateHostWindow(HINSTANCE hinstance, bool show, int width, int height,
 // CefBrowserHost::CloseBrowser — direct DestroyWindow would bypass CEF
 // teardown). Pass NULL to restore direct destruction.
 void SetHostCloseRequestCallback(void (*cb)(void));
+// Click-through mode: true = the whole overlay passes clicks (closed);
+// false = the overlay takes clicks (menu open). Style flips happen here
+// so the query handlers own the open/close state machine.
+void SetOverlayClickThrough(bool transparent);
 
 std::wstring GetExeDir();
 
