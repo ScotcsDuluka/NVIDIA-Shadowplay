@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <AssemblyName>Launcher</AssemblyName>
@@ -38,7 +38,7 @@
     <Compile Update="[Forms - Project Files]\[API]\TCP\[APP] Client.vb" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\NvOverlay\WinForm\NvControls\NVIDIA Controls.dll\NVIDIA Controls.vbproj" />
+    <ProjectReference Include="..\NvOverlay\WinForm\NvControls\NvControls.dll\NVIDIA Controls.vbproj" />
   </ItemGroup>
   <!-- Root-fixed layout support (linked shared sources) -->
   <ItemGroup>

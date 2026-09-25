@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -14,8 +14,8 @@
   <ItemGroup>
     <!-- Production classes under audit (hardware-independent FFmpeg side):
          LiveMuxSession (salvage/remux path) + SessionResult.Pass contract. -->
-    <ProjectReference Include="..\..\..\..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
-    <ProjectReference Include="..\..\..\..\CaptureEngine.Recording\CaptureEngine.Recording.vbproj" />
+    <ProjectReference Include="..\..\..\..\Project\ShadowPlay\NvCapture\CaptureEngine.FFmpegBackend.dll\CaptureEngine.FFmpegBackend.vbproj" />
+    <ProjectReference Include="..\..\..\..\Project\ShadowPlay\NvCapture\CaptureEngine.Recording.dll\CaptureEngine.Recording.vbproj" />
   </ItemGroup>
 
 </Project>

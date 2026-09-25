@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <!--
   Gallery.Video.Tests — standalone console runner (repo convention:
@@ -25,7 +25,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\Gallery.Video\Gallery.Video.vbproj" />
+    <ProjectReference Include="..\..\..\..\Project\NvGallery\WinForm\Gallery.Video.dll\Gallery.Video.vbproj" />
   </ItemGroup>
 
 </Project>

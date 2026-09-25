@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <RootNamespace>NVIDIA_Share</RootNamespace>
@@ -323,11 +323,11 @@
     <Folder Include="Resources\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\NvBackend\NVIDIA Backend.exe\NVIDIA Backend.vbproj" />
-    <ProjectReference Include="..\..\..\Launcher\Launcher.vbproj" />
-    <ProjectReference Include="..\..\..\NvShadowPlayHelper\NVIDIA%20ShadowPlay%20Helper\NVIDIA%20ShadowPlay%20Helper.vbproj" />
-    <ProjectReference Include="..\NVIDIA Notifier.exe\NVIDIA Notifier.vbproj" />
-    <ProjectReference Include="..\NVIDIA Controls.dll\NVIDIA Controls.vbproj" />
+    <ProjectReference Include="..\..\..\NvBackend\NvBackend.exe\NVIDIA Backend.vbproj" />
+    <ProjectReference Include="..\..\..\Launcher.exe\Launcher.vbproj" />
+    <ProjectReference Include="..\..\..\ShadowPlay\nvsphelper64.exe\NVIDIA ShadowPlay Helper.vbproj" />
+    <ProjectReference Include="..\NvNotifier.exe\NVIDIA Notifier.vbproj" />
+    <ProjectReference Include="..\NvControls\NvControls.dll\NVIDIA Controls.vbproj" />
   </ItemGroup>
   <ProjectExtensions>
     <VisualStudio>

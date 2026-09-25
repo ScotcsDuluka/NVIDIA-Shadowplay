@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <!-- Production mux layer under observation (hardware-independent). -->
-    <ProjectReference Include="..\..\..\..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
+    <ProjectReference Include="..\..\..\..\Project\ShadowPlay\NvCapture\CaptureEngine.FFmpegBackend.dll\CaptureEngine.FFmpegBackend.vbproj" />
   </ItemGroup>
 
 </Project>

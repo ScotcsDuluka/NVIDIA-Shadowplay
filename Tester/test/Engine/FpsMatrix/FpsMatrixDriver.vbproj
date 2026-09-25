@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -16,7 +16,7 @@
     <!-- The legacy two-process engine under test: CaptureEngine + CaptureSettings
          live in the NVIDIA Capture (WinForms host) assembly — same pattern as
          Engine.Concurrency.Tests. -->
-    <ProjectReference Include="..\..\..\..\Engine\NVIDIA ShadowPlay Helper.vbproj" />
+    <ProjectReference Include="..\..\..\..\Project\ShadowPlay\nvsphelper64.exe\NVIDIA ShadowPlay Helper.vbproj" />
   </ItemGroup>
 
 </Project>

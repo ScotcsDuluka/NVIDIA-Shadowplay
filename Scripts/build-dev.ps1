@@ -131,7 +131,7 @@ foreach ($rel in $Layout.rootDirectories) {
 Copy-Tree (Join-Path $ProjectRoot '.NET Deployment') (Join-Path $BuildRoot '.NET Deployment')
 Copy-Tree (Join-Path $ProjectRoot 'Data')          (Join-Path $BuildRoot 'Data')
 # Localized UI strings live at the ROOT owner (AppLayout.P("Languages", ...)).
-Copy-Tree (Join-Path $ProjectRoot 'Data\Languages') (Join-Path $BuildRoot 'Languages')
+Copy-Tree (Join-Path $ProjectRoot 'Resources\Languages') (Join-Path $BuildRoot 'Languages')
 Copy-Tree (Join-Path $ProjectRoot 'Flags')         (Join-Path $BuildRoot 'Flags')
 Copy-Tree (Join-Path $ProjectRoot 'Resources')     (Join-Path $BuildRoot 'Resources')
 Ensure-Dir (Join-Path $BuildRoot '.vs')

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -20,9 +20,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\..\CaptureEngine.Video.Ddagrab\CaptureEngine.Video.Ddagrab.vbproj" />
-    <ProjectReference Include="..\..\..\..\CaptureEngine.Encoder.Nvenc\CaptureEngine.Encoder.Nvenc.vbproj" />
-    <ProjectReference Include="..\..\..\..\CaptureEngine.Recording\CaptureEngine.Recording.vbproj" />
+    <ProjectReference Include="..\..\..\..\Project\ShadowPlay\NvCapture\CaptureEngine.Video.Ddagrab.dll\CaptureEngine.Video.Ddagrab.vbproj" />
+    <ProjectReference Include="..\..\..\..\Project\ShadowPlay\NvCapture\CaptureEngine.Encoder.Nvenc.dll\CaptureEngine.Encoder.Nvenc.vbproj" />
+    <ProjectReference Include="..\..\..\..\Project\ShadowPlay\NvCapture\CaptureEngine.Recording.dll\CaptureEngine.Recording.vbproj" />
   </ItemGroup>
 
 </Project>
