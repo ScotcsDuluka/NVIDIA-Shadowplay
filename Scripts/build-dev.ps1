@@ -153,7 +153,7 @@ if (Test-Path -LiteralPath $runtimeBootstrap) {
 }
 
 # Common runtime dependencies and family dependencies.
-$overlayBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA ShadowPlay.exe\bin\Release\{0}" -f $TargetFramework)
+$overlayBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvShadowPlay.exe\bin\Release\{0}" -f $TargetFramework)
 Ensure-Dir (Join-Path $BuildRoot 'Runtime')
 if (Test-Path -LiteralPath $overlayBin) {
     Copy-FlatDlls $overlayBin (Join-Path $BuildRoot 'Runtime') @(
@@ -249,8 +249,8 @@ Copy-RuntimeFiles $galleryBin $galleryOut 'Gallery.Video'
 # Overlay WinForm owners. (NVIDIA API was moved to NvBackend\NVIDIA Backend —
 # its types ship in-process with the overlay via ProjectReference.)
 $controlsBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvControls\NvControls.dll\bin\Release\{0}" -f $TargetFramework)
-$notifierBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA Notifier.exe\bin\Release\{0}" -f $TargetFramework)
-$overlayWinBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA ShadowPlay.exe\bin\Release\{0}" -f $TargetFramework)
+$notifierBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvNotifier.exe\bin\Release\{0}" -f $TargetFramework)
+$overlayWinBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvShadowPlay.exe\bin\Release\{0}" -f $TargetFramework)
 
 Copy-RuntimeFiles $controlsBin (Join-Path $BuildRoot 'NvOverlay\WinForm') 'NVIDIA Controls'
 Copy-RuntimeFiles $notifierBin (Join-Path $BuildRoot 'NvOverlay\WinForm') 'NVIDIA Notifier'
@@ -263,7 +263,7 @@ $graphicsNames = @('Vortice.Direct3D11.dll','Vortice.DirectX.dll','Vortice.DXGI.
 Copy-FlatDlls $overlayWinBin (Join-Path $BuildRoot 'NvGraphics') $graphicsNames
 
 # Config owner.
-$notifierConfig = Join-Path $ProjectRoot 'NvOverlay\WinForm\NVIDIA Notifier.exe\notifier_obs.json'
+$notifierConfig = Join-Path $ProjectRoot 'NvOverlay\WinForm\NvNotifier.exe\notifier_obs.json'
 if (Test-Path $notifierConfig) {
     Copy-Item $notifierConfig (Join-Path $BuildRoot 'NvConfig\notifier_obs.json') -Force
 }
