@@ -88,12 +88,14 @@ HWND CreateLauncherWindow(HINSTANCE hinstance, bool show, int width,
   RegisterClassExW(&wc);
 
   // Borderless app window WITH the DWM frame contract (shadow + rounded
-  // corners): WS_THICKFRAME supplies the frame metrics that DWM needs,
-  // WM_NCCALCSIZE removes the visible frame. WS_EX_APPWINDOW keeps the
-  // taskbar presence; WS_SYSMENU + WS_MINIMIZEBOX give the taskbar
-  // right-click contract of the old FormBorderStyle.None form.
-  DWORD style =
-      WS_POPUP | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX | WS_CAPTION;
+  // corners). NO WS_CAPTION — on some Win11 builds the caption survives
+  // WM_NCCALCSIZE=0 and stacks a second titlebar over the page nav
+  // ("มันซ้อน" — owner report 2026-09-25). WS_THICKFRAME alone still
+  // supplies the DWM shadow + rounding, WM_NCCALCSIZE removes its edge.
+  // WS_EX_APPWINDOW keeps taskbar presence; WS_SYSMENU + WS_MINIMIZEBOX
+  // give the taskbar right-click contract of the old FormBorderStyle.None
+  // form.
+  DWORD style = WS_POPUP | WS_THICKFRAME | WS_SYSMENU | WS_MINIMIZEBOX;
   DWORD ex_style = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
 
   int screen_w = GetSystemMetrics(SM_CXSCREEN);

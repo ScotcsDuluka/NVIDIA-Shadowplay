@@ -212,6 +212,15 @@ void LauncherSupervisor::StartEngineOverlayChainAsync() {
   }
 }
 
+void LauncherSupervisor::StopCefOverlay() {
+  // Overlay Mode -> WINFORM: bring the CEF lane down (only the NVIDIA
+  // Share.exe running from NvOverlay\Cef — other instances of that name
+  // belong to different lanes and stay). The WinForm family itself is
+  // hub-managed (Overlay.UseOverlayEnabled), untouched here.
+  std::wstring share_exe = RootP(L"NvOverlay\\Cef", L"NVIDIA Share.exe");
+  launcherutil::KillProcessFromPath(kCefOverlay, share_exe);
+}
+
 bool LauncherSupervisor::SendOpenOverlay() {
   // TcpClientHelper.Send("open_overlay") wire parity:
   //   "[Send] NVIDIA  APP|open_overlay\r\n" to 127.0.0.1:5001.

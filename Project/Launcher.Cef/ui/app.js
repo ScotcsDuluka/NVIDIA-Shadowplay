@@ -47,6 +47,9 @@
     chipHub: document.getElementById('chipHub'),
     tglOverlay: document.getElementById('tglOverlay'),
     tglEngine: document.getElementById('tglEngine'),
+    lblWinform: document.getElementById('lblWinform'),
+    lblCef: document.getElementById('lblCef'),
+    modeDesc: document.getElementById('modeDesc'),
     btnOpenOverlay: document.getElementById('btnOpenOverlay'),
     btnObt3: document.getElementById('btnObt3'),
     btnExit: document.getElementById('btnExit'),
@@ -86,7 +89,7 @@
     el.chipHub.className = 'meta-chip' + ((s.nvApi && s.nvApi.running) ? ' on' : '');
 
     syncToggle(el.tglOverlay, s.overlayEnabled);
-    syncToggle(el.tglEngine, s.engineOverlay);
+    syncMode(!!s.engineOverlay);
   }
 
   function syncToggle(t, on) {
@@ -101,6 +104,26 @@
     t.dataset.pending = String(on);
   }
 
+  // Overlay Mode switch: false = WINFORM lane, true = CEF lane.
+  function syncMode(cef) {
+    if (el.tglEngine.dataset.userHold === '1') {
+      if (el.tglEngine.dataset.pending === String(cef)) el.tglEngine.dataset.userHold = '';
+      return;
+    }
+    applyMode(cef);
+    el.tglEngine.dataset.pending = String(cef);
+  }
+
+  function applyMode(cef) {
+    el.tglEngine.classList.toggle('cef', cef);
+    el.tglEngine.setAttribute('aria-checked', cef ? 'true' : 'false');
+    el.lblWinform.classList.toggle('active', !cef);
+    el.lblCef.classList.toggle('active', cef);
+    el.modeDesc.textContent = cef
+      ? 'CEF chain: Container \u2192 Web Helper \u2192 Share (:59001)'
+      : 'WinForm family \u2014 hub-managed overlay';
+  }
+
   // ── Host push (launcher_script.h augmentation) ──────────────────────
   window.__onLauncherState(function (s) { render(s); });
 
@@ -110,21 +133,32 @@
   setInterval(pull, 2000);
 
   // ── Toggles (user action only — config.json is the source of truth) ─
-  function armToggle(t, on) {
-    t.dataset.userHold = '1';
-    t.dataset.pending = String(on);
-    t.classList.toggle('on', on);
-    t.setAttribute('aria-checked', on ? 'true' : 'false');
-  }
   el.tglOverlay.addEventListener('click', function () {
     var on = !this.classList.contains('on');
-    armToggle(this, on);
+    this.dataset.userHold = '1';
+    this.dataset.pending = String(on);
+    this.classList.toggle('on', on);
+    this.setAttribute('aria-checked', on ? 'true' : 'false');
     rpc('LAUNCHER_SET_OVERLAY', { value: on }).catch(function () {});
   });
+
+  // Overlay Mode: click the switch or either label.
+  function setMode(cef) {
+    el.tglEngine.dataset.userHold = '1';
+    el.tglEngine.dataset.pending = String(cef);
+    applyMode(cef);
+    rpc('LAUNCHER_SET_ENGINE_OVERLAY', { value: cef }).catch(function () {});
+  }
   el.tglEngine.addEventListener('click', function () {
-    var on = !this.classList.contains('on');
-    armToggle(this, on);
-    rpc('LAUNCHER_SET_ENGINE_OVERLAY', { value: on }).catch(function () {});
+    setMode(!this.classList.contains('cef'));
+  });
+  el.lblWinform.addEventListener('click', function () {
+    if (!el.tglEngine.classList.contains('cef')) return;  // already WINFORM
+    setMode(false);
+  });
+  el.lblCef.addEventListener('click', function () {
+    if (el.tglEngine.classList.contains('cef')) return;  // already CEF
+    setMode(true);
   });
 
   // ── Buttons ─────────────────────────────────────────────────────────

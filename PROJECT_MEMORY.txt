@@ -2721,3 +2721,14 @@ Web Github\Assets (GeForce-Bold-Alt.woff2 + nvgcshare.woff2) into
 Launcher.Cef\ui\fonts\. Same RPC contract + element IDs; app.js
 unchanged. Restaged and verified rendering (green #76B900 elements +
 near-black surfaces in the captured window).
+
+FIX 2026-09-25 (owner report "มันซ้อน"): the DWM-polish build kept
+WS_CAPTION in the style; on this Win11 build (26340) DWM paints the
+accent-color caption OVER the client even with WM_NCCALCSIZE returning 0
+(client rect already equals window rect) — the window showed TWO stacked
+titlebars (Windows caption + page nav). Fix: drop WS_CAPTION entirely
+(WS_POPUP|WS_THICKFRAME|WS_SYSMENU|WS_MINIMIZEBOX); THICKFRAME still gives
+DWM shadow + rounded corners. Verified: window==client==1000x640, top rows
+= nav background. UI nits from the same screenshot: lane chips separated
+into visible bordered boxes (was run-together text), SERVICES banner
+compact (align-self:start, no hollow middle), toggles enlarged 44x24.

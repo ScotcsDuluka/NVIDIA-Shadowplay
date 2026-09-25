@@ -272,6 +272,52 @@ void KillProcessByName(const wchar_t* name) {
   CloseHandle(snap);
 }
 
+void KillProcessFromPath(const wchar_t* name, const std::wstring& exe_path) {
+  HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (snap == INVALID_HANDLE_VALUE) return;
+  std::wstring with_ext = std::wstring(name) + L".exe";
+  PROCESSENTRY32W pe;
+  pe.dwSize = sizeof(pe);
+  if (Process32FirstW(snap, &pe)) {
+    do {
+      if (_wcsicmp(pe.szExeFile, name) != 0 &&
+          _wcsicmp(pe.szExeFile, with_ext.c_str()) != 0) {
+        continue;
+      }
+      if (pe.th32ProcessID == GetCurrentProcessId()) continue;
+      HANDLE p = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION | PROCESS_TERMINATE | SYNCHRONIZE,
+                             FALSE, pe.th32ProcessID);
+      if (!p) {
+        LogLine(std::string("kill open failed: ") + WideToUtf8(name) + " pid " +
+                std::to_string(pe.th32ProcessID) + " err " +
+                std::to_string(GetLastError()));
+        continue;
+      }
+      wchar_t path[MAX_PATH];
+      DWORD size = MAX_PATH;
+      bool match = false;
+      if (QueryFullProcessImageNameW(p, 0, path, &size)) {
+        match = _wcsicmp(path, exe_path.c_str()) == 0;
+      }
+      if (!match) {
+        CloseHandle(p);
+        continue;
+      }
+      if (!TerminateProcess(p, 1)) {
+        LogLine(std::string("kill failed: ") + WideToUtf8(name) + " pid " +
+                std::to_string(pe.th32ProcessID) + " err " +
+                std::to_string(GetLastError()));
+      } else {
+        WaitForSingleObject(p, 3000);
+        LogLine(std::string("killed: ") + WideToUtf8(name) + " pid " +
+                std::to_string(pe.th32ProcessID) + " (overlay mode OFF)");
+      }
+      CloseHandle(p);
+    } while (Process32NextW(snap, &pe));
+  }
+  CloseHandle(snap);
+}
+
 bool WaitForTcpPort(unsigned port, unsigned timeout_ms) {
   WSADATA wsa;
   if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) return false;

@@ -78,15 +78,21 @@ bool LauncherQueryHandler::OnQuery(CefRefPtr<CefBrowser> browser,
   }
 
   if (cmd == "LAUNCHER_SET_ENGINE_OVERLAY") {
+    // Overlay Mode switch: false = WINFORM lane (hub-managed family),
+    // true = CEF lane (NvContainer -> Web Helper -> :59001 ->
+    // NvOverlay\Cef NVIDIA Share.exe). Both directions act, so the mode
+    // switch is real: CEF ON brings the chain up, CEF OFF stops the CEF
+    // overlay host (path-deduped; the WinForm family is hub-managed).
     const bool value = launcherjson::GetBool(req, "value");
     const bool ok = launcherutil::WriteConfigBool(
         L"Overlay", L"EngineOverlayMode", value);
-    if (ok && value && supervisor_) {
-      // ON = bring up the real chain (NvContainer -> Web Helper ->
-      // :59001 -> NvOverlay\Cef NVIDIA Share.exe). Every step idempotent;
-      // the supervisor runs it on its own thread (the :59001 wait must
-      // never sit inside the CEF UI thread).
-      supervisor_->StartEngineOverlayChainAsync();
+    if (ok && supervisor_) {
+      if (value) {
+        // The :59001 wait must never sit inside the CEF UI thread.
+        supervisor_->StartEngineOverlayChainAsync();
+      } else {
+        supervisor_->StopCefOverlay();
+      }
     }
     RespondOk(callback, ok ? "{\"ok\":true}" : "{\"ok\":false}");
     return true;
