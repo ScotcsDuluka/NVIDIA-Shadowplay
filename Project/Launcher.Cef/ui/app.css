@@ -346,20 +346,21 @@ main {
 }
 .feature-card p { color: var(--text-gray); font-size: 12px; line-height: 1.5; }
 
-/* Square NVIDIA toggle (90° grammar) */
+/* Square NVIDIA toggle (90° grammar) — knob travels with a symmetric
+   3px margin inside the track so it never reads as overflowing. */
 .toggle {
-  flex: 0 0 44px; width: 44px; height: 24px;
-  background: #3a3a3a; position: relative; outline: none;
+  flex: 0 0 46px; width: 46px; height: 24px;
+  background: #1f2225; position: relative; outline: none;
   transition: background 0.2s;
-  border: 1px solid rgba(255,255,255,0.18);
+  border: 1px solid rgba(255,255,255,0.22);
 }
 .toggle::before {
   content: ''; position: absolute; top: 3px; left: 3px;
-  width: 18px; height: 18px; background: #cfd3d6;
+  width: 16px; height: 16px; background: #cfd3d6;
   transition: transform 0.18s ease, background 0.2s;
 }
 .toggle.on { background: var(--nvidia-green); border-color: var(--nvidia-green); }
-.toggle.on::before { transform: translateX(20px); background: #0a0a0a; }
+.toggle.on::before { transform: translateX(22px); background: #0a0a0a; }
 .toggle:hover { filter: brightness(1.15); }
 .feature-card:hover .toggle { box-shadow: 0 0 0 3px rgba(118,185,0,.18); }
 
@@ -387,18 +388,18 @@ main {
   text-shadow: 0 0 16px rgba(118,185,0,.65);
 }
 .mode-toggle {
-  flex: 0 0 64px; width: 64px; height: 28px;
-  background: #2a2d31; position: relative; outline: none;
+  flex: 0 0 68px; width: 68px; height: 30px;
+  background: #1f2225; position: relative; outline: none;
   border: 1px solid rgba(255,255,255,0.28);
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .mode-knob {
-  position: absolute; top: 3px; left: 3px;
-  width: 26px; height: 20px; background: #cfd3d6;
+  position: absolute; top: 2px; left: 3px;
+  width: 24px; height: 22px; background: #cfd3d6;
   transition: transform 0.18s ease, background 0.2s;
 }
-.mode-toggle.cef { border-color: var(--nvidia-green); box-shadow: 0 0 12px rgba(118,185,0,.35); }
-.mode-toggle.cef .mode-knob { transform: translateX(32px); background: var(--nvidia-green); }
+.mode-toggle.cef { border-color: var(--nvidia-green); box-shadow: 0 0 8px rgba(118,185,0,.28); }
+.mode-toggle.cef .mode-knob { transform: translateX(36px); background: var(--nvidia-green); }
 .mode-desc {
   text-align: center; font-size: 11px; color: var(--text-muted);
   letter-spacing: 0.4px;

@@ -81,16 +81,22 @@
     </PropertyGroup>
 
     <PropertyGroup>
+      <!-- Priority: HardcoreVersion (master switch, Build.exe) >
+           _Bl1ProjectVersion (per-project map, versions.props) >
+           BL-1 default 3.41.<N>.61. $build in HardcoreVersion is the
+           counter placeholder (owner format: 3.41.$build.61). -->
       <_Bl1Version Condition="'$(HardcoreVersion)' != ''">$([System.Text.RegularExpressions.Regex]::Replace('$(HardcoreVersion)', '\$build', '$(SharedBuildNumber)'))</_Bl1Version>
-      <_Bl1Version Condition="'$(HardcoreVersion)' == ''">3.41.$(SharedBuildNumber).61</_Bl1Version>
+      <_Bl1Version Condition="'$(HardcoreVersion)' == '' And '$(_Bl1ProjectVersion)' != ''">$(_Bl1ProjectVersion).$(SharedBuildNumber).61</_Bl1Version>
+      <_Bl1Version Condition="'$(HardcoreVersion)' == '' And '$(_Bl1ProjectVersion)' == ''">3.41.$(SharedBuildNumber).61</_Bl1Version>
       <_Bl1InfoVersion>$(_Bl1Version)</_Bl1InfoVersion>
-      <!-- Contract application: only where a project didn't set its own.
-           Overlay's IncrementBuild re-sets FileVersion/InformationalVersion
-           with the same scheme AFTER this target (BeforeBuild ordering:
-           Directory.Build.targets runs before project targets), so both
-           converge. -->
-      <FileVersion Condition="'$(FileVersion)' == ''">$(_Bl1Version)</FileVersion>
-      <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(_Bl1Version)</InformationalVersion>
+      <!-- Application: Hardcore ON or a per-project version overrides
+           EVERYTHING — IncrementBuild (NVIDIA ShadowPlay / ManualOverlayTest)
+           re-stamps FileVersion with its own 3.41 scheme at BeforeBuild, and
+           this target runs after it, so this is the only place that can win.
+           With neither set, keep the legacy fill-if-empty contract (projects
+           that set their own version keep it). -->
+      <FileVersion Condition="'$(HardcoreVersion)' != '' Or '$(_Bl1ProjectVersion)' != '' Or '$(FileVersion)' == ''">$(_Bl1Version)</FileVersion>
+      <InformationalVersion Condition="'$(HardcoreVersion)' != '' Or '$(_Bl1ProjectVersion)' != '' Or '$(InformationalVersion)' == ''">$(_Bl1Version)</InformationalVersion>
       <!-- Feed the SDK's AddSourceRevisionToInformationalVersion with OUR
            resolved sha (it appends '+<sha>' itself when the version has no
            '+' — SemVer 2.0 path). Deterministic even if the SDK's own

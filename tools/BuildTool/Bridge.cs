@@ -117,11 +117,16 @@ public class Bridge
         sb.AppendLine("  </PropertyGroup>");
         foreach (var p in projects)
         {
-            var ver = p.Value.Replace("$build", "$(SharedBuildNumber)");
+            // Base version only — _Bl1Stamp (Directory.Build.targets) appends
+            // .<SharedBuildNumber>.61 itself, reading the counter fresh inside
+            // the target, and applies it AFTER IncrementBuild so it wins there.
+            var ver = p.Value.Replace("$build", "");
+            while (ver.Contains("..")) ver = ver.Replace("..", ".");
+            ver = ver.Trim('.');
+            if (ver.Length == 0) continue;
             var nm = p.Key.Replace("&", "&amp;").Replace("'", "&apos;");
             sb.AppendLine($"  <PropertyGroup Condition=\"'$(MSBuildProjectName)' == '{nm}'\">");
-            sb.AppendLine($"    <FileVersion>{ver}.$(SharedBuildNumber).61</FileVersion>");
-            sb.AppendLine($"    <InformationalVersion>{ver}.$(SharedBuildNumber).61</InformationalVersion>");
+            sb.AppendLine($"    <_Bl1ProjectVersion>{ver}</_Bl1ProjectVersion>");
             sb.AppendLine("  </PropertyGroup>");
         }
         sb.AppendLine("</Project>");
