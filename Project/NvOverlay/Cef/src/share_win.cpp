@@ -158,10 +158,21 @@ static void FireHotkey(const char* name) {
 
 LRESULT CALLBACK HostWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
   switch (msg) {
-    case WM_HOTKEY:
-      // Alt+Z — routed through the ShadowPlay hotkey system.
-      if (wparam == 1) FireHotkey("OpenShare");
+    case WM_HOTKEY: {
+      // Alt+Z — toggle the overlay: direct CEF IPC delivery to our own page
+      // (the ShadowPlay hotkey notification also fires through the node for
+      // surface parity — see FireHotkey). Debounced: one press = one toggle.
+      static DWORD s_lastToggle = 0;
+      if (wparam == 1 && ShareClient::active_client_) {
+        DWORD now = GetTickCount();
+        if (now - s_lastToggle > 600) {
+          s_lastToggle = now;
+          ShareClient::active_client_->ToggleOverlay();
+          FireHotkey("OpenShare");
+        }
+      }
       break;
+    }
     case WM_TIMER:
       // Per-pixel hit test (30ms): read the last OSR frame's alpha under
       // the cursor — opaque = the window takes the click and forwards it

@@ -264,6 +264,25 @@ void ShareClient::ForwardKey(HWND hwnd, UINT msg, WPARAM wparam,
   browser_->GetHost()->SendKeyEvent(e);
 }
 
+void ShareClient::ToggleOverlay() {
+  // Alt+Z delivery: the host drives ITS OWN page through CEF IPC (the
+  // genuine native half does the same via its renderer channel). The page
+  // navigates itself and the visibility bridge mirrors the state to the
+  // window — no dependency on the socket event delivery.
+  if (!browser_) return;
+  browser_->GetMainFrame()->ExecuteJavaScript(
+      "(function(){try{var inj=window.angular.element(document.body).injector();"
+      "var st=inj.get('$state');"
+      "console.log('[hk-toggle] state='+st.current.name);"
+      "if(st.current.name.indexOf('main')===0){st.go('base');"
+      "console.log('[hk-toggle] going base');}"
+      "else{st.go('main.main-menu');"
+      "console.log('[hk-toggle] going main');"
+      "if(window.__oscOpen){window.__oscOpen();}}"
+      "}catch(e){console.log('[hk-toggle] ERR '+e.message);}})();",
+      "nvidia-share://hotkey-toggle", 0);
+}
+
 void ShareClient::RequestClose() {
   if (browser_.get()) browser_->GetHost()->CloseBrowser(false);
 }
