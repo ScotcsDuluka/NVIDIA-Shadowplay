@@ -56,14 +56,17 @@ body {
 }
 @keyframes pageIn { to { opacity: 1; } }
 
-/* Hero-style ambient background: green radial glows + drifting dots */
+/* Hero-style ambient background: green radial glows + drifting dots.
+   Chrome 73 (CEF 73 lane) has no `inset` shorthand — explicit offsets. */
 body::before {
-  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 0; pointer-events: none;
   background: radial-gradient(circle at 30% 40%, rgba(118,185,0,0.08) 0%, transparent 60%),
               radial-gradient(circle at 70% 60%, rgba(0,212,255,0.04) 0%, transparent 60%);
 }
 body::after {
-  content: ''; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  content: ''; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 0; pointer-events: none;
   background-image:
     radial-gradient(2px 2px at 20% 30%, rgba(118,185,0,0.4), transparent),
     radial-gradient(2px 2px at 40% 70%, rgba(118,185,0,0.3), transparent),
@@ -84,7 +87,11 @@ nav, main, section, footer { position: relative; z-index: 1; }
   border-bottom: 1px solid var(--border-color);
   padding: 0 6px 0 18px;
 }
-.nav-brand { display: flex; align-items: center; gap: 12px; }
+/* CEF 73 note: flexbox `gap` ships in Chrome 84 — every flex row here
+   spaces its children with sibling margins instead. Grid `gap` is fine
+   (Chrome 66+). */
+.nav-brand { display: flex; align-items: center; }
+.nav-brand > * + * { margin-left: 12px; }
 .eye { width: 27px; height: 19px; display: block; }
 .nav-name {
   font-family: 'GeForce', 'Inter', sans-serif;
@@ -150,7 +157,8 @@ main {
   font-size: 14px; color: var(--text-gray);
   max-width: 46ch; line-height: 1.8; margin-bottom: 1.3rem;
 }
-.hero-cta-group { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: auto; }
+.hero-cta-group { display: flex; flex-wrap: wrap; margin-bottom: auto; }
+.hero-cta-group > * + * { margin-left: 10px; }
 .tech-info {
   display: inline-flex; align-items: center;
   background: var(--nvidia-gray-dark);
@@ -159,26 +167,30 @@ main {
   font-family: 'GeForce', 'Inter', sans-serif;
   font-size: 12px; color: var(--text-gray); letter-spacing: 1.3px;
 }
-.hero-meta { display: flex; gap: 8px; padding-top: 14px; }
+.hero-meta { display: flex; padding-top: 14px; flex-wrap: wrap; }
+.hero-meta > * + * { margin-left: 10px; }
 .lane-chip {
   font-family: 'GeForce', 'Inter', sans-serif;
-  font-size: 10px; letter-spacing: 1.3px;
-  color: var(--text-muted);
+  font-size: 11px; letter-spacing: 1.3px;
+  color: var(--text-gray);
   background: var(--nvidia-gray-dark);
-  border: 1px solid var(--border-color);
-  padding: 5px 11px;
+  border: 1px solid rgba(255,255,255,0.22);
+  border-left: 3px solid #3a3f3a;
+  padding: 6px 12px;
   transition: color 0.3s, border-color 0.3s, background 0.3s;
 }
 .lane-chip.on {
   color: var(--nvidia-black);
   background: var(--nvidia-green);
   border-color: var(--nvidia-green);
+  border-left-color: #0a0a0a;
   font-weight: bold;
 }
 
 /* ---------- SERVICES BANNER (OBT3 grammar) ---------- */
 .svc-banner {
   position: relative; overflow: hidden;
+  align-self: start;
   background: linear-gradient(145deg, rgba(118,185,0,.10), rgba(8,9,8,.92) 45%, rgba(118,185,0,.06));
   border: 1px solid rgba(118,185,0,.4);
   box-shadow: 0 0 56px rgba(118,185,0,.16), inset 0 0 40px rgba(118,185,0,.04);
@@ -203,7 +215,8 @@ main {
 }
 @keyframes obt3-sheen { 0%,60% { left: -60%; } 100% { left: 130%; } }
 .obt3-inner { padding: 1.1rem 1.5rem 1.2rem; position: relative; z-index: 2; display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.obt3-head { display: flex; align-items: baseline; gap: .7rem; margin-bottom: .8rem; }
+.obt3-head { display: flex; align-items: baseline; margin-bottom: .8rem; }
+.obt3-head > * + * { margin-left: .7rem; }
 .obt3-tag {
   font-family: 'GeForce', 'Inter', sans-serif;
   font-size: .7rem; letter-spacing: 2px; color: #0a0a0a;
@@ -221,7 +234,8 @@ main {
 @keyframes obt3-blink { 50% { opacity: .25; } }
 
 .svc { list-style: none; }
-.svc li { display: flex; align-items: center; gap: 12px; padding: 6px 2px; }
+.svc li { display: flex; align-items: center; padding: 8px 2px; }
+.svc li > * + * { margin-left: 12px; }
 .dot {
   flex: 0 0 10px; width: 10px; height: 10px;
   background: #3a3a3a; position: relative;
@@ -229,7 +243,9 @@ main {
 .dot.running { background: var(--nvidia-green); box-shadow: 0 0 10px rgba(118,185,0,.8); }
 .dot.loading { background: var(--amber); box-shadow: 0 0 10px rgba(255,176,32,.7); }
 .dot.running::after, .dot.loading::after {
-  content: ''; position: absolute; inset: -4px; border: 1px solid currentColor;
+  content: ''; position: absolute;
+  top: -4px; right: -4px; bottom: -4px; left: -4px;
+  border: 1px solid currentColor;
   animation: ping 1.8s ease-out infinite;
 }
 .dot.running::after { color: rgba(118,185,0,.55); }
@@ -246,7 +262,7 @@ main {
   font-size: 10px; letter-spacing: 2.2px; color: var(--text-muted);
   margin-top: 1px;
 }
-.svc-banner .btn-primary { margin-top: auto; }
+.svc-banner .btn-primary { margin-top: 1.1rem; }
 
 /* ---------- BUTTONS ---------- */
 .btn-primary {
@@ -317,7 +333,8 @@ main {
   box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), 0 0 30px rgba(118, 185, 0, 0.15);
 }
 .feature-card:hover::before { transform: scaleX(1); }
-.feat-row { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.feat-row { display: flex; align-items: center; justify-content: space-between; }
+.feat-text { margin-right: 14px; }
 .card-status {
   display: inline-block; background: var(--nvidia-green); color: var(--nvidia-black);
   padding: 0.14rem 0.6rem; font-size: 0.6rem; font-weight: 700; letter-spacing: 1px;
@@ -329,22 +346,64 @@ main {
 }
 .feature-card p { color: var(--text-gray); font-size: 12px; line-height: 1.5; }
 
-/* Square NVIDIA toggle (90° grammar) */
+/* Square NVIDIA toggle (90° grammar) — knob travels with a symmetric
+   3px margin inside the track so it never reads as overflowing. */
 .toggle {
-  flex: 0 0 40px; width: 40px; height: 22px;
-  background: #3a3a3a; position: relative; outline: none;
+  flex: 0 0 46px; width: 46px; height: 24px;
+  background: #1f2225; position: relative; outline: none;
   transition: background 0.2s;
-  border: 1px solid rgba(255,255,255,0.14);
+  border: 1px solid rgba(255,255,255,0.22);
 }
 .toggle::before {
-  content: ''; position: absolute; top: 2px; left: 2px;
+  content: ''; position: absolute; top: 3px; left: 3px;
   width: 16px; height: 16px; background: #cfd3d6;
   transition: transform 0.18s ease, background 0.2s;
 }
 .toggle.on { background: var(--nvidia-green); border-color: var(--nvidia-green); }
-.toggle.on::before { transform: translateX(18px); background: #0a0a0a; }
+.toggle.on::before { transform: translateX(22px); background: #0a0a0a; }
 .toggle:hover { filter: brightness(1.15); }
 .feature-card:hover .toggle { box-shadow: 0 0 0 3px rgba(118,185,0,.18); }
+
+/* Overlay Mode panel — WINFORM ⟷ CEF (owner mockup 2026-09-25) */
+.mode-panel { display: flex; flex-direction: column; height: 100%; }
+.mode-title {
+  font-family: 'GeForce', 'Inter', sans-serif;
+  font-size: 11px; letter-spacing: 2.4px; color: var(--nvidia-green);
+  padding-bottom: 0.55rem; margin-bottom: auto;
+  border-bottom: 1px solid var(--border-color);
+}
+.mode-row {
+  display: flex; align-items: center; justify-content: center;
+  padding: 12px 0 8px;
+}
+.mode-row > * + * { margin-left: 20px; }
+.mode-label {
+  font-family: 'GeForce', 'Inter', sans-serif;
+  font-size: 17px; letter-spacing: 1.6px; color: var(--text-muted);
+  transition: color 0.2s, text-shadow 0.2s;
+}
+.mode-label:hover { color: var(--text-gray); }
+.mode-label.active {
+  color: var(--nvidia-green);
+  text-shadow: 0 0 16px rgba(118,185,0,.65);
+}
+.mode-toggle {
+  flex: 0 0 68px; width: 68px; height: 30px;
+  background: #1f2225; position: relative; outline: none;
+  border: 1px solid rgba(255,255,255,0.28);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.mode-knob {
+  position: absolute; top: 2px; left: 3px;
+  width: 24px; height: 22px; background: #cfd3d6;
+  transition: transform 0.18s ease, background 0.2s;
+}
+.mode-toggle.cef { border-color: var(--nvidia-green); box-shadow: 0 0 8px rgba(118,185,0,.28); }
+.mode-toggle.cef .mode-knob { transform: translateX(36px); background: var(--nvidia-green); }
+.mode-desc {
+  text-align: center; font-size: 11px; color: var(--text-muted);
+  letter-spacing: 0.4px;
+}
 
 /* ---------- FOOTER ---------- */
 footer {
@@ -354,8 +413,10 @@ footer {
   background: rgba(10, 10, 10, 0.95);
   border-top: 1px solid var(--border-color);
 }
-.foot-left { display: flex; align-items: center; gap: 14px; }
+.foot-left { display: flex; align-items: center; }
+.foot-left > * + * { margin-left: 14px; }
 .ver { font-size: 11px; letter-spacing: 1px; color: var(--text-muted); }
 .bridge { font-size: 10px; letter-spacing: 1.4px; color: var(--text-muted); }
 .bridge.off { color: var(--red); }
-.foot-right { display: flex; gap: 10px; }
+.foot-right { display: flex; }
+.foot-right > * + * { margin-left: 10px; }

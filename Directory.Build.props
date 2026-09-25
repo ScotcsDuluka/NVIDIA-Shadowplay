@@ -48,5 +48,11 @@
   </PropertyGroup>
   <Import Project="$(MSBuildThisFileDirectory)Build\Build-Config\version.props"
           Condition="Exists('$(MSBuildThisFileDirectory)Build\Build-Config\version.props')" />
+  <!-- Per-project version map written by Build.exe (Version page, SaveVersions).
+       Each entry sets _Bl1ProjectVersion, consumed by _Bl1Stamp in
+       Directory.Build.targets (base version only — the stamp appends
+       .<SharedBuildNumber>.61 itself, so the counter stays authoritative). -->
+  <Import Project="$(MSBuildThisFileDirectory)Build\Build-Config\versions.props"
+          Condition="Exists('$(MSBuildThisFileDirectory)Build\Build-Config\versions.props')" />
 
 </Project>

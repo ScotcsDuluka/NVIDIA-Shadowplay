@@ -43,6 +43,9 @@ bool ProcessRunningFromPath(const wchar_t* name, const std::wstring& exe_path);
 bool StartProcess(const std::wstring& exe_path, const std::wstring& args);
 // TerminateProcess on every process named |name| (except our own PID).
 void KillProcessByName(const wchar_t* name);
+// TerminateProcess only on instances of |name| running FROM |exe_path|
+// (exact image-path match, StartCefOverlay dedupe contract).
+void KillProcessFromPath(const wchar_t* name, const std::wstring& exe_path);
 bool WaitForTcpPort(unsigned port, unsigned timeout_ms);
 // One-shot loopback send to the NVIDIA API hub (:5001). Frame parity with
 // TcpClientHelper.Send: "[Send] <app>|<cmd>\r\n". Best effort.

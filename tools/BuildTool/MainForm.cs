@@ -131,7 +131,7 @@ public class MainForm : Form
                     "log" => _bridge.GetLog(ArgsInt(args, 0)),
                     "version" => _bridge.GetVersionConfig(),
                     "versions" => _bridge.GetVersions(),
-                    "saveVersions" => _bridge.SaveVersions(args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 ? args.Value[0].GetRawText() : "{}"),
+                    "saveVersions" => _bridge.SaveVersions(args.HasValue && args.Value.GetArrayLength() > 0 ? args.Value[0].GetRawText() : "{}"),
                     "saveVersion" => _bridge.SaveVersionConfig(ArgsStr(args, 0)),
                     "preview" => _bridge.GetPreview(),
                     "launch" => _bridge.LaunchApp(),

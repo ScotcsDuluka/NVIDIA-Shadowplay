@@ -50,6 +50,7 @@ class LauncherSupervisor {
   // Actions (page commands). All idempotent.
   void StartBaseChain();
   void StartEngineOverlayChainAsync();  // background thread: waits :59001
+  void StopCefOverlay();  // kill NvOverlay\Cef NVIDIA Share.exe (mode OFF)
   bool SendOpenOverlay();
   void InstallerExit();  // config reset + kill family (Main.vb RadioButton2)
 

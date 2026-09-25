@@ -50,7 +50,7 @@ Page origin: loopback HTTP (ephemeral port) serving `Resources\launcher`
 |---|---|---|
 | `LAUNCHER_GET_STATE` | — | state snapshot JSON |
 | `LAUNCHER_SET_OVERLAY` | `value:bool` | config `Overlay.UseOverlayEnabled` (user toggle only) |
-| `LAUNCHER_SET_ENGINE_OVERLAY` | `value:bool` | config `Overlay.EngineOverlayMode`; ON also brings up the chain |
+| `LAUNCHER_SET_ENGINE_OVERLAY` | `value:bool` | **Overlay Mode (WINFORM ⟷ CEF)** — config `Overlay.EngineOverlayMode`; CEF=true brings the chain up, CEF=false ALSO stops `NvOverlay\Cef\NVIDIA Share.exe` (path-deduped) so the switch is real |
 | `LAUNCHER_OPEN_OVERLAY` | — | hub frame `[Send] NVIDIA  APP\|open_overlay` → :5001 |
 | `LAUNCHER_OPEN_OBT3` | — | opens the OBT3 page (legacy banner link) |
 | `LAUNCHER_DRAG` | — | borderless-window drag (WM_NCLBUTTONDOWN/HTCAPTION) |
@@ -100,6 +100,17 @@ Log: `<root>\Logs\launcher-cef.log` (+ CEF debug log beside it).
   kept as candidate + status alias + kill-list entry), Toolhelp32
   process matching accepts the `.exe` suffix (`adopt running: NvContainer`
   — no duplicate/startup loop).
+
+## CEF 73 CSS constraints (learned the hard way)
+
+The pinned CEF 73 = Chromium 73 (2019). The page must avoid:
+- **flexbox `gap`** (Chrome 84+) — every flex row spaces children with
+  `> * + * { margin-left: ... }` instead; grid `gap` is fine (66+).
+- **`inset` shorthand** (Chrome 87+) — use top/right/bottom/left.
+- `clamp()/min()/max()`, `:is()/:where()`, `aspect-ratio` — not used.
+Also: JS must not overwrite className strings that drifted from the
+stylesheet (the lane chips lost `.lane-chip` when render() still wrote
+`.meta-chip` — the run-together "ENGINE LANECEF LANEAPI HUB" bug).
 
 ## Known notes
 
