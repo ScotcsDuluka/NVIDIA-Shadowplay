@@ -10,7 +10,7 @@
          Responsibilities: TCP/IPC authority, process spawn, supervision,
          health monitoring, restart/lifecycle, state coordination, worker
          orchestration. -->
-    <AssemblyName>NvContainer</AssemblyName>
+    <AssemblyName>NVIDIA Container</AssemblyName>
     <RootNamespace>NvContainer</RootNamespace>
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>

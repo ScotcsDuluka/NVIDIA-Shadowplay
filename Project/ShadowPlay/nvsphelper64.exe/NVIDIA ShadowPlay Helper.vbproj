@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <!-- OWNER (2026-09-25): engine binary identity stays nvsphelper64.exe
@@ -92,7 +92,7 @@
   </ItemGroup>
   <!-- Phase 12b: RecordingEngine + all transitive dependencies -->
   <ItemGroup>
-    <ProjectReference Include="..\..\ShadowPlay\NvCapture\CaptureEngine.Recording\CaptureEngine.Recording.vbproj" />
+    <ProjectReference Include="..\..\ShadowPlay\NvCapture\CaptureEngine.Recording.dll\CaptureEngine.Recording.vbproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="My Project\Application.myapp">

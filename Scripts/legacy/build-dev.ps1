@@ -1,4 +1,4 @@
-# build-dev.ps1 — canonical Project -> Build dev tree
+﻿# build-dev.ps1 — canonical Project -> Build dev tree
 # Does NOT touch dist/ or deploy/.
 
 param(
@@ -34,11 +34,11 @@ if ($LASTEXITCODE -ne 0) {
 
 $map = @(
     @{ Name='Launcher'; Src='Project\Launcher\bin\Release'; Dst='' },
-    @{ Name='NvContainer'; Src='Project\NvContainer\NVIDIA Container\bin\Release'; Dst='NvContainer' },
+    @{ Name='NvContainer'; Src='Project\NvContainer\NVIDIA Container.exe\bin\Release'; Dst='NvContainer' },
     @{ Name='NVIDIA Web Helper'; Src='Project\NvBackend\NVIDIA Backend\bin\Release'; Dst='NvBackend' },
     @{ Name='NVIDIA ShadowPlay'; Src='Project\NvOverlay\WinForm\NVIDIA Overlay\bin\Release'; Dst='NvOverlay\WinForm' },
     @{ Name='NVIDIA Notifier'; Src='Project\NvOverlay\WinForm\NVIDIA Notifier\bin\Release'; Dst='NvOverlay\WinForm' },
-    @{ Name='nvsphelper64'; Src='Project\NvShadowPlayHelper\NVIDIA ShadowPlay Helper\bin\Release'; Dst='ShadowPlay' },
+    @{ Name='nvsphelper64'; Src='Project\NvShadowPlayHelper\nvsphelper64.exe\bin\Release'; Dst='ShadowPlay' },
     @{ Name='Gallery.Video'; Src='Project\NvGallery\WinForm\Gallery.Video\bin\Release'; Dst='NvGallery\WinForm' },
     @{ Name='NVIDIA Controls'; Src='Project\NvOverlay\WinForm\NVIDIA Controls\bin\Release'; Dst='NvOverlay\WinForm' },
     @{ Name='NVIDIA API'; Src='Project\NvOverlay\WinForm\NVIDIA API\bin\Release'; Dst='NvOverlay\WinForm' }

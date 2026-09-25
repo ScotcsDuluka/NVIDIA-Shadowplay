@@ -1,29 +1,29 @@
-{
+﻿{
   "solution": {
     "path": "NVIDIA ShadowPlay.sln",
     "projects": [
       "Launcher\\Launcher.vbproj",
       "NvBackend\\NVIDIA Backend\\NVIDIA Backend.vbproj",
       "NvBackend\\NVIDIA Web Helper\\NVIDIA Web Helper.vbproj",
-      "NvContainer\\NVIDIA Container\\NvContainer.vbproj",
+      "NvContainer\\NVIDIA Container.exe\\NvContainer.vbproj",
       "NvGallery\\WinForm\\Gallery.Video\\Gallery.Video.vbproj",
       "NvOverlay\\Cef\\NvShim\\NvShim.vbproj",
       "NvOverlay\\WinForm\\NVIDIA Notifier\\NVIDIA Notifier.vbproj",
       "NvOverlay\\WinForm\\NVIDIA ShadowPlay\\NVIDIA ShadowPlay.vbproj",
-      "NvOverlay\\WinForm\\NvControls\\NVIDIA Controls\\NVIDIA Controls.vbproj",
-      "NvShadowPlayHelper\\NVIDIA ShadowPlay Helper\\NVIDIA ShadowPlay Helper.vbproj",
+      "NvOverlay\\WinForm\\NvControls\\NVIDIA Controls.dll\\NVIDIA Controls.vbproj",
+      "NvShadowPlayHelper\\nvsphelper64.exe\\NVIDIA ShadowPlay Helper.vbproj",
       "ShadowPlay\\NvCapServices\\nvspcap - nvidia\\nvspcap.vbproj",
-      "ShadowPlay\\NvCapture\\CaptureEngine\\CaptureEngine.vbproj",
-      "ShadowPlay\\NvCapture\\CaptureEngine.Audio\\CaptureEngine.Audio.csproj",
-      "ShadowPlay\\NvCapture\\CaptureEngine.Audio.Wasapi\\CaptureEngine.Audio.Wasapi.csproj",
-      "ShadowPlay\\NvCapture\\CaptureEngine.Encoder\\CaptureEngine.Encoder.vbproj",
-      "ShadowPlay\\NvCapture\\CaptureEngine.Encoder.Nvenc\\CaptureEngine.Encoder.Nvenc.vbproj",
-      "ShadowPlay\\NvCapture\\CaptureEngine.FFmpegBackend\\CaptureEngine.FFmpegBackend.vbproj",
-      "ShadowPlay\\NvCapture\\CaptureEngine.Recording\\CaptureEngine.Recording.vbproj",
-      "ShadowPlay\\NvCapture\\CaptureEngine.Recording.ConsoleDriver\\CaptureEngine.Recording.ConsoleDriver.vbproj",
-      "ShadowPlay\\NvCapture\\CaptureEngine.Video\\CaptureEngine.Video.vbproj",
-      "ShadowPlay\\NvCapture\\CaptureEngine.Video.Ddagrab\\CaptureEngine.Video.Ddagrab.vbproj",
-      "ShadowPlay\\WgcCapture\\WgcCapture.csproj"
+      "ShadowPlay\\NvCapture\\CaptureEngine.dll\\CaptureEngine.vbproj",
+      "ShadowPlay\\NvCapture\\CaptureEngine.Audio.dll\\CaptureEngine.Audio.csproj",
+      "ShadowPlay\\NvCapture\\CaptureEngine.Audio.Wasapi.dll\\CaptureEngine.Audio.Wasapi.csproj",
+      "ShadowPlay\\NvCapture\\CaptureEngine.Encoder.dll\\CaptureEngine.Encoder.vbproj",
+      "ShadowPlay\\NvCapture\\CaptureEngine.Encoder.Nvenc.dll\\CaptureEngine.Encoder.Nvenc.vbproj",
+      "ShadowPlay\\NvCapture\\CaptureEngine.FFmpegBackend.dll\\CaptureEngine.FFmpegBackend.vbproj",
+      "ShadowPlay\\NvCapture\\CaptureEngine.Recording.dll\\CaptureEngine.Recording.vbproj",
+      "ShadowPlay\\NvCapture\\CaptureEngine.Recording.ConsoleDriver.exe\\CaptureEngine.Recording.ConsoleDriver.vbproj",
+      "ShadowPlay\\NvCapture\\CaptureEngine.Video.dll\\CaptureEngine.Video.vbproj",
+      "ShadowPlay\\NvCapture\\CaptureEngine.Video.Ddagrab.dll\\CaptureEngine.Video.Ddagrab.vbproj",
+      "ShadowPlay\\WgcCapture.dll\\WgcCapture.csproj"
     ]
   }
 }

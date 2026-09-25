@@ -1,4 +1,4 @@
-# build-dev.ps1
+﻿# build-dev.ps1
 # Canonical Dev Build:
 #   Project\  ->  Build\NVIDIA ShadowPlay\
 # Layout authority:
@@ -201,7 +201,7 @@ if ((Test-Path (Join-Path $backendOut 'package.json')) -and (Get-Command npm.cmd
 }
 
 # NvContainer -> owner folder. The worker contract follows the requested Dev layout.
-$containerBin = Join-Path $ProjectRoot ("NvContainer\NVIDIA Container\bin\Release\{0}" -f $TargetFramework)
+$containerBin = Join-Path $ProjectRoot ("NvContainer\NVIDIA Container.exe\bin\Release\{0}" -f $TargetFramework)
 $containerOut = Join-Path $BuildRoot 'NvContainer'
 Copy-RuntimeFiles $containerBin $containerOut 'NVIDIA Container'
 $containerConfig = [ordered]@{
@@ -240,7 +240,7 @@ Copy-RuntimeFiles $galleryBin $galleryOut 'Gallery.Video'
 
 # Overlay WinForm owners. (NVIDIA API was moved to NvBackend\NVIDIA Backend —
 # its types ship in-process with the overlay via ProjectReference.)
-$controlsBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvControls\NVIDIA Controls\bin\Release\{0}" -f $TargetFramework)
+$controlsBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvControls\NVIDIA Controls.dll\bin\Release\{0}" -f $TargetFramework)
 $notifierBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA Notifier\bin\Release\{0}" -f $TargetFramework)
 $overlayWinBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA ShadowPlay\bin\Release\{0}" -f $TargetFramework)
 
@@ -287,7 +287,7 @@ Copy-Tree (Join-Path $ProjectRoot 'ShadowPlay\FFmpeg') (Join-Path $BuildRoot 'FF
 
 # Helper root runtime (WinForm + CEF shared engine lane; alias:
 # NVIDIA ShadowPlay Helper — exe identity stays nvsphelper64 per owner).
-$helperBin = Join-Path $ProjectRoot ("NvShadowPlayHelper\NVIDIA ShadowPlay Helper\bin\Release\{0}" -f $TargetFramework)
+$helperBin = Join-Path $ProjectRoot ("NvShadowPlayHelper\nvsphelper64.exe\bin\Release\{0}" -f $TargetFramework)
 $shadowOut = Join-Path $BuildRoot 'ShadowPlay'
 Copy-RuntimeFiles $helperBin $shadowOut 'nvsphelper64'
 foreach ($name in @('nvsphelper64.exe','nvsphelper64.dll','nvsphelper64.runtimeconfig.json')) {
