@@ -323,11 +323,11 @@
     <Folder Include="Resources\" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\NvBackend\NVIDIA Backend\NVIDIA Backend.vbproj" />
+    <ProjectReference Include="..\..\..\NvBackend\NVIDIA Backend.exe\NVIDIA Backend.vbproj" />
     <ProjectReference Include="..\..\..\Launcher\Launcher.vbproj" />
     <ProjectReference Include="..\..\..\NvShadowPlayHelper\NVIDIA%20ShadowPlay%20Helper\NVIDIA%20ShadowPlay%20Helper.vbproj" />
-    <ProjectReference Include="..\NVIDIA Notifier\NVIDIA Notifier.vbproj" />
-    <ProjectReference Include="..\NVIDIA Controls\NVIDIA Controls.vbproj" />
+    <ProjectReference Include="..\NVIDIA Notifier.exe\NVIDIA Notifier.vbproj" />
+    <ProjectReference Include="..\NVIDIA Controls.dll\NVIDIA Controls.vbproj" />
   </ItemGroup>
   <ProjectExtensions>
     <VisualStudio>

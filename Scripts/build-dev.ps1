@@ -145,7 +145,7 @@ if (Test-Path -LiteralPath $runtimeBootstrap) {
 }
 
 # Common runtime dependencies and family dependencies.
-$overlayBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA ShadowPlay\bin\Release\{0}" -f $TargetFramework)
+$overlayBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA ShadowPlay.exe\bin\Release\{0}" -f $TargetFramework)
 Ensure-Dir (Join-Path $BuildRoot 'Runtime')
 if (Test-Path -LiteralPath $overlayBin) {
     Copy-FlatDlls $overlayBin (Join-Path $BuildRoot 'Runtime') @(
@@ -159,14 +159,14 @@ if (Test-Path -LiteralPath $overlayBin) {
 }
 
 # Launcher -> root.
-$launcherBin = Join-Path $ProjectRoot ("Launcher\bin\Release\{0}" -f $TargetFramework)
+$launcherBin = Join-Path $ProjectRoot ("Launcher.exe\bin\Release\{0}" -f $TargetFramework)
 Copy-RuntimeFiles $launcherBin $BuildRoot 'Launcher'
 
 # NvBackend -> owner folder + Node backend source (Web Helper hosts the node backend).
-$backendProjectBin = Join-Path $ProjectRoot ("NvBackend\NVIDIA Web Helper\bin\Release\{0}" -f $TargetFramework)
+$backendProjectBin = Join-Path $ProjectRoot ("NvBackend\NVIDIA Web Helper.exe\bin\Release\{0}" -f $TargetFramework)
 $backendOut = Join-Path $BuildRoot 'NvBackend'
 Copy-RuntimeFiles $backendProjectBin $backendOut 'NVIDIA Web Helper'
-$backendSrc = Join-Path $ProjectRoot 'NvBackend\NVIDIA Web Helper\Backend'
+$backendSrc = Join-Path $ProjectRoot 'NvBackend\NVIDIA Web Helper.exe\Backend'
 Copy-Tree $backendSrc $backendOut
 
 # NvConfig runtime seed: default the overlay stack ON (owner: WinForm family
@@ -230,19 +230,19 @@ $containerConfig | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path
 # NVIDIA ShadowPlay.exe + NVIDIA ShadowPlay Helper.exe). ExePath("NvBackend.exe")
 # resolves here; the overlay also links NvBackend.dll in-process (kept in
 # NvOverlay\WinForm by the dedupe keep-rule).
-$hubBin = Join-Path $ProjectRoot ("NvBackend\NVIDIA Backend\bin\Release\{0}" -f $TargetFramework)
+$hubBin = Join-Path $ProjectRoot ("NvBackend\NVIDIA Backend.exe\bin\Release\{0}" -f $TargetFramework)
 Copy-RuntimeFiles $hubBin (Join-Path $BuildRoot 'NvBackend') 'NvBackend'
 
 # Gallery.Video
-$galleryBin = Join-Path $ProjectRoot 'NvGallery\WinForm\Gallery.Video\bin\Release\net10.0'
+$galleryBin = Join-Path $ProjectRoot 'NvGallery\WinForm\Gallery.Video.dll\bin\Release\net10.0'
 $galleryOut = Join-Path $BuildRoot 'NvGallery\WinForm'
 Copy-RuntimeFiles $galleryBin $galleryOut 'Gallery.Video'
 
 # Overlay WinForm owners. (NVIDIA API was moved to NvBackend\NVIDIA Backend —
 # its types ship in-process with the overlay via ProjectReference.)
 $controlsBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvControls\NVIDIA Controls.dll\bin\Release\{0}" -f $TargetFramework)
-$notifierBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA Notifier\bin\Release\{0}" -f $TargetFramework)
-$overlayWinBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA ShadowPlay\bin\Release\{0}" -f $TargetFramework)
+$notifierBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA Notifier.exe\bin\Release\{0}" -f $TargetFramework)
+$overlayWinBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NVIDIA ShadowPlay.exe\bin\Release\{0}" -f $TargetFramework)
 
 Copy-RuntimeFiles $controlsBin (Join-Path $BuildRoot 'NvOverlay\WinForm') 'NVIDIA Controls'
 Copy-RuntimeFiles $notifierBin (Join-Path $BuildRoot 'NvOverlay\WinForm') 'NVIDIA Notifier'
@@ -255,24 +255,24 @@ $graphicsNames = @('Vortice.Direct3D11.dll','Vortice.DirectX.dll','Vortice.DXGI.
 Copy-FlatDlls $overlayWinBin (Join-Path $BuildRoot 'NvGraphics') $graphicsNames
 
 # Config owner.
-$notifierConfig = Join-Path $ProjectRoot 'NvOverlay\WinForm\NVIDIA Notifier\notifier_obs.json'
+$notifierConfig = Join-Path $ProjectRoot 'NvOverlay\WinForm\NVIDIA Notifier.exe\notifier_obs.json'
 if (Test-Path $notifierConfig) {
     Copy-Item $notifierConfig (Join-Path $BuildRoot 'NvConfig\notifier_obs.json') -Force
 }
 
 # Capture engine family. Tests are intentionally excluded.
 $captureProjects = @(
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine';                  Tfm='net10.0' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Audio';            Tfm='net10.0' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Audio.Wasapi';    Tfm='net10.0' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Encoder';         Tfm='net10.0' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Encoder.Nvenc';   Tfm='net10.0-windows' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.FFmpegBackend';   Tfm='net10.0' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Recording';       Tfm='net10.0-windows' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Recording.ConsoleDriver'; Tfm='net10.0-windows' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Video';            Tfm='net10.0' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Video.Ddagrab';   Tfm='net10.0-windows' },
-    @{ Rel='ShadowPlay\WgcCapture';                              Tfm=$TargetFramework }
+    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.dll';                  Tfm='net10.0' },
+    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Audio.dll';            Tfm='net10.0' },
+    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Audio.Wasapi.dll';    Tfm='net10.0' },
+    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Encoder.dll';         Tfm='net10.0' },
+    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Encoder.Nvenc.dll';   Tfm='net10.0-windows' },
+    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.FFmpegBackend.dll';   Tfm='net10.0' },
+    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Recording.dll';       Tfm='net10.0-windows' },
+    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Recording.ConsoleDriver.exe'; Tfm='net10.0-windows' },
+    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Video.dll';            Tfm='net10.0' },
+    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Video.Ddagrab.dll';   Tfm='net10.0-windows' },
+    @{ Rel='ShadowPlay\WgcCapture.dll';                              Tfm=$TargetFramework }
 )
 $captureOut = Join-Path $BuildRoot 'ShadowPlay\NvCapture'
 foreach ($c in $captureProjects) {
@@ -287,7 +287,7 @@ Copy-Tree (Join-Path $ProjectRoot 'ShadowPlay\FFmpeg') (Join-Path $BuildRoot 'FF
 
 # Helper root runtime (WinForm + CEF shared engine lane; alias:
 # NVIDIA ShadowPlay Helper — exe identity stays nvsphelper64 per owner).
-$helperBin = Join-Path $ProjectRoot ("NvShadowPlayHelper\nvsphelper64.exe\bin\Release\{0}" -f $TargetFramework)
+$helperBin = Join-Path $ProjectRoot ("ShadowPlay\nvsphelper64.exe\bin\Release\{0}" -f $TargetFramework)
 $shadowOut = Join-Path $BuildRoot 'ShadowPlay'
 Copy-RuntimeFiles $helperBin $shadowOut 'nvsphelper64'
 foreach ($name in @('nvsphelper64.exe','nvsphelper64.dll','nvsphelper64.runtimeconfig.json')) {

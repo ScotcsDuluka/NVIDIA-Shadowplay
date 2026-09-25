@@ -18,21 +18,21 @@
     <!-- PHASE 1 V-CT5: the pure NVENC param builder + its interop struct
          definitions, LINKED so the init-params contract runs on Linux
          (no native NVENC, no D3D11 — System only). -->
-    <Compile Include="..\CaptureEngine.Encoder.Nvenc\Internal\NvEncodeAPI.vb" Link="NvEncodeAPI.vb" />
-    <Compile Include="..\CaptureEngine.Encoder.Nvenc\Internal\NvEncParamBuilder.vb" Link="NvEncParamBuilder.vb" />
+    <Compile Include="..\CaptureEngine.Encoder.Nvenc.dll\Internal\NvEncodeAPI.vb" Link="NvEncodeAPI.vb" />
+    <Compile Include="..\CaptureEngine.Encoder.Nvenc.dll\Internal\NvEncParamBuilder.vb" Link="NvEncParamBuilder.vb" />
     <!-- C/6: NvencEncoderBackend + its internals LINKED so the lifecycle
          matrix (state convergence, forbidden transitions, Dispose gates)
          compiles into the Linux-runnable suite. Vortice compiles cross-
          platform; on a machine without D3D11/NVENC the Initialize path
          fails at the device factory and the lifecycle tests assert the
          Faulted convergence instead of the success path. -->
-    <Compile Include="..\CaptureEngine.Encoder.Nvenc\NvencEncoderBackend.vb" Link="NvencEncoderBackend.vb" />
-    <Compile Include="..\CaptureEngine.Encoder.Nvenc\Internal\NvEncConfigSerializer.vb" Link="NvEncConfigSerializer.vb" />
-    <Compile Include="..\CaptureEngine.Encoder.Nvenc\Internal\NvEncFunctionTable.vb" Link="NvEncFunctionTable.vb" />
-    <Compile Include="..\CaptureEngine.Encoder.Nvenc\Internal\NvencResources.vb" Link="NvencResources.vb" />
-    <Compile Include="..\CaptureEngine.Encoder.Nvenc\Internal\D3D11DeviceFactory.vb" Link="D3D11DeviceFactory.vb" />
-    <ProjectReference Include="..\CaptureEngine.Encoder\CaptureEngine.Encoder.vbproj" />
-    <ProjectReference Include="..\CaptureEngine.Video\CaptureEngine.Video.vbproj" />
-    <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+    <Compile Include="..\CaptureEngine.Encoder.Nvenc.dll\NvencEncoderBackend.vb" Link="NvencEncoderBackend.vb" />
+    <Compile Include="..\CaptureEngine.Encoder.Nvenc.dll\Internal\NvEncConfigSerializer.vb" Link="NvEncConfigSerializer.vb" />
+    <Compile Include="..\CaptureEngine.Encoder.Nvenc.dll\Internal\NvEncFunctionTable.vb" Link="NvEncFunctionTable.vb" />
+    <Compile Include="..\CaptureEngine.Encoder.Nvenc.dll\Internal\NvencResources.vb" Link="NvencResources.vb" />
+    <Compile Include="..\CaptureEngine.Encoder.Nvenc.dll\Internal\D3D11DeviceFactory.vb" Link="D3D11DeviceFactory.vb" />
+    <ProjectReference Include="..\CaptureEngine.Encoder.dll\CaptureEngine.Encoder.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.Video.dll\CaptureEngine.Video.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.dll\CaptureEngine.vbproj" />
   </ItemGroup>
 </Project>

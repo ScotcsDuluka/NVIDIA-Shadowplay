@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CaptureEngine.Audio.Wasapi\CaptureEngine.Audio.Wasapi.csproj" />
+    <ProjectReference Include="..\CaptureEngine.Audio.Wasapi.dll\CaptureEngine.Audio.Wasapi.csproj" />
   </ItemGroup>
 
 </Project>

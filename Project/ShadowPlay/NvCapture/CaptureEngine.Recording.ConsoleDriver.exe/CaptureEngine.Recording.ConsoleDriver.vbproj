@@ -16,9 +16,9 @@
 
   <ItemGroup>
     <!-- Recording orchestration (transitively pulls in all backends) -->
-    <ProjectReference Include="..\CaptureEngine.Recording\CaptureEngine.Recording.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.Recording.dll\CaptureEngine.Recording.vbproj" />
     <!-- Foundation (for EngineLogger — used directly in Program.vb) -->
-    <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.dll\CaptureEngine.vbproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,12 +29,12 @@
          The [ ] folder names are literal for MSBuild (no globbing). -->
     <Compile Include="..\..\..\..\Common\AppLayout.vb" Link="AppLayout.vb" />
     <Compile Include="..\..\..\..\Common\FFmpegLocator.vb" Link="FFmpegLocator.vb" />
-    <Compile Include="..\..\..\NvShadowPlayHelper\NVIDIA%20ShadowPlay%20Helper\Engine\%5BCapture%5D\CaptureSettings.vb" Link="CaptureSettings.vb" />
-    <Compile Include="..\..\..\NvShadowPlayHelper\NVIDIA%20ShadowPlay%20Helper\Engine\%5BIntegration%5D\OverlayConfig.vb" Link="OverlayConfig.vb" />
-    <Compile Include="..\..\..\NvShadowPlayHelper\NVIDIA%20ShadowPlay%20Helper\Engine\%5BAPI%5D\NextRecordingConfig.vb" Link="NextRecordingConfig.vb" />
+    <Compile Include="..\..\..\ShadowPlay\nvsphelper64.exe\Engine\%5BCapture%5D\CaptureSettings.vb" Link="CaptureSettings.vb" />
+    <Compile Include="..\..\..\ShadowPlay\nvsphelper64.exe\Engine\%5BIntegration%5D\OverlayConfig.vb" Link="OverlayConfig.vb" />
+    <Compile Include="..\..\..\ShadowPlay\nvsphelper64.exe\Engine\%5BAPI%5D\NextRecordingConfig.vb" Link="NextRecordingConfig.vb" />
     <!-- The single preset mapper lives in the foundation's ConfigMigrator. -->
-    <Compile Include="..\CaptureEngine\Configuration\ConfigMigrator.vb" Link="ConfigMigrator.vb" />
-    <Compile Include="..\CaptureEngine\Configuration\EngineConfigV2.vb" Link="EngineConfigV2.vb" />
+    <Compile Include="..\CaptureEngine.dll\Configuration\ConfigMigrator.vb" Link="ConfigMigrator.vb" />
+    <Compile Include="..\CaptureEngine.dll\Configuration\EngineConfigV2.vb" Link="EngineConfigV2.vb" />
   </ItemGroup>
 
   <ItemGroup>

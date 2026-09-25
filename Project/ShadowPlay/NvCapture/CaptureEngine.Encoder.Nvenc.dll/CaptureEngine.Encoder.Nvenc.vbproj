@@ -18,11 +18,11 @@
   <ItemGroup>
     <!-- Foundation encoder contract — provides IEncoderBackend, EncoderConfig,
          EncodedPacket, PacketMetadata, EncoderState, IEncoderDiagnostics. -->
-    <ProjectReference Include="..\CaptureEngine.Encoder\CaptureEngine.Encoder.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.Encoder.dll\CaptureEngine.Encoder.vbproj" />
     <!-- Video contract — provides IVideoFrame + ID3D11VideoFrame (Phase 12 extension). -->
-    <ProjectReference Include="..\CaptureEngine.Video\CaptureEngine.Video.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.Video.dll\CaptureEngine.Video.vbproj" />
     <!-- Foundation — provides EngineLogger. -->
-    <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.dll\CaptureEngine.vbproj" />
   </ItemGroup>
 
   <ItemGroup>

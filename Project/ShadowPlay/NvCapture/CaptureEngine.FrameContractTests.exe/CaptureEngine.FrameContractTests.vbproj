@@ -12,6 +12,6 @@
     <Description>CaptureEngine.Video Frame Contract tests — P1-D</Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CaptureEngine.Video\CaptureEngine.Video.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.Video.dll\CaptureEngine.Video.vbproj" />
   </ItemGroup>
 </Project>

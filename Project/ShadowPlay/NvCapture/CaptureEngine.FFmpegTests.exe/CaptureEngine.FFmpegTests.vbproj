@@ -12,9 +12,9 @@
     <Description>CaptureEngine.FFmpegBackend tests — P1-C</Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
-    <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.FFmpegBackend.dll\CaptureEngine.FFmpegBackend.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.dll\CaptureEngine.vbproj" />
     <!-- P13.2: synthetic-position tests for AudioPositionTracker (Linux-safe) -->
-    <ProjectReference Include="..\CaptureEngine.Audio.Wasapi\CaptureEngine.Audio.Wasapi.csproj" />
+    <ProjectReference Include="..\CaptureEngine.Audio.Wasapi.dll\CaptureEngine.Audio.Wasapi.csproj" />
   </ItemGroup>
 </Project>

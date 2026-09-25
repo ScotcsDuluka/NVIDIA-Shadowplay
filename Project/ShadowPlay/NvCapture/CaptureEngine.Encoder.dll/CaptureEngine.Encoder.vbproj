@@ -34,8 +34,8 @@
       NvencEncoder concrete implementation. This contract must NOT leak
       NVENC-specific types (no nvEncodeAPI, no NV_ENC_*, no DllImport).
     -->
-    <ProjectReference Include="..\CaptureEngine.Video\CaptureEngine.Video.vbproj" />
-    <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.Video.dll\CaptureEngine.Video.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.dll\CaptureEngine.vbproj" />
   </ItemGroup>
 
 </Project>

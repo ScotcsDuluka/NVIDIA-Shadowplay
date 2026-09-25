@@ -14,8 +14,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
-    <ProjectReference Include="..\CaptureEngine.Audio.Wasapi\CaptureEngine.Audio.Wasapi.csproj" />
+    <ProjectReference Include="..\CaptureEngine.dll\CaptureEngine.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.Audio.Wasapi.dll\CaptureEngine.Audio.Wasapi.csproj" />
   </ItemGroup>
 
 </Project>
