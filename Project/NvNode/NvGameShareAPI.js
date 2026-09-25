@@ -8,7 +8,7 @@
  */
 
 'use strict'
-var api = require('./NvGameShareAPINode.node');
+var api = require('./shims/NvGameShareAPINode.js');
 var https = require('https');
 var Utils = require('./Utils.js')();
 

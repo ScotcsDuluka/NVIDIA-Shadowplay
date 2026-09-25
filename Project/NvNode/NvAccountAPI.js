@@ -10,7 +10,7 @@
 'use strict';
 
 let https = require('https'),
-    api = require('./NVAccountAPINode'),
+    api = require('./shims/NVAccountAPINode.js'),
     config = require('./config.json'),
     _logger,
     refreshInterval,

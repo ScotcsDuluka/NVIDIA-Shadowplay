@@ -1,5 +1,7 @@
 // share_win.cpp - see share_win.h.
 #define _CRT_RAND_S 1  // must precede <stdlib.h> for rand_s
+#include <winsock2.h>    // MUST precede windows.h (pulled by share_win.h)
+#include <ws2tcpip.h>
 #include "share_win.h"
 
 #include <stdio.h>
@@ -128,8 +130,38 @@ const wchar_t* kHostWindowClass = L"NvShareHostWindow";
 
 void (*g_close_request_cb)(void) = NULL;
 
+// ShadowPlay hotkey plumbing (the native-listener stand-in): Alt+Z is
+// caught by RegisterHotKey; the fire goes to the node's shim listener
+// (port 59002) which drives the GENUINE HotkeyCallback ->
+// /ShadowPlay/v.1.0/Hotkey socket event -> the page toggles itself.
+static void FireHotkey(const char* name) {
+  WSADATA wsa;
+  if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) return;
+  SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (s != INVALID_SOCKET) {
+    sockaddr_in a;
+    ZeroMemory(&a, sizeof(a));
+    a.sin_family = AF_INET;
+    a.sin_port = htons(59002);
+    a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    if (connect(s, reinterpret_cast<sockaddr*>(&a), sizeof(a)) == 0) {
+      char req[160];
+      lstrcpyA(req, "GET /fire?hk=");
+      lstrcatA(req, name);
+      lstrcatA(req, " HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n");
+      send(s, req, lstrlenA(req), 0);
+    }
+    closesocket(s);
+  }
+  WSACleanup();
+}
+
 LRESULT CALLBACK HostWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
   switch (msg) {
+    case WM_HOTKEY:
+      // Alt+Z — routed through the ShadowPlay hotkey system.
+      if (wparam == 1) FireHotkey("OpenShare");
+      break;
     case WM_TIMER:
       // Per-pixel hit test (30ms): read the last OSR frame's alpha under
       // the cursor — opaque = the window takes the click and forwards it
@@ -237,6 +269,9 @@ HWND CreateHostWindow(HINSTANCE hinstance, bool show, int width, int height,
   // Per-pixel hit-test tick: frame alpha under the cursor decides
   // click-through (WS_EX_TRANSPARENT) vs page input forwarding.
   if (hwnd) SetTimer(hwnd, 1, 30, NULL);
+  // ShadowPlay overlay toggle hotkey: Alt+Z (routed through the node's
+  // hotkey system — FireHotkey on WM_HOTKEY).
+  if (hwnd) RegisterHotKey(hwnd, 1, MOD_ALT | MOD_NOREPEAT, 'Z');
   return hwnd;
 }
 

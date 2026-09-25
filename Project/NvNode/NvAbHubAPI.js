@@ -9,7 +9,7 @@
 
 'use strict'
 
-let abHubAPI = require('./NvABHubAPI.node');
+let abHubAPI = require('./shims/NvABHubAPI.js');
 let _logger;
 
 function NativeCallbackToPromise(resolve, reject) {

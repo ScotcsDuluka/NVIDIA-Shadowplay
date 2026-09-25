@@ -318,10 +318,11 @@ int NvShareCefMain(void) {
   settings.size = sizeof(CefSettings);
   settings.no_sandbox = 1;  // sandbox not linked (no cef_sandbox.lib)
   settings.multi_threaded_message_loop = false;
-  settings.windowless_rendering_enabled = false;
-  // Opaque black until the page paints — the overlay is a dark GFE surface,
-  // never the white flash the default background produced.
-  settings.background_color = CefColorSetARGB(0xFF, 0x00, 0x00, 0x00);
+  settings.windowless_rendering_enabled = true;
+  // Transparent overlay: the OSR frame composites through
+  // UpdateLayeredWindow — alpha=0 pixels stay invisible + click-through,
+  // so there is no opaque backing surface at all.
+  settings.background_color = CefColorSetARGB(0x00, 0x00, 0x00, 0x00);
   settings.log_severity = LOGSEVERITY_INFO;
   CefString(&settings.log_file).FromString(
       sharewin::WideToUtf8(exe_dir + L"\\Logs\\cef-debug.log"));

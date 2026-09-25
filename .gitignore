@@ -126,3 +126,6 @@ Project/Launcher.Cef/src/bl1_version.h
 
 # secrets
 Server/.server-secret
+
+# genuine NvNode backend deps (staged by build-dev)
+Project/NvNode/node_modules/

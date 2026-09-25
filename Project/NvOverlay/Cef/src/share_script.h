@@ -48,26 +48,10 @@ inline const char* AugmentationSource() {
   "var uTimer=setInterval(function(){uTries++;"
   "if(unlockFn()||uTries>150){clearInterval(uTimer);}} ,300);"
   "}catch(e){}"
-  // Auto-open: standalone backends leave the page parked on the bare base
-  // state (nothing navigates into main). Two open paths, both production-
-  // shaped: (1) POST /ShadowPlay/v.1.0/OpenOscState — the genuine host
-  // signal (NvShadowPlayAPI.js:1058-1097 relays it to the DisplayOscState
-  // socket channel; measured: the page does NOT navigate on it standalone,
-  // kept for parity/logging); (2) the page's own oscDisplayService.openOSC
-  // via the unlock shim (window.__oscOpen) — the measured-working path.
-  // Fire once base is active. Retry ~12s, then leave the page alone.
-  "try{var oTries=0;"
-  "var oTimer=setInterval(function(){oTries++;"
-  "try{if(window.angular&&document.querySelector('.base')){"
-  "var xa=new XMLHttpRequest();"
-  "xa.open('POST','/ShadowPlay/v.1.0/OpenOscState',true);"
-  "xa.setRequestHeader('Content-Type','application/json');"
-  "xa.send('{}');"
-  "if(window.__oscOpen){window.__oscOpen();}"
-  "clearInterval(oTimer);}}catch(e){}"
-  "if(oTries>40){clearInterval(oTimer);}}"
-  ",300);"
-  "}catch(e){}"
+  // Auto-open: REMOVED (owner call 2026-09-26 — "Overlay ติดได้ยังไง
+  // เราไม่ได้กด alt z เลย"). The overlay opens ONLY on an explicit open:
+  // Alt+Z through the node, or the launcher's OPEN OVERLAY
+  // (POST /ShadowPlay/v.1.0/Hotkey/Toggle). Nothing self-opens at boot.
   // Visibility bridge: the host window is created HIDDEN and the HOST is
   // the one that sets html.oscengine-open (FlipOscDisplayState inside
   // QUERY_WIN_OPEN_OSC) — so watching the class here deadlocks. Mirror the

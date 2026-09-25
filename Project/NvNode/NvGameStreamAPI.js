@@ -8,7 +8,7 @@
 
 'use strict'
 
-var api = require('./NvGameStreamAPINode.node');
+var api = require('./shims/NvGameStreamAPINode.js');
 
 
 //! Helper function that receives body of POST request and calls callback for that data.

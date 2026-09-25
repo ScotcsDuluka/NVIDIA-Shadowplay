@@ -18,7 +18,8 @@ class ShareClient : public CefClient,
                     public CefLifeSpanHandler,
                     public CefLoadHandler,
                     public CefDisplayHandler,
-                    public CefRenderHandler {
+                    public CefRenderHandler,
+                    public CefContextMenuHandler {
  public:
   ShareClient(const ShareLaunchParams* params, HWND host_wnd, int http_port,
               int backend_port, const std::string& secret,
@@ -33,6 +34,19 @@ class ShareClient : public CefClient,
   CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override { return this; }
   CefRefPtr<CefRenderHandler> GetRenderHandler() override { return this; }
+  CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override {
+    return this;
+  }
+  // Suppress the default browser context menu (Back/Forward/Print...) —
+  // meaningless inside an overlay (owner 2026-09-26). CEF73 contract:
+  // returning true from RunContextMenu = the app owns the menu; we own
+  // nothing, so nothing is shown.
+  bool RunContextMenu(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
+                      CefRefPtr<CefContextMenuParams> params,
+                      CefRefPtr<CefMenuModel> model,
+                      CefRefPtr<CefRunContextMenuCallback> callback) override {
+    return true;
+  }
   bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser,
                                 CefProcessId source_process,
                                 CefRefPtr<CefProcessMessage> message) override;
@@ -50,6 +64,9 @@ class ShareClient : public CefClient,
   void ForwardMouseMove(int x, int y, bool leave);
   void ForwardMouseButton(int x, int y, bool down, bool left_button);
   void ForwardKey(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
+  // Alt+Z toggle (WM_HOTKEY): closed -> main.main-menu + openOSC; open ->
+  // back to base. The visibility bridge mirrors the state to the window.
+  void ToggleOverlay();
 
   // CefLifeSpanHandler
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;

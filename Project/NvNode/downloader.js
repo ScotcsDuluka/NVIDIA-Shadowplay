@@ -51,7 +51,7 @@ module.exports = function(app, io, logger){
 
 	nvLogger = logger;
     try {
-        var downloaderApi = require('./Downloader.node');
+        var downloaderApi = require('./shims/Downloader.js');
     } catch (e) {
         nvLogger.info('Failed to load downloader Addon', e);
         return null;

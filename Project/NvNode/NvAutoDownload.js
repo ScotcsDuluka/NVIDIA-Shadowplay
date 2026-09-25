@@ -10,7 +10,7 @@
 (function(){
 
     'use strict'
-    var downloaderAPI     = require('./Downloader.node'),
+    var downloaderAPI     = require('./shims/Downloader.js'),
         https             = require("https"),
         _                 = require("underscore"),
         store             = require('nv-localstore'),

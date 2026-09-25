@@ -9,7 +9,7 @@
 
 'use strict'
 
-var api = require('./NvCameraAPINode.node');
+var api = require('./shims/NvCameraAPINode.js');
 
 var _logger;
 

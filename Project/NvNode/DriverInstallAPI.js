@@ -9,7 +9,7 @@
 
 'use strict'
 
-var driverInstall = require('./DriverInstall');
+var driverInstall = require('./shims/DriverInstall.js');
 
 var _logger;
 

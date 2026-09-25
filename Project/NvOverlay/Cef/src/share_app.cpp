@@ -80,7 +80,7 @@ void ShareApp::OnContextInitialized() {
   // the page is composited offscreen and presented through
   // UpdateLayeredWindow on the layered host window, so transparent page
   // pixels are invisible AND click-through over the game/desktop.
-  info.SetAsWindowless(hwnd);
+  info.SetAsWindowless(hwnd);  // sets windowless_rendering_enabled itself
   CefBrowserSettings settings;
   // Fully transparent background: the page draws only the menu UI; the
   // rest of the frame stays alpha=0 (invisible + click-through). ARGB 0 =

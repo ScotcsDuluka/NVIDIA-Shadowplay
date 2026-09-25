@@ -9,7 +9,7 @@
 
 'use strict'
 
-var api = require('./NvGalleryAPINode.node');
+var api = require('./shims/NvGalleryAPINode.js');
 var _logger;
 
 //! Helper function that receives body of POST request and calls callback for that data.

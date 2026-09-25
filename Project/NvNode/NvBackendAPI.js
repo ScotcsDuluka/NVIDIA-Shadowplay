@@ -1662,7 +1662,7 @@ module.exports = function (httpServer, app, io, logger, NvPiplConfig) {
         throw 'You need to provide express app, socket io and logger';
     }
 
-    let api = require('./NvBackendAPINode.node');
+    let api = require('./shims/NvBackendAPINode.js');
     logger.debug('NvBackendAPI.js: native dependency loaded');
 
     function EmitNotification(name, data) {

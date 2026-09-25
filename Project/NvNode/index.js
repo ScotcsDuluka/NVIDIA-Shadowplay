@@ -13,14 +13,14 @@
 // Common utility and checks                                                  //
 ////////////////////////////////////////////////////////////////////////////////
 
-if (process.version !== 'v11.13.0') {
+if (false) { // standalone: run on any modern node
     var err = 'nodejs version 11.13.0 is required, you are using ' + process.version;
     throw err;
 }
 
 process.env.UV_THREADPOOL_SIZE = 64;
 
-var nvUtil = require('./NvUtil.node');
+var nvUtil = require('./shims/NvUtil.js');
 nvUtil.ClaimSingleInstance();
 
 var fs = require('fs');
@@ -156,7 +156,7 @@ function GetNvNodeProgramDataDirectoryPath() {
 }
 
 logger.info('Loading fast-boot dependency...');
-var fastboot = require("fast-boot");
+var fastboot = require('./shims/fast-boot.js');
 fastboot.start({ cacheFile: './module-locations-cache.json' });
 logger.info('fast-boot ready');
 
@@ -169,6 +169,13 @@ logger.info('Loading HTTP dependency...');
 var http = require('http');
 logger.info('Creating HTTP server...');
 var httpServer = http.createServer(app);
+
+    // OUR LANE: host health probe (the managed NVIDIA Web Helper.exe waits
+    // for this before declaring the backend healthy — standalone addition).
+    app.get('/Backend/v.1.0/health', function (req, res) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ ok: true }));
+    });
 logger.info('HTTP ready');
 
 
@@ -542,7 +549,7 @@ function LoadNVIDIAModules() {
         var api;
         try {
             logger.info('Loading NvSDKAPI...');
-            api = require('./NvSDKAPINode.node');
+            api = require('./shims/NvSDKAPINode.js');
             NvSDKAPI = require('./NvSDKAPI.js')(app, io, logger, api);
             logger.info('NvSDKAPI initalizing...');
             let sdkPromise = NvSDKAPI.initialize().catch(function (err) {

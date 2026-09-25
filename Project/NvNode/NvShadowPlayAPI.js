@@ -9,7 +9,7 @@
 
 'use strict'
 
-var api = require('./NvShadowPlayAPINode.node');
+var api = require('./shims/NvShadowPlayAPINode.js');
 
 var _logger;
 
