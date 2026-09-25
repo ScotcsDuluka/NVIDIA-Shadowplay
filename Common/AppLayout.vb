@@ -165,6 +165,9 @@ Public Module AppLayout
         ElseIf String.Equals(appExeName, "NVIDIA Backend.exe", StringComparison.OrdinalIgnoreCase) Then
             candidates.Add(P("NvBackend", appExeName))
         ElseIf String.Equals(appExeName, "NVIDIA Web Helper.exe", StringComparison.OrdinalIgnoreCase) Then
+            ' NvNode root slot (2026-09-25) — Web Helper + node backend moved
+            ' out of NvBackend\; the old slot stays as a transition fallback.
+            candidates.Add(P("NvNode", appExeName))
             candidates.Add(P("NvBackend", appExeName))
             candidates.Add(P("Application", appExeName))
         Else

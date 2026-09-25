@@ -159,6 +159,111 @@ void ShareClient::OnTitleChange(CefRefPtr<CefBrowser> browser,
   }
 }
 
+// ── OSR render + layered-window presentation ────────────────────────────
+// The overlay contract (genuine host parity): transparent pixels are
+// invisible AND click-through; only the rendered menu UI is opaque and
+// interactive. The page is composited offscreen and presented through
+// UpdateLayeredWindow on the layered host window.
+
+void ShareClient::GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) {
+  rect = CefRect(0, 0, GetSystemMetrics(SM_CXSCREEN),
+                 GetSystemMetrics(SM_CYSCREEN));
+}
+
+void ShareClient::OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type,
+                          const RectList& dirtyRects, const void* buffer,
+                          int width, int height) {
+  if (type != PET_VIEW || width <= 0 || height <= 0 || !buffer) return;
+  const size_t needed = static_cast<size_t>(width) * height * 4;
+  if (osr_w_ != width || osr_h_ != height) {
+    osr_frame_.assign(static_cast<const unsigned char*>(buffer),
+                      static_cast<const unsigned char*>(buffer) + needed);
+    osr_w_ = width;
+    osr_h_ = height;
+    if (osr_bmp_) {
+      DeleteObject(osr_bmp_);
+      osr_bmp_ = NULL;
+      osr_dc_ = NULL;
+    }
+  } else {
+    memcpy(osr_frame_.data(), buffer, needed);
+  }
+  PresentOsrFrame();
+}
+
+void ShareClient::PresentOsrFrame() {
+  if (!host_wnd_ || osr_w_ <= 0 || osr_h_ <= 0 || osr_frame_.empty()) return;
+  HDC wdc = GetDC(host_wnd_);
+  if (!wdc) return;
+  if (!osr_dc_) {
+    BITMAPINFO bi;
+    ZeroMemory(&bi, sizeof(bi));
+    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth = osr_w_;
+    bi.bmiHeader.biHeight = -osr_h_;  // top-down
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+    osr_dc_ = CreateCompatibleDC(wdc);
+    osr_bmp_ = CreateDIBSection(wdc, &bi, DIB_RGB_COLORS, &osr_bits_, NULL, 0);
+    if (osr_bmp_) SelectObject(osr_dc_, osr_bmp_);
+  }
+  if (osr_dc_ && osr_bits_) {
+    memcpy(osr_bits_, osr_frame_.data(),
+           static_cast<size_t>(osr_w_) * osr_h_ * 4);
+    POINT src = {0, 0};
+    SIZE sz = {osr_w_, osr_h_};
+    BLENDFUNCTION bf = {AC_SRC_OVER, 0, 255, AC_SRC_ALPHA};
+    UpdateLayeredWindow(host_wnd_, wdc, NULL, &sz, osr_dc_, &src, 0, &bf,
+                        ULW_ALPHA);
+  }
+  ReleaseDC(host_wnd_, wdc);
+}
+
+bool ShareClient::IsPixelOpaque(int x, int y) {
+  if (x < 0 || y < 0 || x >= osr_w_ || y >= osr_h_) return false;
+  const unsigned char* px =
+      osr_frame_.data() + (static_cast<size_t>(y) * osr_w_ + x) * 4;
+  return px[3] > 8;  // alpha threshold: below = click-through
+}
+
+void ShareClient::ForwardMouseMove(int x, int y, bool leave) {
+  if (!browser_) return;
+  CefMouseEvent e;
+  e.x = x;
+  e.y = y;
+  e.modifiers = 0;
+  browser_->GetHost()->SendMouseMoveEvent(e, leave);
+}
+
+void ShareClient::ForwardMouseButton(int x, int y, bool down,
+                                     bool left_button) {
+  if (!browser_) return;
+  CefMouseEvent e;
+  e.x = x;
+  e.y = y;
+  e.modifiers = 0;
+  browser_->GetHost()->SendMouseClickEvent(
+      e, (down && left_button) ? MBT_LEFT : MBT_RIGHT, !down, 1);
+}
+
+void ShareClient::ForwardKey(HWND hwnd, UINT msg, WPARAM wparam,
+                             LPARAM lparam) {
+  if (!browser_) return;
+  CefKeyEvent e;
+  e.windows_key_code = static_cast<int>(wparam);
+  e.native_key_code = static_cast<int>(lparam);
+  if (msg == WM_CHAR) {
+    e.type = KEYEVENT_CHAR;
+  } else if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) {
+    e.type = KEYEVENT_KEYDOWN;
+  } else {
+    e.type = KEYEVENT_KEYUP;
+  }
+  e.is_system_key = (msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP);
+  browser_->GetHost()->SendKeyEvent(e);
+}
+
 void ShareClient::RequestClose() {
   if (browser_.get()) browser_->GetHost()->CloseBrowser(false);
 }

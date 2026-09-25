@@ -70,9 +70,24 @@ bool LauncherQueryHandler::OnQuery(CefRefPtr<CefBrowser> browser,
     // USER toggle only — config.json is the single source of truth; the
     // NVIDIA API hub enforces the value every second (Main.vb contract:
     // the launcher toggle itself never starts/kills the overlay stack).
+    // CEF lane override: the hub's UseOverlayEnabled contract belongs to
+    // the WINFORM overlay — writing true here would make the hub spawn
+    // the WinForm NVIDIA ShadowPlay.exe on the CEF lane. In CEF mode the
+    // toggle drives the GENUINE overlay through the node instead, and
+    // UseOverlayEnabled is forced back to false.
     const bool value = launcherjson::GetBool(req, "value");
-    const bool ok = launcherutil::WriteConfigBool(
-        L"Overlay", L"UseOverlayEnabled", value);
+    bool ok = true;
+    if (supervisor_ &&
+        launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode",
+                                     false)) {
+      if (value) {
+        ok = supervisor_->SendOpenOverlay();  // node -> WindowState -> open
+      }
+      launcherutil::WriteConfigBool(L"Overlay", L"UseOverlayEnabled", false);
+    } else {
+      ok = launcherutil::WriteConfigBool(
+          L"Overlay", L"UseOverlayEnabled", value);
+    }
     RespondOk(callback, ok ? "{\"ok\":true}" : "{\"ok\":false}");
     return true;
   }

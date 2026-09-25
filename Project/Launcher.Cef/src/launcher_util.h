@@ -50,6 +50,10 @@ bool WaitForTcpPort(unsigned port, unsigned timeout_ms);
 // One-shot loopback send to the NVIDIA API hub (:5001). Frame parity with
 // TcpClientHelper.Send: "[Send] <app>|<cmd>\r\n". Best effort.
 bool SendHubLine(const std::string& line);
+// One-shot loopback HTTP POST (CEF lane OPEN OVERLAY: Hotkey/Toggle makes
+// the node broadcast WindowState and the genuine page opens). Minimal
+// HTTP/1.1 over raw TCP, SendHubLine plumbing class. Best effort.
+bool HttpPostLocal(unsigned port, const std::wstring& path);
 
 // ── config.json (AppConfigShared.vb contract) ───────────────────────────
 bool ReadConfigBool(const wchar_t* section, const wchar_t* key,

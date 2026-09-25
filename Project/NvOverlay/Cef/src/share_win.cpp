@@ -7,7 +7,15 @@
 
 #include <string>
 
+#include "share_client.h"
 #include "share_proof.h"
+
+// windowsx.h's macros (GetNextSibling etc.) break the CEF headers — define
+// only what the WndProc needs.
+#ifndef GET_X_LPARAM
+#define GET_X_LPARAM(l) ((int)(short)LOWORD(l))
+#define GET_Y_LPARAM(l) ((int)(short)HIWORD(l))
+#endif
 
 namespace sharewin {
 
@@ -122,6 +130,53 @@ void (*g_close_request_cb)(void) = NULL;
 
 LRESULT CALLBACK HostWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
   switch (msg) {
+    case WM_TIMER:
+      // Per-pixel hit test (30ms): read the last OSR frame's alpha under
+      // the cursor — opaque = the window takes the click and forwards it
+      // to the page; transparent = WS_EX_TRANSPARENT lets it fall through
+      // to the game/desktop. This IS the overlay input contract.
+      if (wparam == 1 && ShareClient::active_client_ && IsWindowVisible(hwnd)) {
+        POINT pt;
+        GetCursorPos(&pt);
+        RECT r;
+        GetWindowRect(hwnd, &r);
+        int x = pt.x - r.left, y = pt.y - r.top;
+        bool opaque = ShareClient::active_client_->IsPixelOpaque(x, y);
+        LONG ex = GetWindowLongW(hwnd, GWL_EXSTYLE);
+        bool transparent_now = (ex & WS_EX_TRANSPARENT) != 0;
+        if (opaque == transparent_now) {
+          SetWindowLongW(hwnd, GWL_EXSTYLE,
+                         transparent_now ? (ex & ~WS_EX_TRANSPARENT)
+                                         : (ex | WS_EX_TRANSPARENT));
+        }
+        if (opaque) ShareClient::active_client_->ForwardMouseMove(x, y, false);
+      }
+      break;
+    case WM_LBUTTONDOWN:
+    case WM_LBUTTONUP:
+    case WM_RBUTTONDOWN:
+    case WM_RBUTTONUP:
+    case WM_MOUSEMOVE:
+      if (ShareClient::active_client_) {
+        int x = GET_X_LPARAM(lparam), y = GET_Y_LPARAM(lparam);
+        if (msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN)
+          SetFocus(hwnd);
+        if (msg == WM_MOUSEMOVE)
+          ShareClient::active_client_->ForwardMouseMove(x, y, false);
+        else
+          ShareClient::active_client_->ForwardMouseButton(
+              x, y, msg == WM_LBUTTONDOWN || msg == WM_RBUTTONDOWN,
+              msg == WM_LBUTTONDOWN || msg == WM_LBUTTONUP);
+      }
+      break;
+    case WM_KEYDOWN:
+    case WM_KEYUP:
+    case WM_SYSKEYDOWN:
+    case WM_SYSKEYUP:
+    case WM_CHAR:
+      if (ShareClient::active_client_)
+        ShareClient::active_client_->ForwardKey(hwnd, msg, wparam, lparam);
+      break;
     case WM_CLOSE:
       // Forward to CEF (CloseBrowser) when a callback is registered —
       // destroying the window directly would bypass CEF teardown.
@@ -134,6 +189,7 @@ LRESULT CALLBACK HostWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
     default:
       return DefWindowProcW(hwnd, msg, wparam, lparam);
   }
+  return 0;
 }
 
 }  // namespace
@@ -169,7 +225,7 @@ HWND CreateHostWindow(HINSTANCE hinstance, bool show, int width, int height,
   (void)width;
   (void)height;
   DWORD style = WS_POPUP;
-  DWORD ex_style = WS_EX_TOPMOST;
+  DWORD ex_style = WS_EX_TOPMOST | WS_EX_LAYERED;
   int w = GetSystemMetrics(SM_CXSCREEN);
   int h = GetSystemMetrics(SM_CYSCREEN);
   HWND hwnd = CreateWindowExW(ex_style, kHostWindowClass, title, style, 0, 0,
@@ -178,6 +234,9 @@ HWND CreateHostWindow(HINSTANCE hinstance, bool show, int width, int height,
     ShowWindow(hwnd, SW_SHOW);
     UpdateWindow(hwnd);
   }
+  // Per-pixel hit-test tick: frame alpha under the cursor decides
+  // click-through (WS_EX_TRANSPARENT) vs page input forwarding.
+  if (hwnd) SetTimer(hwnd, 1, 30, NULL);
   return hwnd;
 }
 

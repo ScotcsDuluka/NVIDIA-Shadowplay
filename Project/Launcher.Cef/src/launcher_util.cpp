@@ -369,6 +369,39 @@ bool SendHubLine(const std::string& line) {
   return ok;
 }
 
+bool HttpPostLocal(unsigned port, const std::wstring& path) {
+  WSADATA wsa;
+  if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) return false;
+  bool ok = false;
+  SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (s != INVALID_SOCKET) {
+    sockaddr_in a;
+    memset(&a, 0, sizeof(a));
+    a.sin_family = AF_INET;
+    a.sin_port = htons(static_cast<u_short>(port));
+    a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    if (connect(s, reinterpret_cast<sockaddr*>(&a), sizeof(a)) == 0) {
+      std::string req = "POST " + WideToUtf8(path) +
+                        " HTTP/1.1\r\nHost: 127.0.0.1\r\n"
+                        "Content-Type: application/json\r\n"
+                        "Content-Length: 2\r\nConnection: close\r\n\r\n{}";
+      if (send(s, req.data(), (int)req.size(), 0) > 0) {
+        // Status line only — the body (a JSON echo) is not needed here.
+        char buf[64] = {};
+        int n = recv(s, buf, sizeof(buf) - 1, 0);
+        if (n > 0) buf[n] = 0;
+        ok = (n > 0 && strncmp(buf, "HTTP/1.", 7) == 0 &&
+              strstr(buf, " 200 ") != NULL);
+      }
+    }
+    closesocket(s);
+  }
+  WSACleanup();
+  LogLine("loopback POST " + WideToUtf8(path) + " -> " +
+          (ok ? "ok" : "failed"));
+  return ok;
+}
+
 static std::wstring ConfigPath() {
   return JoinPath(GetRootDir(), L"NvConfig\\config.json");
 }

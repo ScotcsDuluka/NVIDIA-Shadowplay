@@ -166,14 +166,11 @@ if (Test-Path -LiteralPath $overlayBin) {
     )
 }
 
-# Launcher -> root.
-$launcherBin = Join-Path $ProjectRoot ("Launcher.exe\bin\Release\{0}" -f $TargetFramework)
-Copy-RuntimeFiles $launcherBin $BuildRoot 'Launcher'
-
-# Launcher CEF lane (new native launcher) -> root + NvOverlay\Cef.
-# Guarded on built artifacts: present = the CEF launcher replaces the
-# WinForm root entry (deploy-launcher.ps1 contract). Absent (no MSVC/CEF
-# SDK on the build machine) = the WinForm launcher stages as before.
+# Launcher -> root. The root entry is the CEF launcher when its artifacts
+# exist; the WinForm launcher stages ONLY as the fallback (no CEF bin on
+# the build machine). Staging both used to duplicate the WinForm runtime
+# cluster (NVIDIA Controls.dll, Launcher.dll, deps.json...) beside the
+# native exe — owner call 2026-09-25: one launcher at the root.
 $cefLauncherBin = Join-Path $ProjectRoot 'Launcher.Cef\bin\x64\Release'
 $cefLauncherExe = Join-Path $cefLauncherBin 'Launcher.exe'
 $cefLauncherDll = Join-Path $cefLauncherBin 'Launcher.dll'
@@ -186,14 +183,28 @@ if ((Test-Path -LiteralPath $cefLauncherExe) -and (Test-Path -LiteralPath $cefLa
     if (Test-Path -LiteralPath (Join-Path $cefUiSrc 'index.html')) {
         Copy-Tree $cefUiSrc (Join-Path $cefSlot 'Resources\launcher')
     }
+    # The native launcher is not a .NET app: a previous WinForm staging may
+    # have left its runtime cluster at the root — sweep it.
+    foreach ($stale in @('NVIDIA Controls.dll', 'Launcher.dll',
+                         'Launcher.deps.json', 'Launcher.runtimeconfig.json')) {
+        $stalePath = Join-Path $BuildRoot $stale
+        if (Test-Path -LiteralPath $stalePath) {
+            Remove-Item -LiteralPath $stalePath -Force
+        }
+    }
     Write-Host '[launcher] CEF lane staged (root Launcher.exe + NvOverlay\Cef\Launcher.dll)'
 } else {
-    Write-Host '[launcher] CEF lane artifacts missing - WinForm launcher stays'
+    Write-Host '[launcher] CEF lane artifacts missing - WinForm launcher stages'
+    $launcherBin = Join-Path $ProjectRoot ("Launcher.exe\bin\Release\{0}" -f $TargetFramework)
+    Copy-RuntimeFiles $launcherBin $BuildRoot 'Launcher'
 }
 
-# NvBackend -> owner folder + Node backend source (Web Helper hosts the node backend).
+# NvNode (root owner slot, GFE 3.28 parity) -> Web Helper + the node
+# backend runtime (socket.js/index.js/routes/lib/node_modules/data).
+# The hub (NvBackend.exe) stages separately into NvBackend\.
 $backendProjectBin = Join-Path $ProjectRoot ("NvBackend\NVIDIA Web Helper.exe\bin\Release\{0}" -f $TargetFramework)
-$backendOut = Join-Path $BuildRoot 'NvBackend'
+$backendOut = Join-Path $BuildRoot 'NvNode'
+Ensure-Dir $backendOut
 Copy-RuntimeFiles $backendProjectBin $backendOut 'NVIDIA Web Helper'
 $backendSrc = Join-Path $ProjectRoot 'NvBackend\NVIDIA Web Helper.exe\Backend'
 Copy-Tree $backendSrc $backendOut

@@ -4,6 +4,7 @@
 #define SHARE_CLIENT_H_
 
 #include <string>
+#include <vector>
 #include <windows.h>
 
 #include "include/cef_client.h"
@@ -16,7 +17,8 @@ struct ShareLaunchParams;
 class ShareClient : public CefClient,
                     public CefLifeSpanHandler,
                     public CefLoadHandler,
-                    public CefDisplayHandler {
+                    public CefDisplayHandler,
+                    public CefRenderHandler {
  public:
   ShareClient(const ShareLaunchParams* params, HWND host_wnd, int http_port,
               int backend_port, const std::string& secret,
@@ -30,9 +32,24 @@ class ShareClient : public CefClient,
   CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override { return this; }
   CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
   CefRefPtr<CefDisplayHandler> GetDisplayHandler() override { return this; }
+  CefRefPtr<CefRenderHandler> GetRenderHandler() override { return this; }
   bool OnProcessMessageReceived(CefRefPtr<CefBrowser> browser,
                                 CefProcessId source_process,
                                 CefRefPtr<CefProcessMessage> message) override;
+
+  // CefRenderHandler — OSR: the host window is a LAYERED overlay (WS_EX_
+  // LAYERED + UpdateLayeredWindow). Transparent pixels are invisible AND
+  // click-through; the frame alpha drives the per-pixel hit test.
+  void GetViewRect(CefRefPtr<CefBrowser> browser, CefRect& rect) override;
+  void OnPaint(CefRefPtr<CefBrowser> browser, PaintElementType type,
+               const RectList& dirtyRects, const void* buffer, int width,
+               int height) override;
+
+  // OSR input/present bridge used by share_win's window proc and timer.
+  bool IsPixelOpaque(int x, int y);
+  void ForwardMouseMove(int x, int y, bool leave);
+  void ForwardMouseButton(int x, int y, bool down, bool left_button);
+  void ForwardKey(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
 
   // CefLifeSpanHandler
   void OnAfterCreated(CefRefPtr<CefBrowser> browser) override;
@@ -68,6 +85,7 @@ class ShareClient : public CefClient,
 
  private:
   void PostFinish(const std::string& reason);
+  void PresentOsrFrame();
 
   const ShareLaunchParams* params_;
   HWND host_wnd_;
@@ -76,6 +94,13 @@ class ShareClient : public CefClient,
   CefRefPtr<CefBrowser> browser_;
   bool finishing_;   // finish scheduled (round-trip observed)
   bool finished_;    // FinishNow executed
+  // OSR frame + layered-window presentation surface.
+  std::vector<unsigned char> osr_frame_;
+  int osr_w_ = 0;
+  int osr_h_ = 0;
+  HDC osr_dc_ = NULL;
+  HBITMAP osr_bmp_ = NULL;
+  void* osr_bits_ = NULL;
 
   IMPLEMENT_REFCOUNTING(ShareClient);
 };

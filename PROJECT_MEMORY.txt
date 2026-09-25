@@ -2801,3 +2801,30 @@ starfield = oversized fixed layer + translate3d drift; sheens = fixed
 offset + translateX keyframes/transition. Rule for this lane: only
 transform/opacity may animate; left/top/width/background-position kill
 the framerate in CEF 73.
+
+DEDUP 2026-09-25 (owner call): removed build-tree duplicates — (1)
+NvOverlay\Cef\osc\ fallback bundle (production copy at
+NvOverlay\Cef\Resources\osc is the only staged one; nothing regenerates
+the fallback), (2) the WinForm launcher's runtime cluster at the product
+root (NVIDIA Controls.dll + Launcher.dll + deps.json + runtimeconfig.json
+— the root entry is the native CEF launcher now; WinForm copy at
+NvOverlay\WinForm untouched, needed by NvShadowPlay.exe). build-dev.ps1
+restructured: CEF launcher stages when its bin exists (and sweeps stale
+WinForm root files), VB launcher stages only as fallback. Nothing stages
+NvOverlay\Cef\osc — it will not return.
+
+LAYOUT 2026-09-25 (owner call "NvNode ยกมา root"): NvNode is now a ROOT
+owner slot — NVIDIA Web Helper.exe/.dll/deps/runtimeconfig +
+socket.js/index.js/config.js/routes/lib/node_modules/data/package.json +
+its own Logs\ moved out of NvBackend\ into NvNode\ (GFE 3.28 parity).
+NvBackend\ keeps ONLY the hub (NvBackend.exe/.dll/deps/runtimeconfig +
+Microsoft.Windows.SDK.NET.dll). Both .NET apps need SDK.NET.dll beside
+them, so it exists in both slots (accepted copy). Path refs updated:
+launcher_supervisor.cpp (Engine-Overlay chain starts Web Helper from
+NvNode), build-dev.ps1 (Web Helper bin + Backend source stage into
+NvNode\; hub staging unchanged), AppLayout.vb (Web Helper candidates:
+NvNode first, NvBackend fallback). Verified: Web Helper single instance
+booting from NvNode, node backend respawned fresh, health ok:true on
+:59001, hub on :5001. VB apps must be REBUILT to pick up the AppLayout
+change (old binaries fall back to NvBackend\ which no longer hosts Web
+Helper — harmless, they just won't be the starter).

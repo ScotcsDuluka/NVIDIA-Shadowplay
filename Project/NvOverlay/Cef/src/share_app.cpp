@@ -76,16 +76,16 @@ void ShareApp::OnContextInitialized() {
   });
 
   CefWindowInfo info;
-  // Child bounds MUST match the host window's actual client area — the
-  // host is a full-screen overlay (CreateHostWindow overrides the passed
-  // width/height with SM_CXSCREEN/SM_CYSCREEN), so a hardcoded 1280x800
-  // child left the rest of the overlay window unpainted.
-  RECT bounds;
-  if (!GetClientRect(hwnd, &bounds)) {
-    bounds = RECT{0, 0, 1280, 800};
-  }
-  info.SetAsChild(hwnd, bounds);
+  // OSR (offscreen rendering) — the overlay contract (genuine host parity):
+  // the page is composited offscreen and presented through
+  // UpdateLayeredWindow on the layered host window, so transparent page
+  // pixels are invisible AND click-through over the game/desktop.
+  info.SetAsWindowless(hwnd);
   CefBrowserSettings settings;
+  // Fully transparent background: the page draws only the menu UI; the
+  // rest of the frame stays alpha=0 (invisible + click-through). ARGB 0 =
+  // CefColor(0, 0, 0, 0).
+  settings.background_color = 0x00000000;
   CefBrowserHost::CreateBrowser(info, client.get(), params->url, settings,
                                 NULL);
 }
