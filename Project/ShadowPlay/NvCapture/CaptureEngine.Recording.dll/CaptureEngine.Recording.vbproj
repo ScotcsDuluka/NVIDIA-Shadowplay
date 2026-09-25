@@ -15,21 +15,21 @@
 
   <ItemGroup>
     <!-- Foundation -->
-    <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.dll\CaptureEngine.vbproj" />
     <!-- Video contract + ID3D11VideoFrame -->
-    <ProjectReference Include="..\CaptureEngine.Video\CaptureEngine.Video.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.Video.dll\CaptureEngine.Video.vbproj" />
     <!-- DdagrabBackend (video capture) -->
-    <ProjectReference Include="..\CaptureEngine.Video.Ddagrab\CaptureEngine.Video.Ddagrab.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.Video.Ddagrab.dll\CaptureEngine.Video.Ddagrab.vbproj" />
     <!-- Encoder contract (IEncoderBackend + EncodedPacket) -->
-    <ProjectReference Include="..\CaptureEngine.Encoder\CaptureEngine.Encoder.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.Encoder.dll\CaptureEngine.Encoder.vbproj" />
     <!-- NvencEncoderBackend (H.264 encoding) -->
-    <ProjectReference Include="..\CaptureEngine.Encoder.Nvenc\CaptureEngine.Encoder.Nvenc.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.Encoder.Nvenc.dll\CaptureEngine.Encoder.Nvenc.vbproj" />
     <!-- FFmpeg stack (MuxCoordinator + FFmpegProcessHost) -->
-    <ProjectReference Include="..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.FFmpegBackend.dll\CaptureEngine.FFmpegBackend.vbproj" />
     <!-- Shared Audio Engine: one audio owner for every video engine -->
-    <ProjectReference Include="..\CaptureEngine.Audio\CaptureEngine.Audio.csproj" />
+    <ProjectReference Include="..\CaptureEngine.Audio.dll\CaptureEngine.Audio.csproj" />
     <!-- Low-level WASAPI driver remains an implementation dependency -->
-    <ProjectReference Include="..\CaptureEngine.Audio.Wasapi\CaptureEngine.Audio.Wasapi.csproj" />
+    <ProjectReference Include="..\CaptureEngine.Audio.Wasapi.dll\CaptureEngine.Audio.Wasapi.csproj" />
   </ItemGroup>
 
   <ItemGroup>

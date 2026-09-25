@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.dll\CaptureEngine.vbproj" />
   </ItemGroup>
 
 </Project>

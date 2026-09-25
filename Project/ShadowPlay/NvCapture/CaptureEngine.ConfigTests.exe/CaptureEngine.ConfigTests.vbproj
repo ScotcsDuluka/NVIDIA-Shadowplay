@@ -12,6 +12,6 @@
     <Description>CaptureEngine EngineConfig v2 migration + validation + round-trip tests — Phase 1 (no xUnit/NUnit)</Description>
   </PropertyGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.dll\CaptureEngine.vbproj" />
   </ItemGroup>
 </Project>

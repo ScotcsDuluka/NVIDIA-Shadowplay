@@ -417,12 +417,12 @@
         </ItemGroup>
 
         <ItemGroup>
-                <ProjectReference Include="..\..\..\NvBackend\NVIDIA Backend\NVIDIA Backend.vbproj" />
-                <ProjectReference Include="..\..\..\Launcher\Launcher.vbproj" />
-                <ProjectReference Include="..\..\..\NvShadowPlayHelper\NVIDIA ShadowPlay Helper\NVIDIA ShadowPlay Helper.vbproj" />
-                <ProjectReference Include="..\NVIDIA Notifier\NVIDIA Notifier.vbproj" />
-                <ProjectReference Include="..\..\..\NvGallery\WinForm\Gallery.Video\Gallery.Video.vbproj" />
-                <ProjectReference Include="..\NvControls\NVIDIA Controls\NVIDIA Controls.vbproj" />
+                <ProjectReference Include="..\..\..\NvBackend\NVIDIA Backend.exe\NVIDIA Backend.vbproj" />
+                <ProjectReference Include="..\..\..\Launcher.exe\Launcher.vbproj" />
+                <ProjectReference Include="..\..\..\ShadowPlay\nvsphelper64.exe\NVIDIA ShadowPlay Helper.vbproj" />
+                <ProjectReference Include="..\NVIDIA Notifier.exe\NVIDIA Notifier.vbproj" />
+                <ProjectReference Include="..\..\..\NvGallery\WinForm\Gallery.Video.dll\Gallery.Video.vbproj" />
+                <ProjectReference Include="..\NvControls\NVIDIA Controls.dll\NVIDIA Controls.vbproj" />
                 <!-- Overlay.Engine is NOT referenced here: both projects ship
                      AssemblyName "NVIDIA Share" (the GFE 4-instance rule) and a
                      shared restore graph rejects that (NuGet: ambiguous project
