@@ -24,13 +24,21 @@ $LayoutFile  = Join-Path $ConfigRoot 'dev-layout.json'
 if (-not (Test-Path -LiteralPath $Solution)) { throw "Canonical solution missing: $Solution" }
 if (-not (Test-Path -LiteralPath $LayoutFile)) { throw "Layout config missing: $LayoutFile" }
 
-# CEF C++ lane needs BOTH the CEF SDK and the VS C++ workload. Until the SDK
-# is transferred (handoff §5), build the no-CEF solution filter instead of
-# failing on the three vcxproj — the CEF owner stages as PENDING either way.
+# CEF C++ lane needs BOTH the CEF SDK and the VS C++ workload. Until both are
+# present, build the no-CEF solution filter instead of failing on the three
+# vcxproj — the CEF owner stages as PENDING either way.
 $SolutionToBuild = $Solution
 $NoCefFilter = Join-Path $ProjectRoot 'NVIDIA ShadowPlay Dev (no CEF).slnf'
-if (-not (Test-Path -LiteralPath 'C:\My Project\cef-sdk\cef73')) {
+$cefSdkReady = Test-Path -LiteralPath 'C:\My Project\cef-sdk\cef73\Release\libcef.lib'
+$vcToolsReady = $false
+$vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
+if (Test-Path -LiteralPath $vswhere) {
+    $vcInst = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+    $vcToolsReady = [bool]$vcInst
+}
+if (-not ($cefSdkReady -and $vcToolsReady)) {
     if (Test-Path -LiteralPath $NoCefFilter) { $SolutionToBuild = $NoCefFilter }
+    elseif ($cefSdkReady) { throw 'CEF SDK present but the VS C++ workload is missing — install "Desktop development with C++" (or move the SDK away).' }
     else { throw 'CEF SDK missing and no-CEF solution filter missing: ' + $NoCefFilter }
 }
 
@@ -110,7 +118,7 @@ Ensure-Dir $ConfigRoot
 
 Write-Host '=== NVIDIA SHADOWPLAY DEV BUILD ===' -ForegroundColor Cyan
 Write-Host "Solution : $SolutionToBuild"
-if ($SolutionToBuild -ne $Solution) { Write-Host '(CEF SDK absent — no-CEF filter: C++ CEF lane deferred)' -ForegroundColor Yellow }
+if ($SolutionToBuild -ne $Solution) { Write-Host '(no-CEF filter: CEF lane deferred — SDK or VC tools missing)' -ForegroundColor Yellow }
 Write-Host "Output   : $BuildRoot"
 Write-Host "Layout   : $LayoutFile"
 
