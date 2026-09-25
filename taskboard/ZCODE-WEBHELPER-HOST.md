@@ -14,9 +14,9 @@ Resolve the owner drawing's PENDING slot `NvBackend\NVIDIA Web Helper.exe`
   `NVIDIA Web Helper.exe` (apphost) + `NVIDIA Web Helper.dll` (body).
 - Registered in Overlay\NVIDIA Overlay.sln under the "Integration Hosts" folder
   (NvContainer/Hook precedent).
-- deploy-nvoverlay-layout.ps1: `NWB` output slot wired — exe+dll+deps+rtcfg
-  into `NvBackend\`, dll doc-copy into `Services\` (drawing slot). The script
-  is the previous lane's untracked file; edited but NOT committed by this lane.
+- deploy-shadowplay-layout.ps1: canonical staging reserves the pending
+  `NvBackend\NVIDIA Web Helper.exe/.dll` slot. The historical
+  `deploy/legacy/deploy-nvoverlay-layout.ps1` is preserved for evidence.
 
 ## Research conclusion (evidence, not assumption)
 
@@ -108,6 +108,5 @@ E. No-orphan: taskkill /F on the host (pid 13876) while node 32044 listened
 - Restart policy: host exits with the child's code; restart authority stays
   with the owner's supervisor lane (NvContainer boundary note).
 - No parity surface here; Backend\ remains the only backend tree.
-- deploy-nvoverlay-layout.ps1 + Directory.Build.targets remain uncommitted
-  (owner's untracked/uncommitted state from other lanes); this lane commits
-  only: NvBackend\ project, sln registration, this taskboard record.
+- Historical deploy-nvoverlay-layout.ps1 is preserved under deploy\legacy\;
+  current owner-tree staging uses deploy\deploy-shadowplay-layout.ps1.

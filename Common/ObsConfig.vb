@@ -33,7 +33,7 @@ Public Class ObsConfig
 
     Public ReadOnly Property ConfigPath As String
         Get
-            Return AppLayout.P("Config", FileName)
+            Return AppLayout.P("NvConfig", FileName)
         End Get
     End Property
 

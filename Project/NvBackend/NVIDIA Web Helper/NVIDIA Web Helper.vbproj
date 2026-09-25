@@ -1,0 +1,33 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- WinExe: no console at all; "showConsole": true allocates one -->
+    <OutputType>WinExe</OutputType>
+    <!-- OWNER (drawing 2026-09-24, decision 1): production host for the
+         NvBackend\ tree. AssemblyName IS the production name (NVIDIA Share /
+         NVIDIA Controls precedent): the bin produces NVIDIA Web Helper.exe
+         (apphost) + NVIDIA Web Helper.dll (body), deployed beside the staged
+         Backend\ JS (index.js, config.js, socket.js, lib\, routes\,
+         node_modules\). Responsibilities: node.exe resolution from the
+         installed layout, spawn node index.js on 127.0.0.1:59001,
+         duplicate-process guard, stdout/stderr capture, health proof,
+         graceful shutdown, no-orphan job. Stays OUTSIDE the NvContainer
+         boundary (see the owner note in NvContainer.vbproj); the parity
+         surface lives in Backend\ and is NOT duplicated here. Launch
+         contract (docs/PHASE-1B-LAUNCH-CONTRACT.md): config = JSON +
+         environment only, argv discarded. -->
+    <AssemblyName>NVIDIA Web Helper</AssemblyName>
+    <RootNamespace>NvBackend</RootNamespace>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
+    <Platforms>AnyCPU;x64</Platforms>
+    <!-- OWNER icon mandate: every new executable project uses the canonical
+         Overlay icon (single source of truth in Assets\). -->
+    <ApplicationIcon>..\..\NvOverlay\Cef\NvShim\Assets\NVIDIA ShadowPlay.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\NvOverlay\Cef\NvShim\Assets\NVIDIA ShadowPlay.ico" Link="NVIDIA ShadowPlay.ico" />
+  </ItemGroup>
+
+</Project>

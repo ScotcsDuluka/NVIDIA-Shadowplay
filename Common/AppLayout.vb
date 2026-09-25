@@ -1,20 +1,28 @@
 ﻿' AppLayout.vb — ROOT-FIXED LAYOUT SUPPORT (custom app tree, 2026-08-28)
 '
-' The deployed product tree is:
+' The deployed product tree is (owner layout v2, 2026-09-24):
 '
 '   NVIDIA ShadowPlay\
 '     Launcher.*            (root app, exe+dll+runtimeconfig adjacent)
-'     Application\*.exe              (thin native hosts for the 3 services)
-'     Services\*.dll + runtimeconfig       (the 3 services' managed apps;
-'                                       their deps.json lives in .NET Deployment\)
-'     Overlay\NVIDIA ShadowPlay.*    (overlay app)
-'     Engine\   CaptureEngine.*.dll  (engine libraries)
-'     Core\     System.*/WinRT/SharpGen runtime libs
-'     Audio\    NAudio.*
-'     Graphics\ Vortice.*
-'     Libraries\ Newtonsoft.Json
-'     .NET Deployment\  every *.deps.json / *.runtimeconfig.json (owner tree)
-'     FFmpeg\ Config\ Logs\ Data\ Languages\ Resources\ Redist\ Flags\ Runtimes\
+'     NvContainer\NvContainer.exe    (container supervisor, self-contained dir)
+'     NvOverlay\WinForm\NVIDIA ShadowPlay.* + NVIDIA Notifier.*
+'     NvOverlay\CEF\NVIDIA Share.exe + CEF runtime/resources
+'     NvOverlay\NvOverlay.dll + NvOverlay.IPC.dll
+'     NvCapture\nvsphelper64.exe + nvsphelper64.dll + nvspcap.dll
+'                  + CaptureEngine.*.dll engine libraries
+'     NvBackend\        NvBackend.exe (API hub :5001) and NVIDIA Web Helper.exe/.dll
+'     NvAudio\          NAudio.*
+'     NvGraphics\       Vortice.*
+'     Runtime\          SharpGen/WinRT/SDK.NET/Gallery.Video/NVIDIA Controls/
+'                       Newtonsoft runtime libs
+'     NvConfig\         ShadowPlay/Overlay user-facing config only
+'     .NET Deployment\Nv*\
+'                       centralized *.deps.json by owner; runtimeconfig.json
+'                       remains beside each managed apphost/body DLL
+'     FFmpeg\ NvConfig\ Logs\ Data\ Languages\ Resources\ Flags\
+'
+' Legacy v1 folders (Application\ Overlay\ Engine\ Core\ Libraries\) are
+' still probed/fallback-resolved so older staged trees keep running.
 '
 ' This module (one copy LINKED into every app project) provides:
 '
@@ -23,12 +31,10 @@
 '      level up; anything else (root app, dev bin\) is its own root.
 '      Override for exotic installs: env NVIDIA_SHADOWPLAY_APP_ROOT.
 '
-'   2. Assembly resolution — the native host starts ..\Services\<app>.dll
-'      fine (hostfxr combines host dir + embedded relative path), but the
-'      default context only probes the app dir for dependency assemblies.
-'      Shared-family folders (Engine/Services/Core/Audio/Graphics/
-'      Libraries) are found by the Resolving handler below. Zero config,
-'      no probing XML: the folder map IS the layout. This also makes the
+'   2. Assembly resolution — every owner EXE is paired with its owner DLLs
+'      in the same directory. Shared-family folders (NvCapture/NvAudio/
+'      NvGraphics/Runtime/NvBackend) are found by the Resolving handler below.
+'      Zero config, no probing XML: the folder map IS the layout. This also makes the
 '      app *.deps.json files relocatable (OWNER tree: they live in
 '      .NET Deployment\, NOT next to the dlls) — hostpolicy falls back
 '      to app-dir probing and this handler supplies every cross-folder
@@ -66,7 +72,7 @@ Public Module AppLayout
                 End If
             Catch
             End Try
-            ' Fallback: the managed app dll's directory (split apps: Services\).
+            ' Fallback: the managed app dll's directory.
             Return AppContext.BaseDirectory
         End Get
     End Property
@@ -84,10 +90,30 @@ Public Module AppLayout
                     ' this local deliberately carries a distinct name.
                     Dim exeFolder As String = ExeDir
                     Dim leaf As String = New DirectoryInfo(exeFolder).Name
-                    ' Application\ (split hosts) and Overlay\ (overlay app) live
-                    ' one level under the product root.
-                    If String.Equals(leaf, "Application", StringComparison.OrdinalIgnoreCase) OrElse
-                       String.Equals(leaf, "Overlay", StringComparison.OrdinalIgnoreCase) Then
+                    ' v2 tree: NvOverlay role slots live TWO levels under the root
+                    ' (NvOverlay\{WinForm,CEF}); one-level owners include
+                    ' NvCapture\ and NvContainer\. Legacy dev bins are handled by
+                    ' the fallback paths in ExePath/ProbeFolders.
+                    Dim parentName As String = ""
+                    Try
+                        Dim parentDir As DirectoryInfo = New DirectoryInfo(exeFolder).Parent
+                        If parentDir IsNot Nothing Then parentName = parentDir.Name
+                    Catch
+                    End Try
+                    Dim isRoleSlot As Boolean =
+                        String.Equals(parentName, "NvOverlay", StringComparison.OrdinalIgnoreCase) AndAlso
+                        (String.Equals(leaf, "WinForm", StringComparison.OrdinalIgnoreCase) OrElse
+                         String.Equals(leaf, "CEF", StringComparison.OrdinalIgnoreCase))
+                    Dim isOneLevelHost As Boolean =
+                        String.Equals(leaf, "NvCapture", StringComparison.OrdinalIgnoreCase) OrElse
+                        String.Equals(leaf, "NvContainer", StringComparison.OrdinalIgnoreCase) OrElse
+                        String.Equals(leaf, "NvBackend", StringComparison.OrdinalIgnoreCase) OrElse
+                        String.Equals(leaf, "Application", StringComparison.OrdinalIgnoreCase) OrElse
+                        String.Equals(leaf, "Overlay", StringComparison.OrdinalIgnoreCase) OrElse
+                        String.Equals(leaf, "ShadowPlay", StringComparison.OrdinalIgnoreCase)
+                    If isRoleSlot Then
+                        _dir = Path.GetFullPath(Path.Combine(exeFolder, "..", ".."))
+                    ElseIf isOneLevelHost Then
                         _dir = Path.GetFullPath(Path.Combine(exeFolder, ".."))
                     Else
                         _dir = exeFolder
@@ -109,15 +135,45 @@ Public Module AppLayout
     End Function
 
     ''' <summary>
-    ''' Full path of a companion app executable. Deployed tree: Application\&lt;name&gt;.
-    ''' Dev bin\: all app exes build FLAT into one output folder (no Application\
-    ''' subdir), so fall back to the layout root when the staged location does
-    ''' not exist. Callers keep their own final File.Exists guards — this only
-    ''' picks WHERE to look first.
+    ''' Full path of a family app executable, resolved against the owner
+    ''' layout v2 (see header). First existing candidate wins; the final
+    ''' fallback is always the layout root (dev bin\ where exes build flat).
+    ''' Callers keep their own final File.Exists guards — this only picks
+    ''' WHERE to look first.
     ''' </summary>
     Public Function ExePath(appExeName As String) As String
-        Dim staged As String = P("Application", appExeName)
-        If File.Exists(staged) Then Return staged
+        Dim candidates As New List(Of String)(4)
+        If String.Equals(appExeName, "nvsphelper64.exe", StringComparison.OrdinalIgnoreCase) Then
+            candidates.Add(P("NvCapture", appExeName))
+            candidates.Add(P("ShadowPlay", appExeName))
+        ElseIf String.Equals(appExeName, "NVIDIA ShadowPlay Helper.exe", StringComparison.OrdinalIgnoreCase) Then
+            candidates.Add(P("ShadowPlay", appExeName))
+            candidates.Add(P("NvCapture", appExeName))
+        ElseIf String.Equals(appExeName, "NVIDIA Share.exe", StringComparison.OrdinalIgnoreCase) Then
+            candidates.Add(P("NvOverlay", "CEF", appExeName))
+            candidates.Add(P("NvOverlay", "WinForm", appExeName))
+            candidates.Add(P("Overlay", appExeName))
+        ElseIf String.Equals(appExeName, "NVIDIA Notifier.exe", StringComparison.OrdinalIgnoreCase) OrElse
+               String.Equals(appExeName, "NVIDIA ShadowPlay.exe", StringComparison.OrdinalIgnoreCase) Then
+            candidates.Add(P("NvOverlay", "WinForm", appExeName))
+            candidates.Add(P("Overlay", appExeName))
+            candidates.Add(P("Application", appExeName))
+        ElseIf String.Equals(appExeName, "NvContainer.exe", StringComparison.OrdinalIgnoreCase) Then
+            candidates.Add(P("NvContainer", appExeName))
+        ElseIf String.Equals(appExeName, "NvBackend.exe", StringComparison.OrdinalIgnoreCase) Then
+            candidates.Add(P("NvBackend", appExeName))
+        ElseIf String.Equals(appExeName, "NVIDIA Backend.exe", StringComparison.OrdinalIgnoreCase) Then
+            candidates.Add(P("NvBackend", appExeName))
+        ElseIf String.Equals(appExeName, "NVIDIA Web Helper.exe", StringComparison.OrdinalIgnoreCase) Then
+            candidates.Add(P("NvBackend", appExeName))
+            candidates.Add(P("Application", appExeName))
+        Else
+            candidates.Add(P("Application", appExeName))
+        End If
+        candidates.Add(P(appExeName))
+        For Each candidate As String In candidates
+            If File.Exists(candidate) Then Return candidate
+        Next candidate
         Return P(appExeName)
     End Function
 
@@ -169,19 +225,36 @@ Public Module AppLayout
         AddHandler AssemblyLoadContext.Default.Resolving, AddressOf OnDefaultResolving
     End Sub
 
-    ''' <summary>Family folders probed for dependency assemblies, in order.
-    ''' Services\ matters for the Overlay app, which calls the NVIDIA API
-    ''' types in-process while the staged tree keeps those dlls in
-    ''' Services\. The last entry keeps DEV runs (plain bin\) working
-    ''' unchanged.</summary>
+    ''' <summary>Owner folders probed for dependency assemblies, in order.
+    ''' The production tree is self-contained by owner, with shared runtime
+    ''' families under NvCapture/NvAudio/NvGraphics/Runtime. Legacy folders
+    ''' remain only as dev-bin fallbacks; retired WebView/WebViewHook and the
+    ''' Services owner are not part of the production probe map.</summary>
     Private Function ProbeFolders() As List(Of String)
-        Dim folders As New List(Of String)(8)
+        Dim folders As New List(Of String)(10)
+        folders.Add(P("NvCapture"))
+        folders.Add(P("NvAudio"))
+        folders.Add(P("NvGraphics"))
+        folders.Add(P("Runtime"))
+        folders.Add(P("NvOverlay", "WinForm"))
+        folders.Add(P("NvOverlay", "CEF"))
+        folders.Add(P("NvBackend"))
+        ' Dev-layout staging locations (Build\Build-Config\dev-layout.json):
+        ' the capture engine family lives under ShadowPlay\NvCapture, the
+        ' helper/hook payloads under ShadowPlay\, Gallery.Video under
+        ' NvGallery\WinForm. Probed here so the owner dedupe pass can prune
+        ' the leaked copies out of the referencing app folders.
+        folders.Add(P("ShadowPlay"))
+        folders.Add(P("ShadowPlay", "NvCapture"))
+        folders.Add(P("NvGallery", "WinForm"))
+        ' Root owner — the root app's own outputs live here (Launcher.dll is
+        ' a library dependency of the overlay, not just the root exe).
+        folders.Add(Dir)
         folders.Add(P("Engine"))
         folders.Add(P("Core"))
         folders.Add(P("Audio"))
         folders.Add(P("Graphics"))
         folders.Add(P("Libraries"))
-        folders.Add(P("Services"))
         folders.Add(P("Runtimes", "win", "lib", "net10.0"))
         folders.Add(ExeDir)
         Return folders

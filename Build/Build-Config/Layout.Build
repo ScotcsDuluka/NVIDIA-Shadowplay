@@ -1,0 +1,52 @@
+Build
+├── .NET Deployment
+├── Data
+├── Flags
+├── Launcher.exe
+├── Logs
+├── NvAnsel
+├── NvAudio
+├── NvBackend
+│   ├── NVIDIA Backend.exe
+│   └── NVIDIA Web Helper.exe
+├── NvConfig
+├── NvContainer
+│   └── NVIDIA Container.exe
+├── NvGallery
+│   └── WinForm
+│       └── Gallery.Video.dll
+├── NvGraphics
+├── NvOverlay
+│   ├── Cef
+│   │   └── NVIDIA Share.exe
+│   └── WinForm
+│       ├── NVIDIA API.exe
+│       ├── NVIDIA Controls.dll
+│       ├── NVIDIA Notifier.exe
+│       └── NVIDIA Overlay.exe
+│
+├── Resources
+├── Runtime
+├── ShadowPlay
+│   ├── nvsphelper64.exe
+│   ├── CaptureEngine.dll
+│   ├── CaptureEngine.Audio.dll
+│   ├── CaptureEngine.Audio.Wasapi.dll
+│   ├── CaptureEngine.ConfigTests.dll
+│   ├── CaptureEngine.Encoder.dll
+│   ├── CaptureEngine.Encoder.Nvenc.dll
+│   ├── CaptureEngine.Encoder.Tests.dll
+│   ├── CaptureEngine.FFmpegBackend.dll
+│   ├── CaptureEngine.FFmpegTests.dll
+│   ├── CaptureEngine.FrameContractTests.dll
+│   ├── CaptureEngine.Recording.dll
+│   ├── CaptureEngine.Recording.ConsoleDriver.dll
+│   ├── CaptureEngine.Recording.Tests.dll
+│   ├── CaptureEngine.Tests.dll
+│   ├── CaptureEngine.Video.dll
+│   ├── CaptureEngine.Video.Ddagrab.dll
+│   ├── CaptureEngine.Video.Tests.dll
+│   ├── FFmpeg
+│   ├── nvspcap.dll
+│   └── WgcCapture.dll
+└── NVIDIA ShadowPlay.ico

@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "name": "NVIDIA ShadowPlay Dev Layout",
+  "sourceRoot": "Project",
+  "outputRoot": "Build/NVIDIA ShadowPlay",
+  "referenceOnly": [
+    "IDK This is/dist",
+    "IDK This is/deploy"
+  ],
+  "excludeProjects": [
+    "**/*Tests*",
+    "**/ManualOverlayTest.vbproj"
+  ],
+  "rootDirectories": [
+    ".NET Deployment",
+    ".vs",
+    "Data",
+    "Flags",
+    "Logs",
+    "NvAnsel",
+    "NvAudio",
+    "NvBackend",
+    "NvConfig",
+    "NvContainer",
+    "NvGallery/WinForm",
+    "NvGraphics",
+    "NvOverlay/Cef",
+    "NvOverlay/WinForm",
+    "Resources",
+    "Runtime",
+    "ShadowPlay",
+    "ShadowPlay/NvCapture",
+    "FFmpeg",
+    "Languages"
+  ],
+  "owners": {
+    "Launcher": ".",
+    "NVIDIA Web Helper": "NvBackend",
+    "NVIDIA Container": "NvContainer",
+    "Gallery.Video": "NvGallery/WinForm",
+    "NVIDIA Controls": "NvOverlay/WinForm",
+    "NVIDIA Notifier": "NvOverlay/WinForm",
+    "NVIDIA Overlay": "NvOverlay/WinForm",
+    "NVIDIA Share": "NvOverlay/Cef",
+    "ShadowPlay Capture": "ShadowPlay/NvCapture",
+    "ShadowPlay Native Hook": "ShadowPlay",
+    "FFmpeg": "ShadowPlay/FFmpeg"
+  }
+}

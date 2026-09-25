@@ -285,7 +285,7 @@ TCP/local hub used to coordinate the desktop application family and carry engine
 
 The project is being developed as a modular capture stack rather than a direct copy of NVIDIA's internal implementation.
 
-Engine documentation lives in [`docs/`](docs/), starting with [`docs/PHASE_PLAN.md`](docs/PHASE_PLAN.md). The module map is documented in [`PROJECT-STRUCTURE.md`](PROJECT-STRUCTURE.md), with build and diagnostic entry points under [`scripts/`](scripts/).
+Engine documentation lives in [`docs/`](docs/), starting with [`docs/PHASE_PLAN.md`](docs/PHASE_PLAN.md). The module map is documented in [`docs/reports/PROJECT-STRUCTURE.md`](docs/reports/PROJECT-STRUCTURE.md), with build and diagnostic entry points under [`scripts/`](scripts/).
 
 ### Current Engineering Focus
 - Capture backend lifecycle and ownership

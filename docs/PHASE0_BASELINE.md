@@ -168,7 +168,7 @@ the relevant phase:
 - [x] `CaptureEngine/` folder removed from repo
 - [x] No `CaptureCore` namespace references remain in source
 - [x] No `..\CaptureEngine` path references in `.vbproj`/`.sln`/`.slnx`
-- [x] `PROJECT-STRUCTURE.md` updated to reflect new layout
+- [x] `docs/reports/PROJECT-STRUCTURE.md` updated to reflect new layout
 - [x] `docs/PHASE0_BASELINE.md` exists (this file)
 - [ ] `dotnet build Engine/NVIDIA Capture.vbproj` exit 0 (verify on Windows machine)
 - [ ] `dotnet build Overlay/NVIDIA Overlay.vbproj` exit 0 (verify on Windows machine)

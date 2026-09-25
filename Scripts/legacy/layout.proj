@@ -1,0 +1,34 @@
+<Project DefaultTargets="Default">
+  <PropertyGroup>
+    <Repo>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))</Repo>
+    <BuildRoot>$([System.IO.Path]::GetFullPath('$(Repo)\Build Dev'))</BuildRoot>
+  </PropertyGroup>
+
+  <Target Name="Stage">
+    <Message Text="Building and staging canonical Project solution" Importance="high" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(Repo)\scripts\build-dev.ps1&quot; -Clean" />
+  </Target>
+
+  <Target Name="Manifest" DependsOnTargets="Stage">
+    <ItemGroup>
+      <Required Include="$(BuildRoot)\Launcher.exe" />
+      <Required Include="$(BuildRoot)\NvBackend\NVIDIA Web Helper.exe" />
+      <Required Include="$(BuildRoot)\NvContainer\NvContainer.exe" />
+      <Required Include="$(BuildRoot)\NvOverlay\Cef\NVIDIA Share.exe" />
+      <Required Include="$(BuildRoot)\NvOverlay\WinForm\NVIDIA API.exe" />
+      <Required Include="$(BuildRoot)\NvOverlay\WinForm\NVIDIA Notifier.exe" />
+      <Required Include="$(BuildRoot)\ShadowPlay\nvsphelper64.exe" />
+      <Required Include="$(BuildRoot)\.NET Deployment\NvLauncher\Launcher.deps.json" />
+      <Required Include="$(BuildRoot)\.NET Deployment\NvBackend\NVIDIA Web Helper.deps.json" />
+      <Required Include="$(BuildRoot)\.NET Deployment\NvContainer\NvContainer.deps.json" />
+      <Required Include="$(BuildRoot)\.NET Deployment\NvCapture\nvsphelper64.deps.json" />
+      <Required Include="$(BuildRoot)\.NET Deployment\NvOverlay\NVIDIA API.deps.json" />
+      <Required Include="$(BuildRoot)\.NET Deployment\NvOverlay\NVIDIA Notifier.deps.json" />
+      <Required Include="$(BuildRoot)\.NET Deployment\NvOverlay\NVIDIA Share.deps.json" />
+    </ItemGroup>
+    <Error Text="BUILD DEV MANIFEST MISSING: %(Required.Identity)" Condition="!Exists('%(Required.Identity)')" />
+    <Message Text="BUILD DEV STAGED OK -> $(BuildRoot)" Importance="high" />
+  </Target>
+
+  <Target Name="Default" DependsOnTargets="Manifest" />
+</Project>

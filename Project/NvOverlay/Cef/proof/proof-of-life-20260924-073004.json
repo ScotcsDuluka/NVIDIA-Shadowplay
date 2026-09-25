@@ -1,0 +1,18 @@
+{
+  "run": {"startUtc": "2026-09-24T00:30:00.693Z", "mode": "proof-of-life", "exeDir": "C:\\My Project\\NVIDIA-Shadowplay-gfe\\dist\\NVIDIA ShadowPlay\\NvOverlay\\CEF"},
+  "fields": {"backendPort": 0, "domProbe": {"title":"","href":"http://127.0.0.1:62483/index.html#/base","angular":true,"baseCount":0,"bodyChildren":4,"hasCefQuery":true}, "httpPort": 62483, "nvGpuAccel": true, "nvOsc": true, "nvUrlRelative": "Resources/osc/index.html", "oscRoot": "C:\\My Project\\NVIDIA-Shadowplay-gfe\\dist\\NVIDIA ShadowPlay\\NvOverlay\\CEF\\Resources\\osc", "secretLength": 32, "url": "http://127.0.0.1:62483/index.html"},
+  "checkpoints": [
+    {"name": "PROC_START", "ms": 1.2502, "utc": "2026-09-24T00:30:00.694Z", "detail": "NvShareCefMain entered"},
+    {"name": "BROWSER_PROCESS", "ms": 2.1018, "utc": "2026-09-24T00:30:00.695Z", "detail": "CefExecuteProcess returned -1 (browser path)"},
+    {"name": "HTTP_SERVER_UP", "ms": 6.056, "utc": "2026-09-24T00:30:00.699Z", "detail": "http://127.0.0.1:62483/ serving C:\\My Project\\NVIDIA-Shadowplay-gfe\\dist\\NVIDIA ShadowPlay\\NvOverlay\\CEF\\Resources\\osc"},
+    {"name": "CEF_INIT_OK", "ms": 139.599, "utc": "2026-09-24T00:30:00.832Z", "detail": "CefInitialize returned true"},
+    {"name": "BROWSER_CREATED", "ms": 173.219, "utc": "2026-09-24T00:30:00.866Z", "detail": "browser object created"},
+    {"name": "PAGE_LOAD_START", "ms": 1293.72, "utc": "2026-09-24T00:30:01.986Z", "detail": "http://127.0.0.1:62483/index.html"},
+    {"name": "ORGANIC_QUERY", "ms": 1856.18, "utc": "2026-09-24T00:30:02.548Z", "detail": "first page-originated command=QUERY_LOAD_STRING_TABLE"},
+    {"name": "PAGE_LOADED", "ms": 1883.63, "utc": "2026-09-24T00:30:02.576Z", "detail": "url=http://127.0.0.1:62483/index.html#/base httpStatus=200"},
+    {"name": "DOM_PROBE", "ms": 2146.23, "utc": "2026-09-24T00:30:02.838Z", "detail": "{\"title\":\"\",\"href\":\"http://127.0.0.1:62483/index.html#/base\",\"angular\":true,\"baseCount\":0,\"bodyChildren\":4,\"hasCefQuery\":true}"},
+    {"name": "UI_OPEN_TRIGGERED", "ms": 2148.75, "utc": "2026-09-24T00:30:02.841Z", "detail": "openOSC + oscengine-open flip"},
+    {"name": "PROOF_ECHO_VERIFIED", "ms": 2162.7, "utc": "2026-09-24T00:30:02.855Z", "detail": "QUERY_OSC_SET_EXPERIMENTAL round-trip returned \"true\""},
+    {"name": "PROOF_FINISH", "ms": 2923.89, "utc": "2026-09-24T00:30:03.617Z", "detail": "proof-round-trip-complete"}
+  ]
+}

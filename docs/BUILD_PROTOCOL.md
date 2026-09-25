@@ -1,5 +1,15 @@
 # Build Protocol
 
+> **SUPERSEDED (2026-09-24, gfe-rebuild):** the commands below describe the
+> pre-reorg tree (Engine/…, Overlay/…, net8.0). The canonical dev build is
+> now **`powershell -ExecutionPolicy Bypass -File Scripts\build-dev.ps1`**
+> (optionally `-Clean`): it restores + builds `Project\NVIDIA ShadowPlay.sln`
+> and stages the product tree into `Build\NVIDIA ShadowPlay` under
+> `Build\Build-Config\dev-layout.json` authority. Test projects are excluded
+> from staging — build and run each `CaptureEngine.*Tests` exe directly
+> (set `RRT_FFMPEG` to `Project\ShadowPlay\FFmpeg` for the ffmpeg-gated
+> suites). The stale-DLL lesson below still applies.
+
 > **Critical**: Run this **every time** after `git pull`. Skipping
 > clean step is the #1 cause of false-positive bugs (stale DLLs).
 

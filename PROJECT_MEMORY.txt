@@ -2580,7 +2580,7 @@ Current HEAD:
 be24068 — Merge branch 'Engine-Rebuild-Stabilization' ...
 
 Engine forensic audit:
-ENGINE-DEEP-FORENSIC-AUDIT-2026-09-07.md
+docs/reports/ENGINE-DEEP-FORENSIC-AUDIT-2026-09-07.md
 Verdict: SAFE (engine surface)
 Architecture changes: NONE
 

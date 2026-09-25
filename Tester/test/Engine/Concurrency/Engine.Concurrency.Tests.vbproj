@@ -18,7 +18,7 @@
     <!-- The legacy two-process engine under test: CaptureEngine +
          JobObjectGuard + CaptureSettings live in the NVIDIA Capture
          (WinForms host) assembly. -->
-    <ProjectReference Include="..\..\..\..\Engine\NVIDIA Capture.vbproj" />
+    <ProjectReference Include="..\..\..\..\Engine\NVIDIA ShadowPlay Helper.vbproj" />
     <!-- F-S2 regression: link the REAL Overlay AppSettings partials so the
          token-at-rest contract is exercised against production code. -->
     <Compile Include="..\..\..\..\Overlay\[Forms Overlay - Project Files]\[API]\[Services]\AppSettings.vb" Link="Overlay\AppSettings.vb" />

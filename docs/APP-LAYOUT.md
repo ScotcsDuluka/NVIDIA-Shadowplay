@@ -30,10 +30,12 @@ artifact the mirror copies from.
 ```
 NVIDIA ShadowPlay\                    <- dist\NVIDIA ShadowPlay (default)
 ├── Launcher.exe/.dll/.runtimeconfig.json              (root app)
-├── .NET Deployment\        EVERY app's .deps.json + .runtimeconfig.json
-│                           (10 files: Experience, ShadowPlay, API,
-│                           Capture, Notifier × 2 — OWNER tree rev 2;
-│                           replaces the ConfigApp\ experiment)
+├── .NET Deployment\        centralized .deps.json files, grouped by owner
+│   ├── NvLauncher\         Launcher.deps.json
+│   ├── NvBackend\          NvBackend + NVIDIA Web Helper deps.json
+│   ├── NvContainer\        NvContainer.deps.json
+│   ├── NvCapture\          nvsphelper64.deps.json
+│   └── NvOverlay\          ShadowPlay + Notifier deps.json
 ├── Application\            NVIDIA API.exe / NVIDIA Capture.exe / NVIDIA Notifier.exe
 │                           (thin native hosts; embedded app path = ..\Services\<app>.dll)
 ├── Services\               the three services' NVIDIA <app>.dll + .runtimeconfig.json
@@ -71,15 +73,15 @@ hostpolicy code the Windows apphosts run):
 - **runtimeconfig.json is NOT relocatable.** hostfxr hard-requires
   `<app>.runtimeconfig.json` beside the app dll BEFORE any managed code
   runs; missing = `Failed to run as a self-contained app` — fatal, and no
-  in-app handler can intercept it. Therefore root\, Overlay\ and
-  Services\ KEEP their five runtimeconfig.json files, AND .NET Deployment\
-  carries a copy of each so the folder is the complete deployment picture
-  (10 files). These are build-generated files — never hand-edited.
-- **deps.json IS relocatable.** Without it hostpolicy falls back to
+  in-app handler can intercept it. Each deployed managed app therefore
+  keeps its runtimeconfig.json beside its apphost/body DLL. These are
+  build-generated files — never hand-edited.
+- **deps.json IS relocatable in this owner tree.** Without it hostpolicy falls back to
   app-dir probing, and AppLayout's `AssemblyLoadContext.Default.Resolving`
   handler (installed at `MyApplication.Startup`, before any form code)
-  supplies every cross-folder dependency. All five deps.json therefore
-  live ONLY in .NET Deployment\.
+  supplies every cross-folder dependency. The canonical staging script places
+  every product deps.json only in `.NET Deployment\Nv*`; no component
+  directory receives a duplicate deps.json.
 
 ## How .NET is told where the DLLs are
 

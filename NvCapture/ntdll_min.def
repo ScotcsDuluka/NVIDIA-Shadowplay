@@ -1,5 +1,0 @@
-; ntdll_min.def — x64 __try/__except dispatch without the CRT: the OS
-; ntdll exports the exact handler the linker needs to resolve.
-LIBRARY ntdll
-EXPORTS
-    __C_specific_handler

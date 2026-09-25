@@ -24,7 +24,7 @@
          InformationalVersion         = 3.41.<BuildNumber>.61+<git-sha>
 
        The Overlay's IncrementBuild target stays the build-number authority:
-       it increments Overlay\build.txt and re-evaluates these properties
+       it increments Build\Build-Config\build.txt and re-evaluates these properties
        BEFORE compile (Directory.Build.targets _Bl1Stamp target runs after
        IncrementBuild), so every sibling assembly shares the number of the
        Overlay build that swept it into the product tree. The git sha is
@@ -32,7 +32,7 @@
        ============================================================================ -->
 
   <PropertyGroup>
-    <SharedBuildNumberFile Condition="'$(SharedBuildNumberFile)' == ''">$(MSBuildThisFileDirectory)Overlay\build.txt</SharedBuildNumberFile>
+    <SharedBuildNumberFile Condition="'$(SharedBuildNumberFile)' == ''">$(MSBuildThisFileDirectory)Build\Build-Config\build.txt</SharedBuildNumberFile>
     <SharedBuildNumber Condition="'$(SharedBuildNumber)' == ''">0</SharedBuildNumber>
     <GitShaFile Condition="'$(GitShaFile)' == ''">$(MSBuildThisFileDirectory)obj\bl1-commit.txt</GitShaFile>
   </PropertyGroup>

@@ -60,7 +60,7 @@ GET http://127.0.0.1:59004/hook/exit     -> graceful exit (operator handle)
 
 `API/` (NVIDIA API.exe hub :5000), `Launcher/` (Launcher.exe), `Notifier/`
 (NVIDIA Notifier.exe, TCP-driven), the Overlay's private TCP client — the
-forensic audit (FORENSIC-AUDIT-REPORT-2026-09-06.md) documents that graph.
+forensic audit (docs/reports/FORENSIC-AUDIT-REPORT-2026-09-06.md) documents that graph.
 New components must NOT depend on the legacy hub; the REST :59001 surface
 is the only shared channel going forward.
 

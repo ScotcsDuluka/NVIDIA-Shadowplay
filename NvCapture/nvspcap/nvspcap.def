@@ -1,7 +1,0 @@
-; nvspcap.def — export contract pinned to the reference ordinals
-; (NvCapture/abi-evidence/01-export-contract.md)
-LIBRARY
-EXPORTS
-    QueryShadowPlayDdiShimInterface     @1
-    QueryShadowPlayDdiShimStatus        @2
-    CreateShadowPlayProxyShimInterface  @3

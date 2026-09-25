@@ -1,7 +1,0 @@
-; kernel32_min_x86.def — stdcall-decorated imports for the x86 shim build.
-LIBRARY kernel32
-EXPORTS
-    DisableThreadLibraryCalls@4
-    IsBadReadPtr@8
-    IsBadWritePtr@8
-    OutputDebugStringA@4

@@ -8,6 +8,8 @@
 **/*.cache
 **/*.tmp
 **/*.temp
+**/__pycache__/
+**/*.pyc
 
 # IDE and local user settings
 **/.vs/
@@ -94,3 +96,13 @@ Backend/data/state.json
 Backend/data/hardware-floor.json
 Backend/data/logs/
 build-all.log
+
+# Staged dev-build output (Scripts\build-dev.ps1) — generated, not source.
+# Build-Config/ is the layout authority the script reads and stays tracked.
+/Build/*
+!/Build/Build-Config/
+
+# Heavy runtime payloads (owner tree) — staged by build scripts, never tracked
+Project/ShadowPlay/FFmpeg/
+Project/Runtime/
+IDK This is/
