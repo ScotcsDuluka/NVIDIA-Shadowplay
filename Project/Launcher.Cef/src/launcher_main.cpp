@@ -157,15 +157,9 @@ int NvLauncherCefMain(void) {
   }
   launcherutil::LogLine("navigating to " + params->url);
 
-  // Supervisor: base chain (NvContainer + NVIDIA Backend) + poll thread.
-  // The ENGINE OVERLAY chain starts here when config says it was left ON
-  // (Main.vb contract) — background thread, never blocking startup.
-  LauncherSupervisor* supervisor = LauncherSupervisor::Get();
-  supervisor->Start(params->supervise, &LauncherPushStateAnyThread);
-  if (params->supervise &&
-      launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode", false)) {
-    supervisor->StartEngineOverlayChainAsync();
-  }
+  // Supervisor start happens AFTER CefInitialize (below): the poll
+  // thread's first push posts into the CEF UI task runner, which must
+  // already exist.
 
   CefSettings settings;
   settings.size = sizeof(CefSettings);
@@ -206,12 +200,22 @@ int NvLauncherCefMain(void) {
 
   if (!CefInitialize(args, settings, app.get(), NULL)) {
     launcherutil::LogLine("CefInitialize returned false");
-    supervisor->Stop();
+    LauncherSupervisor::Get()->Stop();
     return 3;
   }
   launcherutil::LogLine("CefInitialize ok (window " +
                         std::to_string(params->width) + "x" +
                         std::to_string(params->height) + ")");
+
+  // Supervisor: base chain (NvContainer + NVIDIA Backend) + poll thread.
+  // The ENGINE OVERLAY chain starts here when config says it was left ON
+  // (Main.vb contract) — background thread, never blocking startup.
+  LauncherSupervisor* supervisor = LauncherSupervisor::Get();
+  supervisor->Start(params->supervise, &LauncherPushStateAnyThread);
+  if (params->supervise &&
+      launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode", false)) {
+    supervisor->StartEngineOverlayChainAsync();
+  }
 
   if (params->self_exit_ms > 0) {
     // Smoke-run watchdog: always terminates, always leaves a log line.

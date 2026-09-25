@@ -130,6 +130,8 @@ public class MainForm : Form
                     "startBuild" => _bridge.StartBuild(ArgsBool(args, 0)),
                     "log" => _bridge.GetLog(ArgsInt(args, 0)),
                     "version" => _bridge.GetVersionConfig(),
+                    "versions" => _bridge.GetVersions(),
+                    "saveVersions" => _bridge.SaveVersions(args.ValueKind == JsonValueKind.Array && args.GetArrayLength() > 0 ? args.Value[0].GetRawText() : "{}"),
                     "saveVersion" => _bridge.SaveVersionConfig(ArgsStr(args, 0)),
                     "preview" => _bridge.GetPreview(),
                     "launch" => _bridge.LaunchApp(),

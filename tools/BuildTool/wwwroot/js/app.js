@@ -52,7 +52,11 @@ async function versionCfg() {
   try { return JSON.parse(await bridge().GetVersionConfig()); }
   catch (e) { return { hardcore: false, version: "3.41", buildNo: "?" }; }
 }
-async function preview() {
+
+async function versionsCfg() {
+  try { return JSON.parse(await bridge().GetVersions()); }
+  catch (e) { return { global: "3.41", hardcore: false, projects: [] }; }
+}async function preview() {
   try { return JSON.parse(await bridge().GetPreview()); }
   catch (e) { return { exists: false, files: [], totalMB: 0 }; }
 }
@@ -151,7 +155,7 @@ function pollLog() {
 
 /* ── Version ── */
 views.version = async function () {
-  const c = await versionCfg();
+  const c = await versionsCfg();
   const sampleText = String(c.version).replace("$build", c.buildNo);
   $("#main").innerHTML = `
     <h1>Version (Hardcore)</h1>
@@ -175,6 +179,16 @@ views.version = async function () {
       </div>
     </div>
     <div class="card">
+      <h2>VERSIONS รายโปรเจค</h2>
+      <div class="sub" style="margin-bottom:10px">เวอร์ชันแยกตามโปรเจค — เว้นว่าง = ใช้ค่า global</div>
+      <div style="max-height:420px; overflow-y:auto">
+      <table id="verTable">
+        <tr><th>โปรเจค</th><th>VERSION</th></tr>
+        ${(c.projects || []).map((p) => `<tr><td>${esc(p.name)}</td><td><input type="text" class="pjver" data-pj="${esc(p.name)}" value="${esc(p.version)}" style="width:100%"></td></tr>`).join("")}
+      </table>
+      </div>
+    </div>
+    <div class="card">
       <h2>IDENTITY (เขียนทุก assembly)</h2>
       <label class="f">COMPANY</label>
       <input type="text" id="vCompany" value="${esc(c.company)}">
@@ -193,15 +207,21 @@ views.version = async function () {
   $("#vVersion").oninput = sample;
   $("#btnSaveVer").onclick = async () => {
     $("#saveState").textContent = "บันทึก...";
+    const projects = {};
+    document.querySelectorAll(".pjver").forEach((inp) => {
+      const n = inp.dataset.pj;
+      if (n && inp.value.trim()) projects[n] = inp.value.trim();
+    });
     const cfg = {
       hardcore: $("#hc").checked,
-      version: $("#vVersion").value.trim(),
+      global: $("#vVersion").value.trim(),
+      projects,
       company: $("#vCompany").value.trim(),
       authors: $("#vAuthors").value.trim(),
       product: $("#vProduct").value.trim(),
       copyright: $("#vCopyright").value.trim(),
     };
-    const r = JSON.parse(await bridge().SaveVersionConfig(JSON.stringify(cfg)));
+    const r = JSON.parse(await bridge().SaveVersions(JSON.stringify(cfg)));
     $("#saveState").textContent = r.ok ? "บันทึกแล้ว ✓ (regen version.props)" : "ผิดพลาด: " + r.error;
     refreshSide();
   };
@@ -212,25 +232,37 @@ views.version = async function () {
 /* ── Preview ── */
 views.preview = async function () {
   const p = await preview();
+  window.previewData = p;
   $("#main").innerHTML = `
-    <h1>Preview — Build\\NVIDIA ShadowPlay</h1>
-    <div class="sub">ผลลัพธ์ staging ล่าสุด — FileVersion อ่านจากไฟล์จริง</div>
+    <h1>Preview — Build\NVIDIA ShadowPlay</h1>
+    <div class="sub">ผลลัพธ์ staging ล่าสุด — ทุกไฟล์ .exe/.dll พร้อมเวอร์ชันจริงจากไฟล์</div>
     <div class="grid">
       <div class="stat"><div class="k">ขนาดรวม</div><div class="v green">${p.totalMB} MB</div></div>
-      <div class="stat"><div class="k">EXE ในต้นไม้</div><div class="v">${(p.files || []).length}</div></div>
+      <div class="stat"><div class="k">ไฟล์ binary</div><div class="v">${p.fileCount}</div></div>
+      <div class="stat"><div class="k">สถานะ</div><div class="v" style="font-size:14px">${p.exists ? "staged" : "ยังไม่ build"}</div></div>
     </div>
     <div class="card">
-      <h2>EXECUTABLES</h2>
+      <h2>BINARIES</h2>
       <div class="row">
+        <input type="text" id="pvFilter" placeholder="กรองชื่อไฟล์..." style="max-width:280px" oninput="previewFilter()">
         <button class="primary" onclick="bridge().LaunchApp()">▶ รัน Launcher.exe</button>
         <button onclick="bridge().OpenFolder()">เปิดโฟลเดอร์</button>
         <button onclick="go('preview')">รีเฟรช</button>
       </div>
-      ${(p.files || []).length ? `<table>
-        <tr><th>ไฟล์</th><th>ที่อยู่</th><th>FileVersion</th><th>Product</th><th>KB</th></tr>
-        ${p.files.map((f) => `<tr><td>${esc(f.name)}</td><td style="color:var(--dim)">${esc(f.rel)}</td><td>${esc(f.ver)}</td><td>${esc(f.product)}</td><td>${f.kb}</td></tr>`).join("")}
-      </table>` : `<div class="sub">ยังไม่มี staged tree — รัน Build ก่อน</div>`}
+      <div style="max-height:480px; overflow-y:auto">
+      <table id="pvTable">
+        <tr><th>ไฟล์</th><th>ที่อยู่</th><th>FileVersion</th><th>ProductVersion</th><th>Company</th><th>Description</th><th>KB</th><th>แก้ล่าสุด</th></tr>
+        ${(p.files || []).map((f) => `<tr><td>${esc(f.name)}</td><td style="color:var(--dim)">${esc(f.rel)}</td><td>${esc(f.ver)}</td><td>${esc(f.prod)}</td><td>${esc(f.comp)}</td><td>${esc(f.desc)}</td><td>${f.kb}</td><td>${esc(f.mod)}</td></tr>`).join("")}
+      </table>
+      </div>
     </div>`;
+  window.previewFilter = () => {
+    const q = ($("#pvFilter") ? $("#pvFilter").value : "").toLowerCase();
+    document.querySelectorAll("#pvTable tr").forEach((tr, i) => {
+      if (i === 0) return;
+      tr.style.display = tr.textContent.toLowerCase().includes(q) ? "" : "none";
+    });
+  };
 };
 
 function refreshSide() {

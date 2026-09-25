@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -37,6 +37,108 @@ public class Bridge
         _staged = Path.Combine(root, "Build", "NVIDIA ShadowPlay");
         _script = Path.Combine(root, "Scripts", "build-dev.ps1");
         EnsureDefaults();
+    }
+
+    // ─── Versions รายโปรเจค (versions.json + versions.props) ───
+    public class VersionsMap
+    {
+        public string global { get; set; } = "3.41";
+        public Dictionary<string, string> projects { get; set; } = new();
+    }
+
+    private string VersionsJsonPath => Path.Combine(_buildDir, "versions.json");
+    private string VersionsPropsPath => Path.Combine(_buildDir, "versions.props");
+
+    private List<string> SlnProjectNames()
+    {
+        var names = new List<string>();
+        try
+        {
+            var sln = Path.Combine(_root, "Project", "NVIDIA ShadowPlay.sln");
+            foreach (var line in File.ReadAllLines(sln))
+            {
+                var m = System.Text.RegularExpressions.Regex.Match(
+                    line, @"^Project\(""[^""]+""\) = ""([^""]+)""");
+                if (m.Success && !names.Contains(m.Groups[1].Value))
+                    names.Add(m.Groups[1].Value);
+            }
+        }
+        catch { }
+        return names;
+    }
+
+    public string GetVersions()
+    {
+        var map = ReadVersionsMap();
+        var list = SlnProjectNames().Select(n => new
+        {
+            name = n,
+            version = map.projects.TryGetValue(n, out var v) ? v : map.global,
+        }).ToList();
+        return JsonSerializer.Serialize(new { global = map.global, projects = list });
+    }
+
+    public string SaveVersions(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            string global = doc.RootElement.TryGetProperty("global", out var g) && !string.IsNullOrWhiteSpace(g.GetString())
+                ? g.GetString() : "3.41";
+            var projects = new Dictionary<string, string>();
+            if (doc.RootElement.TryGetProperty("projects", out var pj) && pj.ValueKind == JsonValueKind.Object)
+            {
+                foreach (var prop in pj.EnumerateObject())
+                {
+                    if (!string.IsNullOrWhiteSpace(prop.Value.GetString()))
+                        projects[prop.Name] = prop.Value.GetString();
+                }
+            }
+            File.WriteAllText(VersionsJsonPath,
+                JsonSerializer.Serialize(new { global, projects }, new JsonSerializerOptions { WriteIndented = true }));
+            RegenVersionsProps(global, projects);
+            return JsonSerializer.Serialize(new { ok = true, count = projects.Count });
+        }
+        catch (Exception ex)
+        {
+            return JsonSerializer.Serialize(new { ok = false, error = ex.Message });
+        }
+    }
+
+    private void RegenVersionsProps(string global, Dictionary<string, string> projects)
+    {
+        var sb = new StringBuilder();
+        sb.AppendLine("<Project>");
+        sb.AppendLine("  <PropertyGroup>");
+        sb.AppendLine("    <Company>Duluka Corporation</Company>");
+        sb.AppendLine("    <Authors>ScotcsDuluka</Authors>");
+        sb.AppendLine("    <Product>NVIDIA ShadowPlay</Product>");
+        sb.AppendLine("    <Copyright>Copyright (C) 2026 Duluka Corporation</Copyright>");
+        sb.AppendLine("  </PropertyGroup>");
+        foreach (var p in projects)
+        {
+            var ver = p.Value.Replace("$build", "$(SharedBuildNumber)");
+            var nm = p.Key.Replace("&", "&amp;").Replace("'", "&apos;");
+            sb.AppendLine($"  <PropertyGroup Condition=\"'$(MSBuildProjectName)' == '{nm}'\">");
+            sb.AppendLine($"    <FileVersion>{ver}.$(SharedBuildNumber).61</FileVersion>");
+            sb.AppendLine($"    <InformationalVersion>{ver}.$(SharedBuildNumber).61</InformationalVersion>");
+            sb.AppendLine("  </PropertyGroup>");
+        }
+        sb.AppendLine("</Project>");
+        Directory.CreateDirectory(_buildDir);
+        File.WriteAllText(VersionsPropsPath, sb.ToString());
+    }
+
+    private VersionsMap ReadVersionsMap()
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<VersionsMap>(File.ReadAllText(VersionsJsonPath)) ?? new VersionsMap();
+        }
+        catch
+        {
+            return new VersionsMap();
+        }
     }
 
     // ─── Dashboard ───
@@ -173,9 +275,10 @@ public class Bridge
 
     public string GetPreview()
     {
+        // ทุกไฟล์ .exe + .dll ละเอียดครบ (ไม่มี cap) - ตามคำสั่ง "แสดงทุกโปรเจค เอาให้ละเอียด"
         var files = new List<object>();
         long total = 0;
-        int exeCount = 0;
+        int fileCount = 0;
 
         if (Directory.Exists(_staged))
         {
@@ -185,17 +288,21 @@ public class Bridge
                 {
                     var fi = new FileInfo(f);
                     total += fi.Length;
-                    if (fi.Extension.Equals(".exe", StringComparison.OrdinalIgnoreCase) && exeCount < 60)
+                    if (fi.Extension.Equals(".exe", StringComparison.OrdinalIgnoreCase) ||
+                        fi.Extension.Equals(".dll", StringComparison.OrdinalIgnoreCase))
                     {
                         var vi = FileVersionInfo.GetVersionInfo(f);
-                        exeCount++;
+                        fileCount++;
                         files.Add(new
                         {
                             name = fi.Name,
                             rel = f.Substring(_staged.Length + 1),
                             ver = string.IsNullOrEmpty(vi.FileVersion) ? "-" : vi.FileVersion,
-                            product = string.IsNullOrEmpty(vi.ProductName) ? "-" : vi.ProductName,
+                            prod = string.IsNullOrEmpty(vi.ProductVersion) ? "-" : vi.ProductVersion,
+                            comp = string.IsNullOrEmpty(vi.CompanyName) ? "-" : vi.CompanyName,
+                            desc = string.IsNullOrEmpty(vi.FileDescription) ? "-" : vi.FileDescription,
                             kb = (int)(fi.Length / 1024),
+                            mod = fi.LastWriteTime.ToString("MM-dd HH:mm"),
                         });
                     }
                 }
@@ -207,6 +314,7 @@ public class Bridge
         {
             exists = Directory.Exists(_staged),
             totalMB = Math.Round(total / 1048576.0, 1),
+            fileCount,
             files,
         });
     }

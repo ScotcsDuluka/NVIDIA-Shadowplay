@@ -14,15 +14,27 @@ namespace {
 // Process image names WITHOUT .exe — Process.GetProcessesByName parity.
 const wchar_t* kShadowPlay = L"NVIDIA ShadowPlay";
 const wchar_t* kNotifier = L"NVIDIA Notifier";
-const wchar_t* kBackend = L"NVIDIA Backend";
 const wchar_t* kContainer = L"NvContainer";
 const wchar_t* kWebHelper = L"NVIDIA Web Helper";
 const wchar_t* kCefOverlay = L"NVIDIA Share";
 
-// Installer-exit kill list — Main.vb RadioButton2, verbatim order.
+// The TCP hub ("NVIDIA API") is staged as NvBackend\NvBackend.exe in the
+// current tree (Nv<App>.exe rename wave). The historical name was
+// "NVIDIA Backend" — treat BOTH as the hub lane for status/start/kill.
+const wchar_t* kHub = L"NvBackend";
+const wchar_t* kHubLegacy = L"NVIDIA Backend";
+
+bool HubRunning() {
+  return launcherutil::ProcessRunning(kHub) ||
+         launcherutil::ProcessRunning(kHubLegacy);
+}
+
+// Installer-exit kill list — Main.vb RadioButton2 order + the staged hub
+// name (NvBackend.exe — the "NVIDIA Backend" slot of the current tree).
 const wchar_t* kKillList[] = {
     L"NVIDIA Notifier.exe", L"NVIDIA ShadowPlay.exe", L"nvsphelper64.exe",
-    L"NvContainer.exe",     L"NVIDIA Backend.exe",    L"NVIDIA Capture.exe",
+    L"NvContainer.exe",     L"NvBackend.exe",         L"NVIDIA Backend.exe",
+    L"NVIDIA Capture.exe",
 };
 
 void StartIfMissing(const wchar_t* name, const std::wstring& exe_path,
@@ -38,6 +50,20 @@ void StartIfMissing(const wchar_t* name, const std::wstring& exe_path,
 std::wstring RootP(const wchar_t* folder, const wchar_t* file) {
   return launcherutil::JoinPath(
       launcherutil::JoinPath(launcherutil::GetRootDir(), folder), file);
+}
+
+// First existing hub exe wins: staged name, legacy name, then the layout
+// root (dev bin contract).
+std::wstring ResolveHubExe() {
+  const std::wstring candidates[] = {
+      RootP(L"NvBackend", L"NvBackend.exe"),
+      RootP(L"NvBackend", L"NVIDIA Backend.exe"),
+      RootP(L"", L"NVIDIA Backend.exe"),
+  };
+  for (size_t i = 0; i < 3; ++i) {
+    if (launcherutil::FileExists(candidates[i])) return candidates[i];
+  }
+  return candidates[0];
 }
 
 }  // namespace
@@ -69,7 +95,7 @@ LauncherSupervisor* LauncherSupervisor::Get() {
 
 LauncherState LauncherSupervisor::Snapshot() {
   LauncherState st;
-  st.nv_api = launcherutil::ProcessRunning(kBackend);
+  st.nv_api = HubRunning();
   st.shadowplay = launcherutil::ProcessRunning(kShadowPlay);
   st.overlay_ready =
       launcherutil::FileExists(RootP(L"Flags", L"Ready"));
@@ -139,9 +165,9 @@ void LauncherSupervisor::PollLoop() {
         LogLine("NvContainer lost - restarting");
         StartIfMissing(kContainer, RootP(L"NvContainer", L"NvContainer.exe"));
       }
-      if (!launcherutil::ProcessRunning(kBackend)) {
-        LogLine("NVIDIA Backend lost - restarting");
-        launcherutil::StartProcess(RootP(L"", L"NVIDIA Backend.exe"), L"");
+      if (!HubRunning()) {
+        LogLine("hub lost - restarting");
+        launcherutil::StartProcess(ResolveHubExe(), L"");
       }
     }
     for (int i = 0; i < 10 && !stop_; ++i) Sleep(100);
@@ -152,8 +178,8 @@ void LauncherSupervisor::StartBaseChain() {
   // Supervisor lane runs ALWAYS (owner 2026-09-25): NvContainer starts
   // together with the Launcher and keeps nvsphelper64 alive.
   StartIfMissing(kContainer, RootP(L"NvContainer", L"NvContainer.exe"));
-  // TCP hub (WinForm family contract): root NVIDIA Backend.exe.
-  StartIfMissing(kBackend, RootP(L"", L"NVIDIA Backend.exe"));
+  // TCP hub (WinForm family contract): NvBackend\NvBackend.exe.
+  StartIfMissing(kHub, ResolveHubExe());
 }
 
 void LauncherSupervisor::StartEngineOverlayChain() {

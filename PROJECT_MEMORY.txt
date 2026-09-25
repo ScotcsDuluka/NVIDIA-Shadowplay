@@ -2649,3 +2649,75 @@ GitHub OAuth note:
 appsettings now contains the non-secret GitHub ClientId, while ClientSecret remains empty.
 run-server.ps1 loads ClientSecret from DULUKA_GitHub__ClientSecret or the git-ignored
 Duluka/.server-secret file. Never print or store the secret in project memory.
+
+
+============================================================
+[CHECKPOINT — 2026-09-25 — NEW CEF LAUNCHER (Launcher.Cef lane)]
+============================================================
+
+Owner request: "ทำ Launcher.exe ใหม่ สวยๆ NVIDIA ใช้ Cef ลงที่เดียวกับ osc"
+
+Delivered:
+- New native CEF launcher lane: Project\Launcher.Cef\
+  - Launcher.exe (thin bootstrap, ROOT slot — replaces the WinForm
+    Launcher.exe double-click entry)
+  - NvOverlay\Cef\Launcher.dll (host body) — lives in the SHARED CEF
+    runtime slot beside NVIDIA Share.exe (osc lane); libcef.dll/cef.pak/
+    locales used ONCE, no duplicate runtime ("ลงที่เดียวกับ osc")
+  - ui\ (index.html/app.css/app.js + nvgcshare.woff2) staged to
+    NvOverlay\Cef\Resources\launcher\
+- UI = GFE-styled dark web page (1000x640 borderless, DWM shadow +
+  Win11 rounded corners, nvgcshare font, status dots, NVIDIA toggles)
+  served over loopback HTTP; RPC = window.cefQuery, LAUNCHER_* namespace
+  (no overlap with osc QUERY_*); 1s supervisor state push via
+  window.__LauncherState + 2s page pull fallback.
+- Supervision = full Main.vb port: base chain always (NvContainer +
+  hub), ENGINE OVERLAY chain (NvContainer -> Web Helper -> :59001 ->
+  NvOverlay\Cef NVIDIA Share.exe --backend-port 59001, path-deduped),
+  Flags\Ready handling, config.json toggles (read-modify-write,
+  order-preserving C++ JSON serializer, atomic tmp+.bak — the
+  AppConfigShared.vb contract), open_overlay hub frame to :5001,
+  EXIT ALL kill list (+NvBackend.exe), plain close keeps processes.
+
+Family-name parity facts (IMPORTANT):
+- Hub = NvBackend\NvBackend.exe in the current tree ("NVIDIA Backend"
+  kept as legacy candidate/status alias/kill entry).
+- Toolhelp32 process matching must accept the ".exe" suffix
+  (Process.GetProcessesByName passes extension-less names).
+
+Build/stage:
+- powershell -File Project\Launcher.Cef\deploy-launcher.ps1
+  (MSBuild Release x64 both vcxprojs -> stage root exe + NvOverlay\Cef
+  dll + Resources\launcher ui). -NoBuild / -Dest supported.
+- Scripts\build-dev.ps1: guarded staging block added (CEF launcher
+  stages when its bin artifacts exist; WinForm launcher otherwise).
+- The WinForm launcher project (Project\Launcher.exe\) is UNTOUCHED
+  (rollback path).
+
+Evidence (2026-09-25):
+- Page loads httpStatus=200, BRIDGE LIVE, dots/toggles rendered
+  (a11y tree + pixel check: #1A1B1D/#1E2023/#76B900).
+- LIVE owner interaction verified: ENGINE OVERLAY ON started the full
+  chain (incl. NVIDIA Share.exe --backend-port 59001); toggles wrote
+  config.json correctly; EXIT ALL killed the family (NvBackend.exe
+  included) and closed cleanly.
+- Supervised run: "adopt running: NvContainer" (no restart loop after
+  the .exe-suffix fix), hub started from NvBackend\NvBackend.exe.
+- Log: <root>\Logs\launcher-cef.log (+ launcher-cef-debug.log).
+
+Config state note: owner EXIT ALL runs set Overlay.UseOverlayEnabled=
+false and EngineOverlayMode=false in the staged NvConfig\config.json
+(documented EXIT ALL contract). Re-enable via the launcher toggles.
+
+Uncommitted (owner decides): Project\Launcher.Cef\ (new),
+Scripts\build-dev.ps1, tools\BuildTool\MainForm.cs (pre-existing),
+PROJECT_MEMORY.txt.
+
+ADDENDUM 2026-09-25 (same session): launcher UI restyled per owner call
+"ขอแนว Web Github" — the github.io design language (sharp 90° corners,
+corner brackets + runway + sheen SERVICES banner, GeForce display font,
+animated gradient subtitle, feature-card grammar). Fonts copied from
+Web Github\Assets (GeForce-Bold-Alt.woff2 + nvgcshare.woff2) into
+Launcher.Cef\ui\fonts\. Same RPC contract + element IDs; app.js
+unchanged. Restaged and verified rendering (green #76B900 elements +
+near-black surfaces in the captured window).

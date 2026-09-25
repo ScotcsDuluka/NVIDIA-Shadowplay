@@ -170,6 +170,27 @@ if (Test-Path -LiteralPath $overlayBin) {
 $launcherBin = Join-Path $ProjectRoot ("Launcher.exe\bin\Release\{0}" -f $TargetFramework)
 Copy-RuntimeFiles $launcherBin $BuildRoot 'Launcher'
 
+# Launcher CEF lane (new native launcher) -> root + NvOverlay\Cef.
+# Guarded on built artifacts: present = the CEF launcher replaces the
+# WinForm root entry (deploy-launcher.ps1 contract). Absent (no MSVC/CEF
+# SDK on the build machine) = the WinForm launcher stages as before.
+$cefLauncherBin = Join-Path $ProjectRoot 'Launcher.Cef\bin\x64\Release'
+$cefLauncherExe = Join-Path $cefLauncherBin 'Launcher.exe'
+$cefLauncherDll = Join-Path $cefLauncherBin 'Launcher.dll'
+if ((Test-Path -LiteralPath $cefLauncherExe) -and (Test-Path -LiteralPath $cefLauncherDll)) {
+    Copy-Item -LiteralPath $cefLauncherExe -Destination (Join-Path $BuildRoot 'Launcher.exe') -Force
+    $cefSlot = Join-Path $BuildRoot 'NvOverlay\Cef'
+    Ensure-Dir $cefSlot
+    Copy-Item -LiteralPath $cefLauncherDll -Destination (Join-Path $cefSlot 'Launcher.dll') -Force
+    $cefUiSrc = Join-Path $ProjectRoot 'Launcher.Cef\ui'
+    if (Test-Path -LiteralPath (Join-Path $cefUiSrc 'index.html')) {
+        Copy-Tree $cefUiSrc (Join-Path $cefSlot 'Resources\launcher')
+    }
+    Write-Host '[launcher] CEF lane staged (root Launcher.exe + NvOverlay\Cef\Launcher.dll)'
+} else {
+    Write-Host '[launcher] CEF lane artifacts missing - WinForm launcher stays'
+}
+
 # NvBackend -> owner folder + Node backend source (Web Helper hosts the node backend).
 $backendProjectBin = Join-Path $ProjectRoot ("NvBackend\NVIDIA Web Helper.exe\bin\Release\{0}" -f $TargetFramework)
 $backendOut = Join-Path $BuildRoot 'NvBackend'

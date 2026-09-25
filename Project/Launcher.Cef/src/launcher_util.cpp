@@ -158,6 +158,10 @@ void LogInit() {
 void LogLine(const std::string& line) { LogLineLocked(line); }
 
 bool ProcessRunning(const wchar_t* name) {
+  // Toolhelp32 reports the full image name WITH extension; callers pass
+  // the .NET-style process name WITHOUT it (Process.GetProcessesByName
+  // parity). Accept both spellings.
+  std::wstring with_ext = std::wstring(name) + L".exe";
   HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
   if (snap == INVALID_HANDLE_VALUE) return false;
   PROCESSENTRY32W pe;
@@ -165,7 +169,8 @@ bool ProcessRunning(const wchar_t* name) {
   bool found = false;
   if (Process32FirstW(snap, &pe)) {
     do {
-      if (_wcsicmp(pe.szExeFile, name) == 0) {
+      if (_wcsicmp(pe.szExeFile, name) == 0 ||
+          _wcsicmp(pe.szExeFile, with_ext.c_str()) == 0) {
         found = true;
         break;
       }
@@ -177,6 +182,7 @@ bool ProcessRunning(const wchar_t* name) {
 
 bool ProcessRunningFromPath(const wchar_t* name,
                             const std::wstring& exe_path) {
+  std::wstring with_ext = std::wstring(name) + L".exe";
   HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
   if (snap == INVALID_HANDLE_VALUE) return false;
   PROCESSENTRY32W pe;
@@ -184,7 +190,10 @@ bool ProcessRunningFromPath(const wchar_t* name,
   bool found = false;
   if (Process32FirstW(snap, &pe)) {
     do {
-      if (_wcsicmp(pe.szExeFile, name) != 0) continue;
+      if (_wcsicmp(pe.szExeFile, name) != 0 &&
+          _wcsicmp(pe.szExeFile, with_ext.c_str()) != 0) {
+        continue;
+      }
       HANDLE p = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE,
                              pe.th32ProcessID);
       if (!p) continue;
