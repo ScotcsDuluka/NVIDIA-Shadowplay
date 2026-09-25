@@ -1,0 +1,248 @@
+PAGE: http://127.0.0.1:59003/index.html#/base
+CONSOLE[log] v.1.0
+CONSOLE[info] 2026-09-25 20:56:57.764  INFO  nvJsEvents/jsEventsEndpoints- "jsEventsEndpoints created"
+CONSOLE[info] 2026-09-25 20:56:57.767  INFO  nvJsEvents/jsEventsService- "jsEventsService created"
+CONSOLE[info] 2026-09-25 20:56:57.827  INFO  events-detail/eventsDetailService- "eventsDetailService created"
+CONSOLE[info] 2026-09-25 20:56:57.829  INFO  main.common/telemetryService- "telemetryService created"
+CONSOLE[info] 2026-09-25 20:56:57.833  INFO  ugc-lib/cacheService- "cacheService initialize"
+CONSOLE[info] 2026-09-25 20:56:57.834  INFO  ugc-lib/cacheService- "cacheService initialize complete"
+CONSOLE[info] 2026-09-25 20:56:57.836  INFO  osc/galleryService- "Source to clear: " undefined
+CONSOLE[info] 2026-09-25 20:56:57.845  INFO  main.common/ugcService- "ugcService created"
+CONSOLE[info] 2026-09-25 20:56:57.899  INFO  osc/gamepadService- "Gamepad Service entered"
+CONSOLE[info] 2026-09-25 20:56:57.904  INFO  main/appService- "Init"
+CONSOLE[info] 2026-09-25 20:56:57.908  INFO  main/appService- "OSC Build Info:" {
+  "oscPackageVersion": "3.28.0.412",
+  "branch": "rel_03_28",
+  "branchType": "rel",
+  "oscClientVersion": "0.0.1",
+  "gitHash": "ffe15e48d9",
+  "buildT
+CONSOLE[debug] 2026-09-25 20:56:57.909  DEBUG  crimson.cef/cefService- "LOAD STRING TABLE" {
+  "userAgent": "NVIDIAOSCClient/3.28.0.412"
+}
+CONSOLE[info] 2026-09-25 20:56:57.992  INFO  osc/urlRouter/main/resolve- "Request NodeInfo"
+CONSOLE[info] 2026-09-25 20:56:58.096  INFO  osc/urlRouter/main/resolve- "Node info found"
+CONSOLE[info] 2026-09-25 20:56:58.097  INFO  /main/uiRouter/main/resolve/pipl- "attempting to resolve localized config"
+CONSOLE[info] 2026-09-25 20:56:58.098  INFO  main.utils/PiplConfigService- "PiplConfig called"
+CONSOLE[info] 2026-09-25 20:56:58.098  INFO  main.utils/PiplConfigService- "Fetching config"
+CONSOLE[info] 2026-09-25 20:56:58.611  INFO  main.utils/PiplConfigService- "data:" {
+  "daysToExpire": 1,
+  "isConnectEnabled": true,
+  "configData": {
+    "jarvis": {
+      "server": "http://192.168.1.254:5115",
+      "clientId": "13
+CONSOLE[info] 2026-09-25 20:56:58.611  INFO  /main/uiRouter/main/resolve/pipl- "pipl config data" {
+  "jarvis": {
+    "server": "http://192.168.1.254:5115",
+    "clientId": "135333107684344109",
+    "clientDescription": "NVIDIA Web He
+CONSOLE[info] 2026-09-25 20:56:58.612  INFO  /main/uiRouter/main/resolve/pipl- "GFE localized config merged"
+CONSOLE[info] 2026-09-25 20:56:58.804  INFO  main.common/hardwareService- "retrieved system info"
+CONSOLE[info] 2026-09-25 20:56:58.806  INFO  osc/settingsService- "Setting language from system: " "en-US"
+CONSOLE[info] 2026-09-25 20:56:58.812  INFO  main/appService- "Init UI"
+CONSOLE[info] 2026-09-25 20:56:58.817  INFO  osc/socketService- "socket connect"
+CONSOLE[info] 2026-09-25 20:56:58.818  INFO  main.utils/PiplConfigService- "Initialization completed"
+CONSOLE[info] 2026-09-25 20:56:58.819  INFO  main.utils/PiplConfigService- "PiplConfig called"
+CONSOLE[info] 2026-09-25 20:56:58.820  INFO  main.utils/PiplConfigService- "Returning info:" {
+  "daysToExpire": 1,
+  "isConnectEnabled": true,
+  "configData": {
+    "jarvis": {
+      "server": "http://192.168.1.254:5115",
+      "clie
+CONSOLE[info] 2026-09-25 20:56:58.821  INFO  main.common/telemetryService- "Initialize TelemetryService"
+CONSOLE[info] 2026-09-25 20:56:58.848  INFO  osc/notifierController- "Controller: Enter"
+CONSOLE[info] 2026-09-25 20:56:58.861  INFO  main.utils/PiplConfigService- "Connect enabled:" true
+CONSOLE[error] 2026-09-25 20:56:58.931  ERROR  main.common/telemetryService- "No valid logged in user detected, falling back to client consent setting."
+CONSOLE[error] 2026-09-25 20:56:58.935  ERROR  main/resolve/hardwareInfo- "Unable to get user session (rejection)"
+CONSOLE[error] 2026-09-25 20:56:58.936  ERROR  main/resolve/hardwareInfo- "Unable to get user id" null
+CONSOLE[info] Create datastore instance | experienceControlStore
+CONSOLE[info] Create datastore instance | userDataConsentStore
+CONSOLE[info] Create datastore instance | eventsCommonStore
+CONSOLE[info] 2026-09-25 20:56:58.954  INFO  nvJsEvents/jsEventsService- "Device offline or No Functional consent. No clean job happened." {
+  "functional": "None",
+  "technical": "None",
+  "behavioral": "None"
+}
+CONSOLE[info] 2026-09-25 20:56:58.966  INFO  osc/shadowplayService- "dynamicHotkeyToggle failed : " {
+  "data": {
+    "type": "Error",
+    "code": -1,
+    "codeText": "Unknown/Internal error",
+    "message": "Unknown hotkey: DynamicTo
+CONSOLE[info] 2026-09-25 20:56:58.991  INFO  main.common/telemetryService- "Setting device telemetry consent setting to: " {
+  "functional": "None",
+  "technical": "None",
+  "behavioral": "None"
+}
+CONSOLE[info] 2026-09-25 20:56:58.993  INFO  nvJsEvents/jsEventsService- "Device offline or No Functional consent. No clean job happened." {
+  "functional": "None",
+  "technical": "None",
+  "behavioral": "None"
+}
+CONSOLE[info] 2026-09-25 20:56:58.993  INFO  osc/keyboardService- "keyboard Service initialized!"
+CONSOLE[info] 2026-09-25 20:56:58.994  INFO  osc/shadowplayService- "Initialize ShadowPlayService"
+CONSOLE[info] 2026-09-25 20:56:58.996  INFO  osc/shadowplayService- "Registering shadowplay notification events"
+CONSOLE[info] 2026-09-25 20:56:58.998  INFO  osc/settingsService- "Initialize Settings service"
+CONSOLE[info] 2026-09-25 20:56:58.999  INFO  main.utils/PiplConfigService- "PiplConfig called"
+CONSOLE[info] 2026-09-25 20:56:59.001  INFO  main.utils/PiplConfigService- "Returning info:" {
+  "daysToExpire": 1,
+  "isConnectEnabled": true,
+  "configData": {
+    "jarvis": {
+      "server": "http://192.168.1.254:5115",
+      "clie
+CONSOLE[info] 2026-09-25 20:56:59.002  INFO  osc/sdkService- "Initialize Sdk Service"
+CONSOLE[info] 2026-09-25 20:56:59.003  INFO  osc/sdkService- "Registering SDK notification events"
+CONSOLE[info] 2026-09-25 20:56:59.007  INFO  osc/gamepadService- "Initialize Gamepad"
+CONSOLE[info] 2026-09-25 20:56:59.016  INFO  osc/gamepadService- "Initialize Gamepad complete"
+CONSOLE[info] 2026-09-25 20:56:59.019  INFO  main.utils/PiplConfigService- "Connect enabled:" true
+CONSOLE[info] 2026-09-25 20:56:59.046  INFO  main.common/hardwareService- "retrieved system info"
+CONSOLE[info] 2026-09-25 20:56:59.056  INFO  osc/settingsService- "Current language is not saved on the server, use system locale."
+CONSOLE[info] 2026-09-25 20:56:59.059  INFO  osc/settingsService- "Setting language to: " "en-US"
+CONSOLE[debug] 2026-09-25 20:56:59.135  DEBUG  crimson.cef/cefService- "LOAD STRING TABLE" {
+  "userAgent": "NVIDIAOSCClient/3.28.0.412",
+  "onLoadError": "<html> <head> <style>body{background-color:#1a1a1a;font-family:\"Segoe UI\",san
+CONSOLE[info] 2026-09-25 20:56:59.166  INFO  osc/settingsService- "BETA: " false
+LOG[error] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:59003/ShadowPlay/v.1.0/Hotkey/DynamicToggle
+LOG[error] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:59003/ShadowPlay/v.1.0/Launch
+REQ: GET http://127.0.0.1:59003/index.html
+REQ: GET http://127.0.0.1:59003/vendor.js
+REQ: GET http://127.0.0.1:59003/common.js
+REQ: GET http://127.0.0.1:59003/app.js
+REQ: GET http://127.0.0.1:59003/user-config.js
+REQ: GET http://127.0.0.1:59003/config.js
+REQ: GET https://nvidia.tt.omtrdc.net/m2/nvidia/mbox/json?screenHeight=1080&screenWidth=1920&colorDepth=24&browserWidth=1920&browserHeight=1080&brows
+CONSOLE[log] v.1.0
+CONSOLE[info] 2026-09-25 20:58:27.733  INFO  nvJsEvents/jsEventsEndpoints- "jsEventsEndpoints created"
+CONSOLE[info] 2026-09-25 20:58:27.735  INFO  nvJsEvents/jsEventsService- "jsEventsService created"
+CONSOLE[info] 2026-09-25 20:58:27.736  INFO  events-detail/eventsDetailService- "eventsDetailService created"
+CONSOLE[info] 2026-09-25 20:58:27.739  INFO  main.common/telemetryService- "telemetryService created"
+CONSOLE[info] 2026-09-25 20:58:27.742  INFO  ugc-lib/cacheService- "cacheService initialize"
+CONSOLE[info] 2026-09-25 20:58:27.743  INFO  ugc-lib/cacheService- "cacheService initialize complete"
+CONSOLE[info] 2026-09-25 20:58:27.745  INFO  osc/galleryService- "Source to clear: " undefined
+CONSOLE[info] 2026-09-25 20:58:27.756  INFO  main.common/ugcService- "ugcService created"
+CONSOLE[info] 2026-09-25 20:58:27.760  INFO  osc/gamepadService- "Gamepad Service entered"
+CONSOLE[info] 2026-09-25 20:58:27.766  INFO  main/appService- "Init"
+CONSOLE[info] 2026-09-25 20:58:27.767  INFO  main/appService- "OSC Build Info:" {
+  "oscPackageVersion": "3.28.0.412",
+  "branch": "rel_03_28",
+  "branchType": "rel",
+  "oscClientVersion": "0.0.1",
+  "gitHash": "ffe15e48d9",
+  "buildT
+CONSOLE[debug] 2026-09-25 20:58:27.767  DEBUG  crimson.cef/cefService- "LOAD STRING TABLE" {
+  "userAgent": "NVIDIAOSCClient/3.28.0.412"
+}
+CONSOLE[info] 2026-09-25 20:58:27.822  INFO  osc/urlRouter/main/resolve- "Request NodeInfo"
+CONSOLE[info] 2026-09-25 20:58:27.863  INFO  osc/urlRouter/main/resolve- "Node info found"
+CONSOLE[info] 2026-09-25 20:58:27.864  INFO  /main/uiRouter/main/resolve/pipl- "attempting to resolve localized config"
+CONSOLE[info] 2026-09-25 20:58:27.865  INFO  main.utils/PiplConfigService- "PiplConfig called"
+CONSOLE[info] 2026-09-25 20:58:27.866  INFO  main.utils/PiplConfigService- "Fetching config"
+REQ: OPTIONS http://localhost:59003/PiplConfig/v.1.0/data
+REQ: GET http://localhost:59003/PiplConfig/v.1.0/data
+CONSOLE[info] 2026-09-25 20:58:28.189  INFO  main.utils/PiplConfigService- "data:" {
+  "daysToExpire": 1,
+  "isConnectEnabled": true,
+  "configData": {
+    "jarvis": {
+      "server": "http://192.168.1.254:5115",
+      "clientId": "13
+CONSOLE[info] 2026-09-25 20:58:28.190  INFO  /main/uiRouter/main/resolve/pipl- "pipl config data" {
+  "jarvis": {
+    "server": "http://192.168.1.254:5115",
+    "clientId": "135333107684344109",
+    "clientDescription": "NVIDIA Web He
+CONSOLE[info] 2026-09-25 20:58:28.191  INFO  /main/uiRouter/main/resolve/pipl- "GFE localized config merged"
+REQ: OPTIONS http://localhost:59003/HardwareInformation/v.0.1
+REQ: GET http://localhost:59003/HardwareInformation/v.0.1
+CONSOLE[info] 2026-09-25 20:58:28.202  INFO  main.common/hardwareService- "retrieved system info"
+CONSOLE[info] 2026-09-25 20:58:28.203  INFO  osc/settingsService- "Setting language from system: " "en-US"
+REQ: OPTIONS http://localhost:59003/Account/v.1.0/UserToken
+CONSOLE[info] 2026-09-25 20:58:28.206  INFO  main/appService- "Init UI"
+CONSOLE[info] 2026-09-25 20:58:28.211  INFO  osc/socketService- "socket connect"
+CONSOLE[info] 2026-09-25 20:58:28.216  INFO  main.utils/PiplConfigService- "Initialization completed"
+CONSOLE[info] 2026-09-25 20:58:28.218  INFO  main.utils/PiplConfigService- "PiplConfig called"
+CONSOLE[info] 2026-09-25 20:58:28.220  INFO  main.utils/PiplConfigService- "Returning info:" {
+  "daysToExpire": 1,
+  "isConnectEnabled": true,
+  "configData": {
+    "jarvis": {
+      "server": "http://192.168.1.254:5115",
+      "clie
+CONSOLE[info] 2026-09-25 20:58:28.221  INFO  main.common/telemetryService- "Initialize TelemetryService"
+CONSOLE[info] 2026-09-25 20:58:28.235  INFO  osc/notifierController- "Controller: Enter"
+CONSOLE[info] 2026-09-25 20:58:28.240  INFO  main.utils/PiplConfigService- "Connect enabled:" true
+REQ: OPTIONS http://localhost:59003/Account/v.1.0/UserToken
+REQ: GET http://localhost:59003/Account/v.1.0/UserToken
+REQ: GET http://localhost:59003/Account/v.1.0/UserToken
+REQ: OPTIONS http://localhost:59003/ShadowPlay/v.1.0/Hotkey/DynamicToggle
+CONSOLE[info] Create datastore instance | experienceControlStore
+CONSOLE[info] Create datastore instance | userDataConsentStore
+CONSOLE[info] Create datastore instance | eventsCommonStore
+CONSOLE[info] 2026-09-25 20:58:28.289  INFO  nvJsEvents/jsEventsService- "Device offline or No Functional consent. No clean job happened." {
+  "functional": "None",
+  "technical": "None",
+  "behavioral": "None"
+}
+CONSOLE[error] 2026-09-25 20:58:28.294  ERROR  main.common/telemetryService- "No valid logged in user detected, falling back to client consent setting."
+REQ: OPTIONS http://localhost:59003/Account/v.1.0/PrivacySettings?clientId=undefined
+REQ: POST http://localhost:59003/ShadowPlay/v.1.0/Hotkey/DynamicToggle
+REQ: GET http://localhost:59003/Account/v.1.0/PrivacySettings?clientId=undefined
+HTTP-500: http://localhost:59003/ShadowPlay/v.1.0/Hotkey/DynamicToggle
+LOG[error] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:59003/ShadowPlay/v.1.0/Hotkey/DynamicToggle
+CONSOLE[info] 2026-09-25 20:58:28.323  INFO  osc/shadowplayService- "dynamicHotkeyToggle failed : " {
+  "data": {
+    "type": "Error",
+    "code": -1,
+    "codeText": "Unknown/Internal error",
+    "message": "Unknown hotkey: DynamicTo
+CONSOLE[info] 2026-09-25 20:58:28.349  INFO  main.common/telemetryService- "Setting device telemetry consent setting to: " {
+  "functional": "None",
+  "technical": "None",
+  "behavioral": "None"
+}
+CONSOLE[info] 2026-09-25 20:58:28.350  INFO  nvJsEvents/jsEventsService- "Device offline or No Functional consent. No clean job happened." {
+  "functional": "None",
+  "technical": "None",
+  "behavioral": "None"
+}
+CONSOLE[info] 2026-09-25 20:58:28.351  INFO  osc/keyboardService- "keyboard Service initialized!"
+CONSOLE[info] 2026-09-25 20:58:28.352  INFO  osc/shadowplayService- "Initialize ShadowPlayService"
+CONSOLE[info] 2026-09-25 20:58:28.352  INFO  osc/shadowplayService- "Registering shadowplay notification events"
+CONSOLE[info] 2026-09-25 20:58:28.354  INFO  osc/settingsService- "Initialize Settings service"
+CONSOLE[info] 2026-09-25 20:58:28.354  INFO  main.utils/PiplConfigService- "PiplConfig called"
+CONSOLE[info] 2026-09-25 20:58:28.355  INFO  main.utils/PiplConfigService- "Returning info:" {
+  "daysToExpire": 1,
+  "isConnectEnabled": true,
+  "configData": {
+    "jarvis": {
+      "server": "http://192.168.1.254:5115",
+      "clie
+CONSOLE[info] 2026-09-25 20:58:28.355  INFO  osc/sdkService- "Initialize Sdk Service"
+CONSOLE[info] 2026-09-25 20:58:28.356  INFO  osc/sdkService- "Registering SDK notification events"
+CONSOLE[info] 2026-09-25 20:58:28.356  INFO  osc/gamepadService- "Initialize Gamepad"
+CONSOLE[info] 2026-09-25 20:58:28.358  INFO  osc/gamepadService- "Initialize Gamepad complete"
+REQ: OPTIONS http://localhost:59003/ShadowPlay/v.1.0/Launch
+REQ: GET http://localhost:59003/HardwareInformation/v.0.1
+REQ: OPTIONS http://localhost:59003/Settings/v.1.0/Language
+CONSOLE[info] 2026-09-25 20:58:28.360  INFO  main.utils/PiplConfigService- "Connect enabled:" true
+REQ: GET http://localhost:59003/ShadowPlay/v.1.0/Launch
+REQ: GET http://localhost:59003/Settings/v.1.0/Language
+CONSOLE[info] 2026-09-25 20:58:28.376  INFO  main.common/hardwareService- "retrieved system info"
+HTTP-404: http://localhost:59003/ShadowPlay/v.1.0/Launch
+LOG[error] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:59003/ShadowPlay/v.1.0/Launch
+CONSOLE[info] 2026-09-25 20:58:28.407  INFO  osc/settingsService- "Current language is not saved on the server, use system locale."
+CONSOLE[info] 2026-09-25 20:58:28.408  INFO  osc/settingsService- "Setting language to: " "en-US"
+REQ: GET http://127.0.0.1:59003/l10n/en-US.json
+REQ: OPTIONS http://localhost:59003/gfeupdate/autoGFEDownload/autoGFEbeta
+REQ: GET http://localhost:59003/gfeupdate/autoGFEDownload/autoGFEbeta
+CONSOLE[debug] 2026-09-25 20:58:28.443  DEBUG  crimson.cef/cefService- "LOAD STRING TABLE" {
+  "userAgent": "NVIDIAOSCClient/3.28.0.412",
+  "onLoadError": "<html> <head> <style>body{background-color:#1a1a1a;font-family:\"Segoe UI\",san
+REQ: OPTIONS http://localhost:59003/beta
+REQ: GET http://localhost:59003/beta
+CONSOLE[info] 2026-09-25 20:58:28.476  INFO  osc/settingsService- "BETA: " false
+FINAL: "{\"url\":\"http://127.0.0.1:59003/index.html#/base\",\"angular\":true,\"htmlLen\":776043,\"baseLen\":0}"
+=== end ===

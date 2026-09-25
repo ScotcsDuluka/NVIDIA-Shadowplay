@@ -48,6 +48,23 @@ inline const char* AugmentationSource() {
   "var uTimer=setInterval(function(){uTries++;"
   "if(unlockFn()||uTries>150){clearInterval(uTimer);}} ,300);"
   "}catch(e){}"
+  // Auto-open: standalone backends leave the page parked on the bare base
+  // state (nothing navigates into main). Once base is active, walk in
+  // through the page's own display service (oscDisplayService.openOSC —
+  // navigates to the menu AND sets html.oscengine-open for the backdrop
+  // CSS). Retry ~12s, then leave the page alone.
+  "try{var oTries=0;"
+  "var oTimer=setInterval(function(){oTries++;"
+  "try{if(window.angular&&document.querySelector('.base')){"
+  "var inj2=window.angular.element(document.body).injector();"
+  "var st2=inj2.get('$state');"
+  "if(st2.current.name==='base'){st2.go('main.main-menu');"
+  "if(window.__oscOpen){window.__oscOpen();}"
+  "clearInterval(oTimer);}}"
+  "}catch(e){}"
+  "if(oTries>40){clearInterval(oTimer);}}"
+  ",300);"
+  "}catch(e){}"
   "})();";
 }
 

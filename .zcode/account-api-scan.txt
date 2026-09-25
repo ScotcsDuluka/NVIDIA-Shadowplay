@@ -1,0 +1,55 @@
+18: jarvisServer = '';
+155: function UpdateAccountsFile(doReply, userInfo, userData) {
+158: userToken: userInfo.userToken,
+159: userInfo: JSON.stringify(userInfo)
+161: api.UserToken((err, data) => {
+174: function GetJarvisPrivacyData(doReply, sessionData, userInfo) {
+178: hostname: new URL(jarvisServer).hostname,
+195: if (userInfo.dataTracking.trackTechnicalData.level === newConsent.trackTechnicalData.level &&
+196: userInfo.dataTracking.trackBehavioralData.level === newConsent.trackBehavioralData.level) {
+201: userInfo.dataTracking = Object.assign(userInfo.dataTracking, newConsent);
+203: userId: sessionData.userId,
+204: consentSettings: userInfo.dataTracking
+206: UpdateAccountsFile(doReply, userInfo, userData);
+220: function GetJarvisSessionToken(doReply, userInfo) {
+224: clientId: config.jarvis.clientId, // GeForce Experience Client
+225: clientDescription: config.jarvis.clientDescription,
+226: deviceId: userInfo.deviceId
+230: hostname: new URL(jarvisServer).hostname, // Jarvis endpoint
+231: path: '/api/1/authentication/client/login',
+235: 'Authorization': 'Basic ' + Buffer.from(userInfo.userToken + ':').toString('base64'),
+248: GetJarvisPrivacyData(doReply, sessionData, userInfo);
+250: _logger.error(`Failed to get Jarvis session token: ${err}`);
+283: function RefreshUserConsentFromJarvis(err, data) {
+284: _logger.info(`Jarvis target environment: ${jarvisServer}`);
+286: GetJarvisSessionToken(StoreUserConsent, JSON.parse(data.userInfo));
+288: HandleOutput(`Refresh User Consent from Jarvis failed: ${err}`);
+295: // Update user consent information from Jarvis regularly
+297: api.UserToken(RefreshUserConsentFromJarvis, false);
+298: }, config.jarvis.userConsentRefreshWaitMins * 60 * 1000);
+299: _logger.info(`Restarted user consent refresh timer of ${config.jarvis.userConsentRefreshWaitMins} minutes.`);
+320: jarvisServer = cvData.configData.jarvis.server;
+334: app.post('/Account/v.1.0/UserToken', function (req, res) {
+348: content.userInfo = JSON.stringify(content.userInfo);
+350: api.UserToken(doReply, true, content);
+359: app.get('/Account/v.1.0/UserToken', function (req, res) {
+366: data.userInfo = JSON.parse(data.userInfo);
+376: api.UserToken(doReply, false);
+383: app.get('/Settings/v.1.0/RewardsNotificationPreference', function (req, res) {
+404: app.post('/Settings/v.1.0/RewardsNotificationPreference', function (req, res) {
+427: app.post('/Account/v.1.0/PrivacySettings', function (req, res) {
+450: app.get('/Account/v.1.0/PrivacySettings', function (req, res) {
+496: app.post('/Applications/v.1.0/SetLocalizedEndpoints', onSetLocalizedEndpoints);
+500: //! Refresh User Telemetry Consent Data from Jarvis
+501: app.post('/Account/v.1.0/RefreshPrivacySettings', function (req, res) {
+528: function refreshUserConsentFromJarvis(err, data) {
+533: _logger.info(`Jarvis target environment: ${jarvisServer}`);
+535: GetJarvisSessionToken(storeUserConsent, JSON.parse(data.userInfo));
+545: api.UserToken(refreshUserConsentFromJarvis, false);
+555: function UserTokenCallback(sessionData) {
+557: sessionData.userInfo = JSON.parse(sessionData.userInfo);
+558: if(sessionData.userInfo && sessionData.userInfo.userId)
+560: NvBackendAPI.notifyUserIdChange(sessionData.userInfo.userId);
+564: setImmediate(function () { io.emit('/Account/v.1.0/UserToken', sessionData); });
+566: api.SetUserTokenCallback(UserTokenCallback);
+588: UserToken: api.UserToken

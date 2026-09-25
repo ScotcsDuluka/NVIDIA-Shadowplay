@@ -1,0 +1,6 @@
+PAGE: file:///C:/My%20Project/NVIDIA-Shadowplay/Build/NVIDIA%20ShadowPlay/NvOverlay/Cef/Resources/osc/index.html#/base
+window: "{\"iw\":1920,\"ih\":1080,\"dpr\":1,\"vis\":\"visible\"}"
+structure: "[[\"body\",\"rgba(0, 0, 0, 0)\",\"\",5],[[\"DIV.ng-scope\",\"block\",\"visible\",\"1\",\"1920x0\"],[\"SCRIPT.\",\"none\",\"visible\",\"1\",\"0x0\"],[\"SCRIPT.\",\"none\",\"visible\",\"1\",\"0x0\"],[\"DIV.\",\"none\",\"visible\",\"1\",\"0x0\"],[\"NV-OSC-NOTIFIER.ng-isolate-scope notifier-slider\",\"inline\",\"visible\",\"1\",\"0x0\"]]]"
+CRASH: TypeError: Cannot read properties of undefined (reading 'slice')
+    at C:\My Project\NVIDIA-Shadowplay\.zcode\socktest\cdp-dom2.js:44:110
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)

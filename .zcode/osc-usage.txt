@@ -1,0 +1,14 @@
+/ShadowPlay/v.1.0/Broadcast/Enable
+/ShadowPlay/v.1.0/Broadcast/Pause
+/ShadowPlay/v.1.0/Broadcast/SessionEvent
+/ShadowPlay/v.1.0/DisplayOscNotification
+/ShadowPlay/v.1.0/DisplayOscPreferences
+/ShadowPlay/v.1.0/DisplayOscState
+/ShadowPlay/v.1.0/Hotkey
+/ShadowPlay/v.1.0/InstantReplay/Enable
+/ShadowPlay/v.1.0/InstantReplay/Save
+/ShadowPlay/v.1.0/InstantReplay/Started
+/ShadowPlay/v.1.0/InstantReplay/Upload
+/ShadowPlay/v.1.0/Notification
+/ShadowPlay/v.1.0/Record/Enable
+/ShadowPlay/v.1.0/WindowState

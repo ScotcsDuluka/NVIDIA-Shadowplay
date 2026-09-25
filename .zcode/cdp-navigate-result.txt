@@ -1,0 +1,172 @@
+=== navigate probe start ===
+NAVIGATE: file:///C:/My%20Project/NVIDIA-Shadowplay/Build/NVIDIA%20ShadowPlay/NvOverlay/Cef/Resources/osc/index.html
+CONSOLE[log] v.1.0
+CONSOLE[info] 2026-09-25 19:32:00.883  INFO  nvJsEvents/jsEventsEndpoints- "jsEventsEndpoints created"
+CONSOLE[info] 2026-09-25 19:32:00.885  INFO  nvJsEvents/jsEventsService- "jsEventsService created"
+CONSOLE[info] 2026-09-25 19:32:00.887  INFO  events-detail/eventsDetailService- "eventsDetailService created"
+CONSOLE[info] 2026-09-25 19:32:00.891  INFO  main.common/telemetryService- "telemetryService created"
+CONSOLE[info] 2026-09-25 19:32:00.894  INFO  ugc-lib/cacheService- "cacheService initialize"
+CONSOLE[info] 2026-09-25 19:32:00.895  INFO  ugc-lib/cacheService- "cacheService initialize complete"
+CONSOLE[info] 2026-09-25 19:32:00.896  INFO  osc/galleryService- "Source to clear: " undefined
+CONSOLE[info] 2026-09-25 19:32:00.901  INFO  main.common/ugcService- "ugcService created"
+CONSOLE[info] 2026-09-25 19:32:00.908  INFO  osc/gamepadService- "Gamepad Service entered"
+CONSOLE[info] 2026-09-25 19:32:00.911  INFO  main/appService- "Init"
+CONSOLE[info] 2026-09-25 19:32:00.911  INFO  main/appService- "OSC Build Info:" {
+  "oscPackageVersion": "3.28.0.412",
+  "branch": "rel_03_28",
+  "branchType": "rel",
+  "oscClientVersion": "0.0.1",
+  "gitHash": "ffe15e48d9",
+  "buildT
+CONSOLE[debug] 2026-09-25 19:32:00.912  DEBUG  crimson.cef/cefService- "LOAD STRING TABLE" {
+  "userAgent": "NVIDIAOSCClient/3.28.0.412"
+}
+CONSOLE[info] 2026-09-25 19:32:00.947  INFO  osc/urlRouter/main/resolve- "Request NodeInfo"
+PAGE-LOADED
+CONSOLE[info] 2026-09-25 19:32:00.966  INFO  osc/urlRouter/main/resolve- "Node info found"
+CONSOLE[info] 2026-09-25 19:32:00.966  INFO  /main/uiRouter/main/resolve/pipl- "attempting to resolve localized config"
+CONSOLE[info] 2026-09-25 19:32:00.967  INFO  main.utils/PiplConfigService- "PiplConfig called"
+CONSOLE[info] 2026-09-25 19:32:00.968  INFO  main.utils/PiplConfigService- "Fetching config"
+CONSOLE[info] 2026-09-25 19:32:01.284  INFO  main.utils/PiplConfigService- "data:" {
+  "daysToExpire": 1,
+  "isConnectEnabled": true,
+  "configData": {
+    "jarvis": {
+      "server": "http://192.168.1.254:5115"
+    },
+    "gfwsl": {
+
+CONSOLE[info] 2026-09-25 19:32:01.284  INFO  /main/uiRouter/main/resolve/pipl- "pipl config data" {
+  "jarvis": {
+    "server": "http://192.168.1.254:5115"
+  },
+  "gfwsl": {
+    "server": ""
+  },
+  "aem": {
+    "server": ""
+  },
+  "vr
+CONSOLE[info] 2026-09-25 19:32:01.285  INFO  /main/uiRouter/main/resolve/pipl- "GFE localized config merged"
+LOG[error] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:59001/HardwareInformation/v.0.1
+LOG[error] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:59001/HardwareInformation/v.0.1
+LOG[error] Access to XMLHttpRequest at 'http://localhost:59001/HardwareInformation/v.0.1' from origin 'null' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok @ file:///C:/My%20Project/NVIDIA-Shadowplay/Build/NVIDIA%20ShadowPlay/NvOverlay/Cef/Resources/osc/index.html#/base
+CONSOLE[error] 2026-09-25 19:32:01.291  ERROR  main.common/hardwareService- "failed to get system info" {
+  "data": null,
+  "status": -1,
+  "config": {
+    "method": "GET",
+    "transformRequest": [
+      null
+    ],
+    "transformResp
+CONSOLE[error] 2026-09-25 19:32:01.292  ERROR  main/resolve/hardwareInfo- "Unable to get device id"
+CONSOLE[info] 2026-09-25 19:32:01.296  INFO  main/appService- "Init UI"
+CONSOLE[info] 2026-09-25 19:32:01.300  INFO  osc/socketService- "socket connect"
+CONSOLE[info] 2026-09-25 19:32:01.301  INFO  main.utils/PiplConfigService- "Initialization completed"
+CONSOLE[info] 2026-09-25 19:32:01.302  INFO  main.utils/PiplConfigService- "PiplConfig called"
+CONSOLE[info] 2026-09-25 19:32:01.306  INFO  main.utils/PiplConfigService- "Returning info:" {
+  "daysToExpire": 1,
+  "isConnectEnabled": true,
+  "configData": {
+    "jarvis": {
+      "server": "http://192.168.1.254:5115"
+    },
+    "
+CONSOLE[info] 2026-09-25 19:32:01.307  INFO  main.common/telemetryService- "Initialize TelemetryService"
+CONSOLE[info] 2026-09-25 19:32:01.328  INFO  osc/notifierController- "Controller: Enter"
+CONSOLE[info] 2026-09-25 19:32:01.333  INFO  main.utils/PiplConfigService- "Connect enabled:" true
+LOG[error] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:59001/Account/v.1.0/UserToken
+CONSOLE[error] 2026-09-25 19:32:01.412  ERROR  main/resolve/hardwareInfo- "Unable to get user id" "Could not retrieve Jarvis user token: [object Object]"
+CONSOLE[info] Create datastore instance | experienceControlStore
+CONSOLE[info] Create datastore instance | userDataConsentStore
+CONSOLE[info] Create datastore instance | eventsCommonStore
+CONSOLE[info] 2026-09-25 19:32:01.417  INFO  nvJsEvents/jsEventsService- "Device offline or No Functional consent. No clean job happened." {
+  "functional": "None",
+  "technical": "None",
+  "behavioral": "None"
+}
+LOG[error] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:59001/Account/v.1.0/UserToken
+CONSOLE[error] 2026-09-25 19:32:01.425  ERROR  main.common/telemetryService- "Unable to get Jarvis user token, falling back to client consent setting. Error: " {
+  "data": {
+    "type": "Error",
+    "code": "401",
+    "codeText": "NotL
+LOG[error] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:59001/ShadowPlay/v.1.0/Hotkey/DynamicToggle
+LOG[error] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:59001/ShadowPlay/v.1.0/Hotkey/DynamicToggle
+LOG[error] Access to XMLHttpRequest at 'http://localhost:59001/ShadowPlay/v.1.0/Hotkey/DynamicToggle' from origin 'null' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not  @ file:///C:/My%20Project/NVIDIA-Shadowplay/Build/NVIDIA%20ShadowPlay/NvOverlay/Cef/Resources/osc/index.html#/base
+CONSOLE[info] 2026-09-25 19:32:01.428  INFO  osc/shadowplayService- "dynamicHotkeyToggle failed : " {
+  "data": null,
+  "status": -1,
+  "config": {
+    "method": "POST",
+    "transformRequest": [
+      null
+    ],
+    "transformRespon
+CONSOLE[info] 2026-09-25 19:32:01.435  INFO  main.common/telemetryService- "Setting device telemetry consent setting to: " {
+  "functional": "None",
+  "technical": "None",
+  "behavioral": "None"
+}
+CONSOLE[info] 2026-09-25 19:32:01.435  INFO  nvJsEvents/jsEventsService- "Device offline or No Functional consent. No clean job happened." {
+  "functional": "None",
+  "technical": "None",
+  "behavioral": "None"
+}
+CONSOLE[info] 2026-09-25 19:32:01.436  INFO  osc/keyboardService- "keyboard Service initialized!"
+CONSOLE[info] 2026-09-25 19:32:01.439  INFO  osc/shadowplayService- "Initialize ShadowPlayService"
+CONSOLE[info] 2026-09-25 19:32:01.440  INFO  osc/shadowplayService- "Registering shadowplay notification events"
+CONSOLE[info] 2026-09-25 19:32:01.441  INFO  main.common/hardwareService- "canceling gethardware request"
+CONSOLE[info] 2026-09-25 19:32:01.442  INFO  osc/settingsService- "Initialize Settings service"
+CONSOLE[info] 2026-09-25 19:32:01.445  INFO  main.utils/PiplConfigService- "PiplConfig called"
+CONSOLE[info] 2026-09-25 19:32:01.446  INFO  main.utils/PiplConfigService- "Returning info:" {
+  "daysToExpire": 1,
+  "isConnectEnabled": true,
+  "configData": {
+    "jarvis": {
+      "server": "http://192.168.1.254:5115"
+    },
+    "
+CONSOLE[info] 2026-09-25 19:32:01.447  INFO  osc/sdkService- "Initialize Sdk Service"
+CONSOLE[info] 2026-09-25 19:32:01.448  INFO  osc/sdkService- "Registering SDK notification events"
+CONSOLE[info] 2026-09-25 19:32:01.450  INFO  osc/gamepadService- "Initialize Gamepad"
+CONSOLE[info] 2026-09-25 19:32:01.456  INFO  osc/gamepadService- "Initialize Gamepad complete"
+CONSOLE[info] 2026-09-25 19:32:01.462  INFO  main.utils/PiplConfigService- "Connect enabled:" true
+LOG[error] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:59001/ShadowPlay/v.1.0/Launch
+LOG[error] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:59001/ShadowPlay/v.1.0/Launch
+LOG[error] Access to XMLHttpRequest at 'http://localhost:59001/ShadowPlay/v.1.0/Launch' from origin 'null' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok s @ file:///C:/My%20Project/NVIDIA-Shadowplay/Build/NVIDIA%20ShadowPlay/NvOverlay/Cef/Resources/osc/index.html#/base
+LOG[error] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:59001/HardwareInformation/v.0.1
+LOG[error] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:59001/HardwareInformation/v.0.1
+LOG[error] Access to XMLHttpRequest at 'http://localhost:59001/HardwareInformation/v.0.1' from origin 'null' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not have HTTP ok @ file:///C:/My%20Project/NVIDIA-Shadowplay/Build/NVIDIA%20ShadowPlay/NvOverlay/Cef/Resources/osc/index.html#/base
+CONSOLE[error] 2026-09-25 19:32:01.472  ERROR  main.common/hardwareService- "failed to get system info" {
+  "data": null,
+  "status": -1,
+  "config": {
+    "method": "GET",
+    "transformRequest": [
+      null
+    ],
+    "transformResp
+CONSOLE[error] 2026-09-25 19:32:01.474  ERROR  main.common/hardwareService- "failed to reload sys info on focus event"
+CONSOLE[info] 2026-09-25 19:32:01.480  INFO  osc/settingsService- "Current language is not saved on the server, use system locale."
+CONSOLE[info] 2026-09-25 19:32:01.481  INFO  osc/settingsService- "Setting language to: " "en-US"
+LOG[error] Access to XMLHttpRequest at 'file:///C:/My%20Project/NVIDIA-Shadowplay/Build/NVIDIA%20ShadowPlay/NvOverlay/Cef/Resources/osc/l10n/en-US.json' from origin 'null' has been blocked by CORS policy: Cross origin requests are  @ file:///C:/My%20Project/NVIDIA-Shadowplay/Build/NVIDIA%20ShadowPlay/NvOverlay/Cef/Resources/osc/vendor.js
+LOG[error] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:59001/gfeupdate/autoGFEDownload/autoGFEbeta
+LOG[error] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:59001/gfeupdate/autoGFEDownload/autoGFEbeta
+LOG[error] Access to XMLHttpRequest at 'http://localhost:59001/gfeupdate/autoGFEDownload/autoGFEbeta' from origin 'null' has been blocked by CORS policy: Response to preflight request doesn't pass access control check: It does not  @ file:///C:/My%20Project/NVIDIA-Shadowplay/Build/NVIDIA%20ShadowPlay/NvOverlay/Cef/Resources/osc/index.html#/base
+CONSOLE[info] 2026-09-25 19:32:01.488  INFO  osc/settingsService- "experiment failed: " {
+  "data": null,
+  "status": -1,
+  "config": {
+    "method": "GET",
+    "transformRequest": [
+      null
+    ],
+    "transformResponse": [
+      
+CONSOLE[warning] undefined used as a key, but it is not a string.
+CONSOLE[info] 2026-09-25 19:32:01.500  INFO  osc/settingsService- "BETA: " false
+CONSOLE[info] 2026-09-25 19:32:01.617  INFO  osc/socketService- "socket io event" "connect"
+readyState: {"type":"string","value":"complete"}
+info: "{\"htmlLen\":776043,\"bodyChildren\":5,\"scripts\":5,\"angular\":true}"

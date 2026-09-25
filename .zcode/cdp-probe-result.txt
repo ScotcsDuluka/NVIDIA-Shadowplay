@@ -1,0 +1,8 @@
+=== CDP probe start ===
+targets: [{"type":"page","title":"127.0.0.1:59001/index.html","url":"http://127.0.0.1:59001/index.html"}]
+CDP-OPEN: 127.0.0.1:59001/index.html  http://127.0.0.1:59001/index.html
+readyState: {"type":"string","value":"complete"}
+pageInfo: "{\"bodyChildren\":1,\"htmlLen\":549,\"title\":\"\",\"bg\":\"rgba(0, 0, 0, 0)\"}"
+SCREENSHOT-SAVED: C:\My Project\NVIDIA-Shadowplay\.zcode\cdp-screenshot.png (11KB)
+angular: "no-angular"
+=== probe end ===

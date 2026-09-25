@@ -1,0 +1,11 @@
+PAGE: http://127.0.0.1:59003/index.html#/base
+tagprobe: "{\"tag\":\"DIV\",\"attrs\":[\"class=base ng-scope\",\"ng-class={hdr: base.hdrActive == true}\",\"ui-view=\"],\"ngApp\":true,\"injector\":true,\"modules\":[\"main.constants\",\"main.common\",\"ngMaterial\",\"ngResource\",\"pascalprecht.translate\",\"ui.router\",\"ngAnimate\"]}"
+deep: {
+ "baseChildren": 0,
+ "baseHTMLLen": 0,
+ "totalDescendants": 0,
+ "visible": 0,
+ "hidden": 0,
+ "visSample": [],
+ "sample": ""
+}

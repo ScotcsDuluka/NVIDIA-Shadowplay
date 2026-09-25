@@ -1,0 +1,10 @@
+PAGE: http://127.0.0.1:59003/index.html#/base
+deep: {
+ "baseChildren": 0,
+ "baseHTMLLen": 0,
+ "totalDescendants": 0,
+ "visible": 0,
+ "hidden": 0,
+ "visSample": [],
+ "sample": ""
+}
