@@ -71,9 +71,17 @@ Alt+Z: nvsphelperplugin64 (RegisterHotKey, registry Cfg2/Cfg3: GFEOverlayHKeyV2)
 
 ## 5) ลำดับงานถัดไปที่ "ความเข้าใจชุดนี้" ชี้ทาง
 
-1. **osc page → backend parity** (ผลลัพธ์เร็วสุด): diff ราย endpoint ตาม
-   NvShadowPlayAPI.js (doc 22 §2) — เพราะ osc bundle ของเราคือตัวจริง มันจะเรียก
-   endpoint ตรงตามนั้นทุกเส้น
+1. **osc page → backend parity** — ✅ **VERIFIED 2026-09-25** (live test 11/11 PASS:
+   OpenOsc* → DisplayOsc* echoes, Hotkey/Toggle → WindowState{overlayToggle},
+   InstantReplay/Enable + Record/Enable POST/GET/channel-echo, v2 socket protocol,
+   toggle debounce) — ตัวหน้า osc ใช้เพียง 14 เส้น และ backend เราครบทุกเส้น
+   (ก่อนหน้านี้รายงานว่าขาด = false positive จาก extractor ที่จับเฉพาะ string
+   literal — ของจริงใช้ regex routes + socket channels)
+   test script: `Scripts\osc-parity-test.js`
+   (ต้องติดตั้ง `socket.io-client@2.4.0` — **v2 protocol** ตรงกับ osc bundle;
+   v4 client คุยไม่ได้ — ยืนยันจาก connect_error)
+   รัน: `set NVSP_PORT=59003 && node index.js` แล้ว
+   `node Scripts\osc-parity-test.js 59003`
 2. **share_win.cpp render จอดำ** — libcef แก้แล้วเหลือ window creation;
    ใช้ `nv-remote-debugging-port` (ทั้ง Share.exe จริงและของเรารองรับ switch
    เดียวกัน!) เปิด devtools ดูว่าหน้า paint หรือไม่
