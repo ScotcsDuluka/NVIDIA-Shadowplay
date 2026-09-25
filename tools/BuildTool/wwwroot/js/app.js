@@ -20,6 +20,8 @@ const bridge = () => ({
   GetLog: (since) => rpc("log", since | 0),
   GetVersionConfig: () => rpc("version"),
   SaveVersionConfig: (j) => rpc("saveVersion", typeof j === "string" ? j : JSON.stringify(j)),
+  GetVersions: () => rpc("versions"),
+  SaveVersions: (j) => rpc("saveVersions", typeof j === "string" ? j : JSON.stringify(j)),
   GetPreview: () => rpc("preview"),
   LaunchApp: () => rpc("launch"),
   OpenFolder: () => rpc("openFolder"),
@@ -155,8 +157,11 @@ function pollLog() {
 
 /* ── Version ── */
 views.version = async function () {
-  const c = await versionsCfg();
-  const sampleText = String(c.version).replace("$build", c.buildNo);
+  // two sources: versionCfg = hardcore/version/identity/buildNo (version.json),
+  // versionsCfg = per-project map (versions.json). Merge for one view.
+  const [c, v] = await Promise.all([versionCfg(), versionsCfg()]);
+  const ver = c.version || v.global || "3.41";
+  const sampleText = String(ver).replace("$build", c.buildNo);
   $("#main").innerHTML = `
     <h1>Version (Hardcore)</h1>
     <div class="sub">บังคับเวอร์ชันเดียวกันทุกโปรเจค — BuildVer นับปกติทุก build</div>
@@ -169,8 +174,8 @@ views.version = async function () {
         </label>
         <span id="hcState" class="tag ${c.hardcore ? "on" : "off"}">${c.hardcore ? "HARDCORE ON" : "UNLOCKED"}</span>
       </div>
-      <label class="f">VERSION (Major.Minor เช่น 3.41)</label>
-      <input type="text" id="vVersion" value="${esc(c.version)}">
+      <label class="f">VERSION (Major.Minor เช่น 3.41 — ใส่ $build แทนที่ด้วย BuildVer)</label>
+      <input type="text" id="vVersion" value="${esc(ver)}">
       <label class="f">ตัวอย่าง FileVersion ที่จะได้</label>
       <div class="stat"><div class="v green" id="vSample">${esc(sampleText)}</div></div>
       <div class="row" style="margin-top:16px">
@@ -184,7 +189,7 @@ views.version = async function () {
       <div style="max-height:420px; overflow-y:auto">
       <table id="verTable">
         <tr><th>โปรเจค</th><th>VERSION</th></tr>
-        ${(c.projects || []).map((p) => `<tr><td>${esc(p.name)}</td><td><input type="text" class="pjver" data-pj="${esc(p.name)}" value="${esc(p.version)}" style="width:100%"></td></tr>`).join("")}
+        ${(v.projects || []).map((p) => `<tr><td>${esc(p.name)}</td><td><input type="text" class="pjver" data-pj="${esc(p.name)}" value="${esc(p.version)}" style="width:100%"></td></tr>`).join("")}
       </table>
       </div>
     </div>
@@ -207,21 +212,23 @@ views.version = async function () {
   $("#vVersion").oninput = sample;
   $("#btnSaveVer").onclick = async () => {
     $("#saveState").textContent = "บันทึก...";
+    const global = $("#vVersion").value.trim();
     const projects = {};
     document.querySelectorAll(".pjver").forEach((inp) => {
       const n = inp.dataset.pj;
-      if (n && inp.value.trim()) projects[n] = inp.value.trim();
+      const val = inp.value.trim();
+      // เก็บเฉพาะตัวที่ต่างจาก global — ค่าเท่า global ปล่อยให้ global คุม
+      if (n && val && val !== global) projects[n] = val;
     });
-    const cfg = {
+    await bridge().SaveVersionConfig({
       hardcore: $("#hc").checked,
-      global: $("#vVersion").value.trim(),
-      projects,
+      version: global,
       company: $("#vCompany").value.trim(),
       authors: $("#vAuthors").value.trim(),
       product: $("#vProduct").value.trim(),
       copyright: $("#vCopyright").value.trim(),
-    };
-    const r = JSON.parse(await bridge().SaveVersions(JSON.stringify(cfg)));
+    });
+    const r = JSON.parse(await bridge().SaveVersions(JSON.stringify({ global, projects })));
     $("#saveState").textContent = r.ok ? "บันทึกแล้ว ✓ (regen version.props)" : "ผิดพลาด: " + r.error;
     refreshSide();
   };

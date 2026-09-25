@@ -26,6 +26,14 @@ const wchar_t* kWindowClass = L"NvLauncherHostWindow";
 
 void (*g_close_request_cb)(void) = NULL;
 
+// Fade-in state (old WinForm launcher had an Opacity fade; borderless
+// native windows pop in with none). One host window per browser process,
+// so a file-scope counter is safe. While the fade runs the page has not
+// painted yet (first paint ~1.3s), so layering only affects the dark
+// frame — it cannot clip CEF content. The WS_EX_LAYERED bit is REMOVED
+// when the fade completes so CEF GPU compositing is never layered.
+BYTE g_fade_alpha = 0;
+
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
   switch (msg) {
     case WM_NCCALCSIZE:
@@ -35,10 +43,36 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
       // whole window — the page paints edge to edge.
       if (wparam) return 0;
       break;
+    case WM_TIMER:
+      if (wparam == 1) {
+        g_fade_alpha = (g_fade_alpha > 229) ? 255 : (BYTE)(g_fade_alpha + 26);
+        SetLayeredWindowAttributes(hwnd, 0, g_fade_alpha, LWA_ALPHA);
+        if (g_fade_alpha >= 255) {
+          KillTimer(hwnd, 1);
+          SetWindowLongPtrW(hwnd, GWL_EXSTYLE,
+                            GetWindowLongPtrW(hwnd, GWL_EXSTYLE) &
+                                ~WS_EX_LAYERED);
+        }
+        return 0;
+      }
+      break;
+    case WM_SIZE:
+      if (wparam == SIZE_RESTORED) {
+        // Restored from an animated minimize: drop the borrowed caption
+        // frame again (see Minimize()). NCCALCSIZE keeps the client rect
+        // identical, so the frame change is invisible.
+        SetWindowLongPtrW(hwnd, GWL_STYLE,
+                          GetWindowLongPtrW(hwnd, GWL_STYLE) & ~WS_CAPTION);
+        SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                     SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE |
+                         SWP_NOZORDER | SWP_NOACTIVATE);
+      }
+      break;
     case WM_CLOSE:
       // Forward to CEF (CloseBrowser) when a callback is registered —
       // destroying the window directly would bypass CEF teardown.
       if (g_close_request_cb) {
+        PrepareCloseFrame(hwnd);
         g_close_request_cb();
         return 0;
       }
@@ -71,11 +105,28 @@ void ApplyDwmPolish(HWND hwnd) {
 
 void SetCloseRequestCallback(void (*cb)()) { g_close_request_cb = cb; }
 
+void PrepareCloseFrame(HWND hwnd) {
+  // Borderless (WS_POPUP, no caption) windows get NO DWM close/minimize
+  // animation. Borrow WS_CAPTION for the duration of the animation —
+  // NCCALCSIZE still strips the visible frame, so nothing shifts; DWM
+  // just plays the standard zoom-fade / minimize-to-taskbar. The caption
+  // is dropped again on WM_SIZE(SIZE_RESTORED).
+  launcherutil::LogLine("borrow caption frame for window animation");
+  SetWindowLongPtrW(hwnd, GWL_STYLE,
+                    GetWindowLongPtrW(hwnd, GWL_STYLE) | WS_CAPTION);
+  SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+               SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+                   SWP_NOACTIVATE);
+}
+
 HWND CreateLauncherWindow(HINSTANCE hinstance, bool show, int width,
                           int height, const wchar_t* title) {
   WNDCLASSEXW wc = {0};
   wc.cbSize = sizeof(wc);
-  wc.style = CS_HREDRAW | CS_VREDRAW;
+  // No CS_HREDRAW/CS_VREDRAW: the client is fully covered by the CEF
+  // child (fixed-size window), and forced full repaints are what made
+  // the open/minimize animations flicker ("animation แปลกๆ").
+  wc.style = 0;
   wc.lpfnWndProc = WndProc;
   wc.hInstance = hinstance;
   wc.hIcon = LoadIconW(hinstance, MAKEINTRESOURCEW(IDI_ICON1));
@@ -113,8 +164,16 @@ HWND CreateLauncherWindow(HINSTANCE hinstance, bool show, int width,
   if (hwnd) {
     ApplyDwmPolish(hwnd);
     if (show) {
+      // Layered fade-in (~160ms, 16ms steps) — the open-animation
+      // contract of the old WinForm launcher. Layered bit is dropped
+      // once opaque (see WM_TIMER).
+      g_fade_alpha = 0;
+      SetWindowLongPtrW(hwnd, GWL_EXSTYLE,
+                        GetWindowLongPtrW(hwnd, GWL_EXSTYLE) |
+                            WS_EX_LAYERED);
+      SetLayeredWindowAttributes(hwnd, 0, 0, LWA_ALPHA);
       ShowWindow(hwnd, SW_SHOW);
-      UpdateWindow(hwnd);
+      SetTimer(hwnd, 1, 16, NULL);
     }
   }
   return hwnd;
@@ -127,7 +186,13 @@ void BeginWindowDrag(HWND hwnd) {
 }
 
 void Minimize(HWND hwnd) {
-  if (hwnd) ShowWindow(hwnd, SW_MINIMIZE);
+  if (!hwnd) return;
+  if (GetWindowLongPtrW(hwnd, GWL_STYLE) & WS_CAPTION) {
+    // A pending restore-strip timer (id 2) would fight the re-borrow.
+    KillTimer(hwnd, 2);
+  }
+  PrepareCloseFrame(hwnd);  // borrow the caption frame for the animation
+  ShowWindow(hwnd, SW_MINIMIZE);
 }
 
 }  // namespace launcherwin

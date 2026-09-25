@@ -1,4 +1,4 @@
-// version.rc - CEF lane version stamping (NVIDIA Share.exe / NVIDIA Share.dll).
+﻿// version.rc - CEF lane version stamping (NVIDIA Share.exe / NVIDIA Share.dll).
 // Version convention follows the sibling role instances
 // (3.41.<build counter>.61; Overlay\build.txt currently 3792).
 #include <windows.h>
@@ -9,6 +9,10 @@ IDI_ICON1 ICON "..\\NvShim\\Assets\\NVIDIA ShadowPlay.ico"
 
 #define SHARE_FILEVERSION 3,41,3792,61
 #define SHARE_FILEVERSION_STR "3.41.3792.61\0"
+
+// BL-1: generated bl1_version.h overrides the defaults above on every build
+// (Build\Build-Config\bl1-cpp.targets - hardcore / per-project aware).
+#include "bl1_version.h"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION SHARE_FILEVERSION

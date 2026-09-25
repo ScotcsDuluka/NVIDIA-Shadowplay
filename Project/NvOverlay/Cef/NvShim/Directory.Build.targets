@@ -1,1 +1,6 @@
-<Project />
+<Project>
+  <!-- MSBuild stops at the FIRST Directory.Build.targets walking up from the
+       project dir — this file exists, so it must chain to the root one or
+       NvShim loses BL-1 stamping (hardcore / per-project versions). -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.targets', '$(MSBuildThisFileDirectory)../'))" />
+</Project>

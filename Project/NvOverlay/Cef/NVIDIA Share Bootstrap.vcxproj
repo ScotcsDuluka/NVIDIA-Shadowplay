@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
   NVIDIA Share Bootstrap.vcxproj - CEF lane thin bootstrap (NvOverlay\CEF owner).
   Produces NVIDIA Share.exe. Loads NVIDIA Share.dll and calls its
@@ -9,6 +9,11 @@
   NVIDIA Share.dll".
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- BL-1 C++ lane: _Bl1CppStamp (root Directory.Build.targets) regenerates
+       src/bl1_version.h with the resolved product version before ResourceCompile. -->
+  <PropertyGroup>
+    <Bl1CppVersionPrefix>SHARE</Bl1CppVersionPrefix>
+  </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -76,4 +81,7 @@
     <ResourceCompile Include="src\version.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <!-- BL-1 C++ lane: vcxproj does not auto-import Directory.Build.* —
+       explicit import gives the native hosts the same version contract. -->
+  <Import Project="$(MSBuildProjectDirectory)\..\..\..\Build\Build-Config\bl1-cpp.targets" Condition="Exists('$(MSBuildProjectDirectory)\..\..\..\Build\Build-Config\bl1-cpp.targets')" />
 </Project>

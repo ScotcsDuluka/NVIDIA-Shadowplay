@@ -1,4 +1,4 @@
-// version.rc - Launcher CEF lane version stamping (Launcher.exe at the
+﻿// version.rc - Launcher CEF lane version stamping (Launcher.exe at the
 // root slot / Launcher.dll in the NvOverlay\Cef shared runtime slot).
 // Version convention follows the sibling CEF lane
 // (3.41.<build counter>.61; Overlay\build.txt currently 3792).
@@ -10,6 +10,10 @@ IDI_ICON1 ICON "..\\Assets\\NVIDIA ShadowPlay.ico"
 
 #define LAUNCHER_FILEVERSION 3,41,3792,61
 #define LAUNCHER_FILEVERSION_STR "3.41.3792.61\0"
+
+// BL-1: generated bl1_version.h overrides the defaults above on every build
+// (Build\Build-Config\bl1-cpp.targets - hardcore / per-project aware).
+#include "bl1_version.h"
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION LAUNCHER_FILEVERSION

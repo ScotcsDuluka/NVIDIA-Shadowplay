@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <!--
   Launcher Bootstrap.vcxproj - Launcher CEF lane thin bootstrap.
   Produces Launcher.exe (the product-root double-click entry, replacing
@@ -10,6 +10,11 @@
   cef.pak and locales\ are used once from NvOverlay\Cef.
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- BL-1 C++ lane: _Bl1CppStamp (root Directory.Build.targets) regenerates
+       src/bl1_version.h with the resolved product version before ResourceCompile. -->
+  <PropertyGroup>
+    <Bl1CppVersionPrefix>LAUNCHER</Bl1CppVersionPrefix>
+  </PropertyGroup>
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
@@ -77,4 +82,7 @@
     <ResourceCompile Include="src\version.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <!-- BL-1 C++ lane: vcxproj does not auto-import Directory.Build.* —
+       explicit import gives the native hosts the same version contract. -->
+  <Import Project="$(MSBuildProjectDirectory)\..\..\Build\Build-Config\bl1-cpp.targets" Condition="Exists('$(MSBuildProjectDirectory)\..\..\Build\Build-Config\bl1-cpp.targets')" />
 </Project>

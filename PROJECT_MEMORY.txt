@@ -2755,3 +2755,14 @@ SHADOWPLAY ENGINE" with WINFORM ⟷ CEF switcher (features card 2).
   itself ~4s later (Share lane log: broker pipe ended +
   AllocateAndMapSharedMemory failed during GPU init) — Share-lane
   flakiness to watch separately; launcher-side contract held.
+
+FIX 2026-09-25 (owner: "ได้ใช้ CEF จริงมั้ย ทำไม Animation Window แปลกๆ"):
+the window frame is native Win32 borderless (like Chrome/Discord) — it had
+NO open animation and flickered (CS_HREDRAW|CS_VREDRAW forced full
+repaints). Changes: drop HREDRAW/VREDRAW; add a 160ms layered-alpha
+fade-in on open (old WinForm Opacity contract — safe because the page
+paints ~1.3s later, so layering only affects the dark frame; the
+WS_EX_LAYERED bit is removed once opaque so CEF GPU compositing is never
+layered). CEF usage is real: browser process + --type= subprocesses of
+the root Launcher.exe, page served over loopback HTTP, shared libcef.dll
+in NvOverlay\Cef.
