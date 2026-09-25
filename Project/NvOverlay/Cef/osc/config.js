@@ -11,7 +11,7 @@ angular.module('main.config', [])
         "osd": true,
         "perfmonOCTool": true,
         "autoUploadMs": 0,
-        "jarvisEnabled": true,
+        "jarvisEnabled": false,
         "jarvisLinkedContent": false,
         "jsEvents": {
             "server": "",
