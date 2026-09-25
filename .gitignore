@@ -112,3 +112,6 @@ Build/Build-Config/version.props
 
 # WebView2 user data (Build.exe runtime)
 Build/Build-Config/webview2/
+
+# UI diagnostics log (Build.exe runtime)
+Build/Build-Config/ui-log.txt
