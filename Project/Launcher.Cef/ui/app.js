@@ -84,9 +84,9 @@
       (s.nvApi && s.nvApi.running) ? 'RUNNING' : 'STOPPED');
 
     var lanes = s.lanes || {};
-    el.chipEngine.className = 'meta-chip' + (lanes.container ? ' on' : '');
-    el.chipCef.className = 'meta-chip' + (lanes.cefOverlay ? ' on' : '');
-    el.chipHub.className = 'meta-chip' + ((s.nvApi && s.nvApi.running) ? ' on' : '');
+    el.chipEngine.className = 'lane-chip' + (lanes.container ? ' on' : '');
+    el.chipCef.className = 'lane-chip' + (lanes.cefOverlay ? ' on' : '');
+    el.chipHub.className = 'lane-chip' + ((s.nvApi && s.nvApi.running) ? ' on' : '');
 
     syncToggle(el.tglOverlay, s.overlayEnabled);
     syncMode(!!s.engineOverlay);
