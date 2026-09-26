@@ -168,3 +168,32 @@ IsAdministratorAccount = true (64-bit view)
 - `Hotkey Id: 7` → `{"hotkeyId":"OSC","hotkeyState":"Down"}` → `POST /OSC/MainView 200` + `NotifyOverlayState`
 - **หน้าจอจริง: overlay UI แสดง (Share dialog + Gallery + "Screenshot has been saved to Gallery")**
 - เครื่องนี้ **ไม่มี GFE ติดตั้ง** (ถอดแล้ว) = ประกอบเองได้สมบูรณ์ ✓
+
+---
+
+## 8) Phase B ผ่าน — build path (2026-09-27 01:21)
+
+### 8.1 โครงสร้างที่ผ่าน
+```
+C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\
+├── NvNode\   (399 ไฟล์ — node binary แท้ + addons + pristine index.js)
+└── Share\    (686 ไฟล์ — NVIDIA Share.exe + osc\ + nv-osc=true)
+```
+- **node binary แท้รัน index.js จากโฟลเดอร์ตัวเองเสมอ** (ไม่สน argv/cwd) → ย้ายทั้งโฟลเดอร์ = บูต pristine ได้ทันที ใช้ NvUtil.node แท้ = MMF pairing แท้ (ไม่ต้องแตะ shim)
+- จุด hardcode ที่ยังอ้าง PF: `NvBackendAPI32.dll` (Update Core), `nvspapi.dll` (PF(x86)\ShadowPlay), nvnodejslauncher — ทั้งหมดยังอยู่ที่ path แท้ = ตัว "NVIDIA Plugin" ฝั่ง service
+
+### 8.2 ผลยืนยัน
+- node process path = `build\...\NvNode\NVIDIA Web Helper.exe` · :59001 LISTENING (PID 32808)
+- Share.exe process path = `build\...\Share\NVIDIA Share.exe` · ESTABLISHED ×2 ไป build node
+- Alt+Z → `Hotkey Id: 7` → `OSC MainView 200` → **overlay main menu เต็มรูปแบบขึ้นจอจริง** (Screenshot/Instant Replay/Record/Broadcast/Performance/Gallery)
+- presentation ทำงานเอง (DT/offscreen layer) — ไม่ต้องพึ่งเกม
+
+### 8.3 สคริปต์บูตมาตรฐาน (build path)
+```powershell
+# 1) ปิด node เดิม (mutex conflict)
+Get-Process 'NVIDIA Web Helper' -ErrorAction SilentlyContinue | Stop-Process -Force
+# 2) node จาก build (จับ mutex/MMF ก่อน)
+Start-Process 'C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\NvNode\NVIDIA Web Helper.exe' -WorkingDirectory 'C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\NvNode'
+# 3) Share จาก build (launcher เห็น "Node already running" → อ่าน MMF)
+Start-Process 'C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\Share\NVIDIA Share.exe' -WorkingDirectory 'C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\Share'
+```

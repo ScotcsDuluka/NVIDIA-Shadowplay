@@ -130,3 +130,4 @@ Server/.server-secret
 # genuine NvNode backend deps (staged by build-dev)
 Project/NvNode/node_modules/
 Project/OscProvision/Payload/
+build/
