@@ -11,13 +11,27 @@ const path = require('path');
 const PORT = 59001;
 const VERSION = '3.28.0.412';
 
+// Delegate kernel-object duties to the genuine NvUtil.node when loadable:
+// the launcher's "Node already running" check and Share's node-info read are
+// based on the real named event/mapping (Global\{1E6C4F0F-...}), which pure
+// JS cannot create. Everything else stays shimmed.
+let native = null;
+try { native = require('../NvUtil.node'); } catch (e) { native = null; }
+
 function dataDir() {
   // Keep runtime state inside our product tree.
   return path.join(__dirname, '..', '..', 'NvConfig', 'nvnode');
 }
 
 module.exports = {
-  ClaimSingleInstance: function () { return true; },
+  ClaimSingleInstance: function () {
+    try {
+      if (native && typeof native.ClaimSingleInstance === 'function') {
+        return native.ClaimSingleInstance();
+      }
+    } catch (e) {}
+    return true;
+  },
 
   GenerateRandom: function (n) {
     try { return crypto.randomBytes(n || 16).toString('hex'); }
@@ -78,9 +92,13 @@ module.exports = {
   LogInfo: function (line) { try { console.log('[nvnode] ' + line); } catch (e) {} },
   LogWarn: function (line) { try { console.warn('[nvnode:warn] ' + line); } catch (e) {} },
   ConfirmInitialization: function (json) {
-    // The genuine chain hands {port, secret} up to the launcher/host. Our
-    // host pairs with the backend through its own channel, so this is
-    // recorded for diagnostics only.
+    // Prefer the native write (real MMF + event signal so Share's node-info
+    // query resolves); keep the diagnostic dump as fallback.
+    try {
+      if (native && typeof native.ConfirmInitialization === 'function') {
+        return native.ConfirmInitialization(json);
+      }
+    } catch (e) {}
     try {
       fs.writeFileSync(path.join(dataDir(), 'nvnode-init.json'),
                        String(json), 'utf8');
