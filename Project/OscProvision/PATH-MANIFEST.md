@@ -197,3 +197,30 @@ Start-Process 'C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\NvNode\NV
 # 3) Share จาก build (launcher เห็น "Node already running" → อ่าน MMF)
 Start-Process 'C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\Share\NVIDIA Share.exe' -WorkingDirectory 'C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\Share'
 ```
+
+---
+
+## 9) Phase C/D สถานะจริง (2026-09-27 03:35)
+
+### สำเร็จ
+- container service รันจาก **build path ครบ 3 ตัว** (ImagePath + Watchdog profiles flip ผ่าน PowerShell registry provider — sc config โดน quote ตายเสมอ)
+- helper spawn โดย service ได้เอง (SHGetFolderPath anchor PF\ShadowPlay ยังทำงาน)
+- node+Share จาก build path pairing ผ่าน (Node info success)
+- nvaudcap64v.dll restore จาก Installer2\VirtualAudio.Driver cache → System32 (capcore 0x7E หาย)
+
+### ⛔ ตัวที่เหลือ (การอัดยัง fail)
+```
+node: Manual Record enable request
+  → Caught Exception: setting Capture State Change Mutex: device or resource busy
+  → CServerImpl::CreateCaptureSession: E_INVALIDARG m_pSettings
+```
+- **m_pSettings ว่าง** = settings ของหน้า (SetProperty 237 รายการ) ไปตกกับ container ตัวเก่าที่ตายไป —
+  **page ไม่ส่ง settings sync ซ้ำให้ container ใหม่** (node log ไม่มี settings POST หลัง Share relaunch)
+- ต้องหา trigger ของ settings-sync ฝั่ง page (sync รอบ boot เท่านั้นหรือ?) หรือ replay settings เข้า container ใหม่
+- MonitorHotKeysState: True เมื่อ flip สะอาด / False เมื่อ stack ยุ่ง — ตัวแปรที่แท้ยังต้องสืบ
+
+### บทเรียนกับดักซ้ำ
+1. sc config binPath ใน PowerShell = quote พังเสมอ → ใช้ Set-ItemProperty registry provider
+2. FailureActions = self-heal ที่ต้องล้างก่อน stop service
+3. kill container ตอน Share รัน = Share ตายตาม (bus หลุด) — ต้อง restart Share ทีหลังเสมอ
+4. settings sync = one-shot ต่อ page boot — container ตาย = settings หาย ต้องรีเฟรช page
