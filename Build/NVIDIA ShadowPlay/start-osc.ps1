@@ -202,7 +202,17 @@ if ($Mode -eq 'genuine') {
         @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\NvNode';  N = 'port';           T = 'DWord';  V = 59001 },
         @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\NvNode';  N = 'disableSecurity'; T = 'DWord'; V = 1 },
         @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\GFExperience';        N = 'FullPath';       T = 'String'; V = $ShareExe },
-        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\GFExperience'; N = 'FullPath'; T = 'String'; V = $ShareExe }
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\GFExperience'; N = 'FullPath'; T = 'String'; V = $ShareExe },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\GFExperience';        N = 'Version';        T = 'String'; V = '3.28.0.412' },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\GFExperience';        N = 'Installed';      T = 'DWord';  V = 1 },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\GFExperience';        N = 'GFEBundledNGXVersion'; T = 'String'; V = '' },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\GFExperience'; N = 'Version';  T = 'String'; V = '3.28.0.412' },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\GFExperience'; N = 'Installed'; T = 'DWord'; V = 1 },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\GFExperience'; N = 'Architecture'; T = 'String'; V = 'x64' },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\ShadowPlay\NVSPCAPS'; N = 'IsShadowPlayEnabled'; T = 'DWord'; V = 1 },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\ShadowPlay\NVSPCAPS'; N = 'IsShadowPlayEnabledUser'; T = 'DWord'; V = 1 },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\ShadowPlay\NVSPCAPS'; N = 'IsShadowPlayEnabled'; T = 'DWord'; V = 1 },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\ShadowPlay\NVSPCAPS'; N = 'IsShadowPlayEnabledUser'; T = 'DWord'; V = 1 }
     )
     foreach ($r in $regJobs) {
         if (-not (Test-Path $r.P)) { New-Item -Path $r.P -Force | Out-Null }
