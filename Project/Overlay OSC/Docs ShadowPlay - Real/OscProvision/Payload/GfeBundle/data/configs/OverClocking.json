@@ -1,0 +1,13 @@
+{
+  "mode": "default",
+  "modes": {
+    "default": {
+      "notifyMs": 5000,
+      "requestMs": 2000
+    },
+    "rapid": {
+      "notifyMs": 500,
+      "requestMs": 500
+    }
+  }
+}

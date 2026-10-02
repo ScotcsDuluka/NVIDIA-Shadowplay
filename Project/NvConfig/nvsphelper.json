@@ -1,0 +1,9 @@
+{
+  "$comment": "nvsphelper.exe — ตัวจับ hotkey (ของเรา)",
+  "hotkeys": [
+    { "id": 1, "name": "OpenShare", "modifiers": "ALT", "vk": "Z" }
+  ],
+  "fireUrl": "http://127.0.0.1:59002/?hk={name}",
+  "windowToggleUrl": "http://127.0.0.1:59003/toggle",
+  "logFile": "C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\NvContainer\\Logs\\nvsphelper.log"
+}

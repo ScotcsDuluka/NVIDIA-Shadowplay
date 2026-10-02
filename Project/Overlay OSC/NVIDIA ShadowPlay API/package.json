@@ -1,0 +1,13 @@
+{
+  "name": "nvnode-genuine-backend",
+  "version": "3.28.0.412",
+  "private": true,
+  "description": "Genuine GFE 3.28 NvNode JS backend + our native-addon shims (standalone)",
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "2.5.1",
+    "on-finished": "^2.4.1",
+    "underscore": "^1.13.6",
+    "nv-localstore": "^1.0.0"
+  }
+}

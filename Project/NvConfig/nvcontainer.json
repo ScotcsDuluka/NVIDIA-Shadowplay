@@ -1,0 +1,35 @@
+{
+  "$comment": "ตัวแม่ NvContainer.exe — ศูนย์กลาง config ของ Duluka System ทั้งหมด",
+  "mode": "ours",
+  "$mode_note": "ours = ลูกทั้งหมดของเรา (Web Helper + NVIDIA OSC + nvsphelper) | genuine = NVIDIA Share.exe แท้",
+  "buildRoot": "C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay",
+  "children": {
+    "webHelperExe": "Overlay OSC\\NvNode\\NVIDIA Web Helper.exe",
+    "webHelperWd": "Overlay OSC\\NvNode",
+    "oscExe": "Overlay OSC\\NVIDIA OSC Native\\NVIDIA OSC.exe",
+    "oscWd": "Overlay OSC\\NVIDIA OSC Native",
+    "$oscExe_note": "CefSharp (ใช้งานได้) หลักตอนนี้ | native: Overlay OSC\\NVIDIA OSC Native\\NVIDIA OSC.exe (รอแก้ OnPaint รอบหน้า)",
+    "genuineShareExe": "C:\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience\\NVIDIA Share.exe",
+    "genuineShareWd": "C:\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience",
+    "hotkeyExe": "NvContainer\\nvsphelper.exe",
+    "captureExe": "NvContainer\\CaptureEngine\\NvCapture.exe",
+    "captureArgs": "--rest"
+  },
+  "pairing": {
+    "port": 59001,
+    "secret": "0CA906D2784F0D14E399874F5C5ED4A1",
+    "eventName": "Global\\{1E6C4F0F-8ABF-4709-AAAD-0341CF2D44A7}-Duluka",
+    "mapName": "{8BA1E16C-FC54-4595-9782-E370A5FBE8DA}-Duluka"
+  },
+  "nvnodeInitPath": "%LOCALAPPDATA%\\NVIDIA Corporation\\NvNode\\nvnode-init-duluka.json",
+  "watchdog": {
+    "intervalSeconds": 15,
+    "orphanWipeNames": [
+      "nvnodejslauncher",
+      "node",
+      "NVIDIA Web Helper"
+    ]
+  },
+  "logsDir": "NvContainer\\Logs",
+  "$coexistence_note": "อยู่ร่วมกับ NVIDIA App แท้: MMF/event/init ใช้ชื่อ -Duluka, process เช็คด้วย path, hotkey fallback +Shift"
+}

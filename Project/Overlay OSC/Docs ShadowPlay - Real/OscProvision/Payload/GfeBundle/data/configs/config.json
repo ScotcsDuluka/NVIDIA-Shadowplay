@@ -1,0 +1,12 @@
+{
+  "logging": {
+    "level": "debug",
+    "loggers": [
+      {
+        "enabled": true,
+        "type": "file",
+        "maxFileRotation": 2
+      }
+    ]
+  }
+}

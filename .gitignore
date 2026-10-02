@@ -131,3 +131,6 @@ Server/.server-secret
 Project/NvNode/node_modules/
 Project/OscProvision/Payload/
 build/
+Project/Overlay OSC/Docs ShadowPlay - Real/OscProvision/Payload/GfeBundle/libGLESv2.dll
+Project/Overlay OSC/Docs ShadowPlay - Real/OscProvision/Payload/GfeBundle/libEGL.dll
+Project/Overlay OSC/Docs ShadowPlay - Real/OscProvision/Payload/GfeBundle/libcef.dll

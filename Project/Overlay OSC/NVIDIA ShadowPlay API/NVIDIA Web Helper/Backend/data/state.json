@@ -1,0 +1,64 @@
+{
+  "version": "nvsp-backend-1.0",
+  "sections": {
+    "piplConfig": {},
+    "account": {},
+    "language": {},
+    "gfeupdate": {},
+    "feedback": {
+      "items": [
+        {
+          "at": "2026-09-24T00:33:38.310Z",
+          "body": {
+            "category": "FEEDBACK_AUTOMATIC_OSC_UI_EXCEPTION",
+            "message": "{\"name\":\"TypeError\",\"message\":\"Cannot read property 'modsOpen' of undefined\",\"stackFrame\":[{\"functionName\":\"V\",\"fileName\":\"http://127.0.0.1:59101/app.js\",\"lineNumber\":25,\"columnNumber\":11167,\"source\":\"    at V (http://127.0.0.1:59101/app.js:25:11167)\"},{\"fileName\":\"http://127.0.0.1:59101/app.js\",\"lineNumber\":25,\"columnNumber\":30508,\"source\":\"    at http://127.0.0.1:59101/app.js:25:30508\"},{\"functionName\":\"a\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":4175,\"source\":\"    at a (http://127.0.0.1:59101/vendor.js:90:4175)\"},{\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":4347,\"source\":\"    at http://127.0.0.1:59101/vendor.js:90:4347\"},{\"functionName\":\"p.$eval\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":11860,\"source\":\"    at p.$eval (http://127.0.0.1:59101/vendor.js:90:11860)\"},{\"functionName\":\"p.$digest\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":10368,\"source\":\"    at p.$digest (http://127.0.0.1:59101/vendor.js:90:10368)\"},{\"functionName\":\"p.$apply\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":12143,\"source\":\"    at p.$apply (http://127.0.0.1:59101/vendor.js:90:12143)\"},{\"functionName\":\"c\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":18658,\"source\":\"    at c (http://127.0.0.1:59101/vendor.js:89:18658)\"},{\"functionName\":\"E\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":20559,\"source\":\"    at E (http://127.0.0.1:59101/vendor.js:89:20559)\"},{\"functionName\":\"XMLHttpRequest.w.onload\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":21102,\"source\":\"    at XMLHttpRequest.w.onload (http://127.0.0.1:59101/vendor.js:89:21102)\"}]}",
+            "email": "",
+            "relatedApplications": [],
+            "relatedFiles": []
+          }
+        },
+        {
+          "at": "2026-09-24T01:03:50.560Z",
+          "body": {
+            "category": "FEEDBACK_AUTOMATIC_OSC_UI_EXCEPTION",
+            "message": "{\"name\":\"TypeError\",\"message\":\"Cannot read property 'modsOpen' of undefined\",\"stackFrame\":[{\"functionName\":\"V\",\"fileName\":\"http://127.0.0.1:59101/app.js\",\"lineNumber\":25,\"columnNumber\":11167,\"source\":\"    at V (http://127.0.0.1:59101/app.js:25:11167)\"},{\"fileName\":\"http://127.0.0.1:59101/app.js\",\"lineNumber\":25,\"columnNumber\":30508,\"source\":\"    at http://127.0.0.1:59101/app.js:25:30508\"},{\"functionName\":\"a\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":4175,\"source\":\"    at a (http://127.0.0.1:59101/vendor.js:90:4175)\"},{\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":4347,\"source\":\"    at http://127.0.0.1:59101/vendor.js:90:4347\"},{\"functionName\":\"p.$eval\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":11860,\"source\":\"    at p.$eval (http://127.0.0.1:59101/vendor.js:90:11860)\"},{\"functionName\":\"p.$digest\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":10368,\"source\":\"    at p.$digest (http://127.0.0.1:59101/vendor.js:90:10368)\"},{\"functionName\":\"p.$apply\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":12143,\"source\":\"    at p.$apply (http://127.0.0.1:59101/vendor.js:90:12143)\"},{\"functionName\":\"c\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":18658,\"source\":\"    at c (http://127.0.0.1:59101/vendor.js:89:18658)\"},{\"functionName\":\"E\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":20559,\"source\":\"    at E (http://127.0.0.1:59101/vendor.js:89:20559)\"},{\"functionName\":\"XMLHttpRequest.w.onload\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":21102,\"source\":\"    at XMLHttpRequest.w.onload (http://127.0.0.1:59101/vendor.js:89:21102)\"}]}",
+            "email": "",
+            "relatedApplications": [],
+            "relatedFiles": []
+          }
+        },
+        {
+          "at": "2026-09-24T01:05:13.429Z",
+          "body": {
+            "category": "FEEDBACK_AUTOMATIC_OSC_UI_EXCEPTION",
+            "message": "{\"name\":\"TypeError\",\"message\":\"Cannot read property 'modsOpen' of undefined\",\"stackFrame\":[{\"functionName\":\"V\",\"fileName\":\"http://127.0.0.1:59101/app.js\",\"lineNumber\":25,\"columnNumber\":11167,\"source\":\"    at V (http://127.0.0.1:59101/app.js:25:11167)\"},{\"fileName\":\"http://127.0.0.1:59101/app.js\",\"lineNumber\":25,\"columnNumber\":30508,\"source\":\"    at http://127.0.0.1:59101/app.js:25:30508\"},{\"functionName\":\"a\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":4175,\"source\":\"    at a (http://127.0.0.1:59101/vendor.js:90:4175)\"},{\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":4347,\"source\":\"    at http://127.0.0.1:59101/vendor.js:90:4347\"},{\"functionName\":\"p.$eval\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":11860,\"source\":\"    at p.$eval (http://127.0.0.1:59101/vendor.js:90:11860)\"},{\"functionName\":\"p.$digest\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":10368,\"source\":\"    at p.$digest (http://127.0.0.1:59101/vendor.js:90:10368)\"},{\"functionName\":\"p.$apply\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":12143,\"source\":\"    at p.$apply (http://127.0.0.1:59101/vendor.js:90:12143)\"},{\"functionName\":\"c\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":18658,\"source\":\"    at c (http://127.0.0.1:59101/vendor.js:89:18658)\"},{\"functionName\":\"E\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":20559,\"source\":\"    at E (http://127.0.0.1:59101/vendor.js:89:20559)\"},{\"functionName\":\"XMLHttpRequest.w.onload\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":21102,\"source\":\"    at XMLHttpRequest.w.onload (http://127.0.0.1:59101/vendor.js:89:21102)\"}]}",
+            "email": "",
+            "relatedApplications": [],
+            "relatedFiles": []
+          }
+        },
+        {
+          "at": "2026-09-24T07:57:50.354Z",
+          "body": {
+            "category": "FEEDBACK_AUTOMATIC_OSC_UI_EXCEPTION",
+            "message": "{\"name\":\"TypeError\",\"message\":\"Cannot read property 'modsOpen' of undefined\",\"stackFrame\":[{\"functionName\":\"V\",\"fileName\":\"http://127.0.0.1:59101/app.js\",\"lineNumber\":25,\"columnNumber\":11167,\"source\":\"    at V (http://127.0.0.1:59101/app.js:25:11167)\"},{\"fileName\":\"http://127.0.0.1:59101/app.js\",\"lineNumber\":25,\"columnNumber\":30508,\"source\":\"    at http://127.0.0.1:59101/app.js:25:30508\"},{\"functionName\":\"a\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":4175,\"source\":\"    at a (http://127.0.0.1:59101/vendor.js:90:4175)\"},{\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":4347,\"source\":\"    at http://127.0.0.1:59101/vendor.js:90:4347\"},{\"functionName\":\"p.$eval\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":11860,\"source\":\"    at p.$eval (http://127.0.0.1:59101/vendor.js:90:11860)\"},{\"functionName\":\"p.$digest\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":10368,\"source\":\"    at p.$digest (http://127.0.0.1:59101/vendor.js:90:10368)\"},{\"functionName\":\"p.$apply\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":12143,\"source\":\"    at p.$apply (http://127.0.0.1:59101/vendor.js:90:12143)\"},{\"functionName\":\"c\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":18658,\"source\":\"    at c (http://127.0.0.1:59101/vendor.js:89:18658)\"},{\"functionName\":\"E\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":20559,\"source\":\"    at E (http://127.0.0.1:59101/vendor.js:89:20559)\"},{\"functionName\":\"XMLHttpRequest.w.onload\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":21102,\"source\":\"    at XMLHttpRequest.w.onload (http://127.0.0.1:59101/vendor.js:89:21102)\"}]}",
+            "email": "",
+            "relatedApplications": [],
+            "relatedFiles": []
+          }
+        },
+        {
+          "at": "2026-09-24T07:58:06.875Z",
+          "body": {
+            "category": "FEEDBACK_AUTOMATIC_OSC_UI_EXCEPTION",
+            "message": "{\"name\":\"TypeError\",\"message\":\"Cannot read property 'modsOpen' of undefined\",\"stackFrame\":[{\"functionName\":\"V\",\"fileName\":\"http://127.0.0.1:59101/app.js\",\"lineNumber\":25,\"columnNumber\":11167,\"source\":\"    at V (http://127.0.0.1:59101/app.js:25:11167)\"},{\"fileName\":\"http://127.0.0.1:59101/app.js\",\"lineNumber\":25,\"columnNumber\":30508,\"source\":\"    at http://127.0.0.1:59101/app.js:25:30508\"},{\"functionName\":\"a\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":4175,\"source\":\"    at a (http://127.0.0.1:59101/vendor.js:90:4175)\"},{\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":4347,\"source\":\"    at http://127.0.0.1:59101/vendor.js:90:4347\"},{\"functionName\":\"p.$eval\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":11860,\"source\":\"    at p.$eval (http://127.0.0.1:59101/vendor.js:90:11860)\"},{\"functionName\":\"p.$digest\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":10368,\"source\":\"    at p.$digest (http://127.0.0.1:59101/vendor.js:90:10368)\"},{\"functionName\":\"p.$apply\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":90,\"columnNumber\":12143,\"source\":\"    at p.$apply (http://127.0.0.1:59101/vendor.js:90:12143)\"},{\"functionName\":\"c\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":18658,\"source\":\"    at c (http://127.0.0.1:59101/vendor.js:89:18658)\"},{\"functionName\":\"E\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":20559,\"source\":\"    at E (http://127.0.0.1:59101/vendor.js:89:20559)\"},{\"functionName\":\"XMLHttpRequest.w.onload\",\"fileName\":\"http://127.0.0.1:59101/vendor.js\",\"lineNumber\":89,\"columnNumber\":21102,\"source\":\"    at XMLHttpRequest.w.onload (http://127.0.0.1:59101/vendor.js:89:21102)\"}]}",
+            "email": "",
+            "relatedApplications": [],
+            "relatedFiles": []
+          }
+        }
+      ]
+    }
+  },
+  "savedAt": "2026-09-24T07:58:06.875Z"
+}

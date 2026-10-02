@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>NVIDIA ShadowPlay</title>
+<script src="cefquery-shim.js"></script>
+<link rel="stylesheet" href="osc.css">
+</head>
+<body>
+  <!-- notifier แท้ -->
+  <div id="notifier">
+    <div class="notifier-green"></div>
+    <div class="notifier-black">
+      <div class="notifier">
+        <span class="notifier-icon icon-replay icon-highlighted"></span>
+        <div class="notifier-text-container">
+          <div class="notifier-text"><p id="notifier-msg">Press Alt+Z to use GeForce Experience in-game overlay</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- เวลาแบบ .common-overlay -->
+  <div id="veil"></div>
+
+  <!-- เวที 1920x1200 (สเกลตามจอ — เหมือนแท้ทุกจอ) -->
+  <div id="stage">
+    <!-- top-bar แท้ -->
+    <div class="top-bar">
+      <img class="top-bar-icon" src="lg_osc_logo_48x48.png" alt="">
+      <div class="top-bar-text">GeForce Experience</div>
+      <button class="top-bar-close-button" id="btn-close" title="Close (Esc)">
+        <span class="icon26 icon-normal icon-app_close"></span>
+      </button>
+    </div>
+
+    <!-- main-menu แท้: md-toolbar.list + md-menu tiles -->
+    <div class="osc-content main-menu-container">
+      <div class="list">
+        <!-- แถวกลาง: IR / Record / Broadcast (float) -->
+        <div class="menu-item instant-replay-tile" data-tile="InstantReplay" tabindex="0">
+          <button class="menu-button">
+            <div class="osc-tile-header"><h2>Instant Replay</h2></div>
+            <div class="osc-tile-icon"><span class="icon120 icon-normal icon-replay" id="ic-ir"></span></div>
+            <div class="osc-tile-footer"><h3 id="st-ir">Off</h3></div>
+          </button>
+          <div class="tile-dropdown" id="dd-ir"></div>
+        </div>
+        <div class="menu-item manual-record-tile" data-tile="ManualRecord" tabindex="0">
+          <button class="menu-button">
+            <div class="osc-tile-header"><h2>Record</h2></div>
+            <div class="osc-tile-icon"><span class="icon120 icon-normal icon-record" id="ic-rec"></span></div>
+            <div class="osc-tile-footer"><h3 id="st-rec">Not Recording</h3></div>
+          </button>
+          <div class="tile-dropdown" id="dd-rec"></div>
+        </div>
+        <div class="menu-item broadcast-tile" data-tile="Broadcast" tabindex="0">
+          <button class="menu-button">
+            <div class="osc-tile-header"><h2>Broadcast LIVE</h2></div>
+            <div class="osc-tile-icon"><span class="icon120 icon-normal icon-broadcast"></span></div>
+            <div class="osc-tile-footer"><h3>Not broadcasting</h3></div>
+          </button>
+        </div>
+        <!-- ซ้าย: screenshot / photo(ansel) / freestyle(mods) -->
+        <div class="menu-item screenshot-tile" data-tile="Screenshot" tabindex="0">
+          <button class="menu-button">
+            <div class="tile-row">
+              <span class="left-tile-offset icon48 icon-normal icon-screenshot"></span>
+              <div class="tile-textcol">
+                <div class="gallery-text">Screenshot</div>
+                <div class="help-text">Alt+F1</div>
+              </div>
+            </div>
+          </button>
+        </div>
+        <div class="menu-item ansel-tile" data-tile="Ansel" tabindex="0">
+          <button class="menu-button">
+            <div class="tile-row">
+              <span class="left-tile-offset icon48 icon-normal icon-camera"></span>
+              <div class="tile-textcol">
+                <div class="gallery-text">Photo mode</div>
+                <div class="help-text">Alt+F2</div>
+              </div>
+            </div>
+          </button>
+        </div>
+        <div class="menu-item mods-tile" data-tile="Mods" tabindex="0">
+          <button class="menu-button">
+            <div class="tile-row">
+              <span class="left-tile-offset icon48 icon-normal icon-freestyle"></span>
+              <div class="tile-textcol">
+                <div class="gallery-text">Game Filter</div>
+                <div class="help-text">Alt+F3</div>
+              </div>
+            </div>
+          </button>
+        </div>
+        <!-- ขวา: mic / camera / preferences / performance / gallery -->
+        <div class="menu-item mic-tile" data-tile="Mic" tabindex="0">
+          <button class="menu-button">
+            <span class="icon48 icon-normal icon-mic_on" id="ic-mic"></span>
+          </button>
+          <div class="tile-dropdown" id="dd-mic"></div>
+        </div>
+        <div class="menu-item camera-tile" data-tile="Camera" tabindex="0">
+          <button class="menu-button">
+            <span class="icon48 icon-normal icon-webcam_off" id="ic-cam"></span>
+          </button>
+          <div class="tile-dropdown" id="dd-cam"></div>
+        </div>
+        <div class="menu-item preferences-tile" data-tile="Preferences" tabindex="0">
+          <button class="menu-button">
+            <span class="icon48 icon-normal icon-settings"></span>
+          </button>
+        </div>
+        <div class="menu-item performance-tile" data-tile="Performance" tabindex="0">
+          <button class="menu-button">
+            <div class="gallery-tile-align">
+              <span class="icon48 icon-normal icon-audio_mixer"></span>
+              <p class="gallery-text">Performance</p>
+            </div>
+          </button>
+        </div>
+        <div class="menu-item gallery-tile" data-tile="Gallery" tabindex="0">
+          <button class="menu-button">
+            <div class="gallery-tile-align">
+              <span class="icon48 icon-normal icon-gallery"></span>
+              <p class="gallery-text">Gallery</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- หน้า Settings: ข้อมูลจริงจาก backend -->
+    <div id="page-settings" class="page hidden">
+      <div class="ps-top">
+        <button class="ps-back" id="ps-back"><span class="icon20 icon-normal icon-app_close"></span></button>
+        <h2 id="ps-title">Settings</h2>
+      </div>
+      <div class="ps-body">
+        <div class="ps-section">
+          <div class="ps-label">Instant Replay</div>
+          <div class="ps-row"><span>Save last</span>
+            <select id="set-ir-len">
+              <option>1 min</option><option>2 min</option><option>5 min</option>
+              <option>10 min</option><option>15 min</option><option>20 min</option>
+            </select>
+          </div>
+          <div class="ps-row"><span>Quality</span>
+            <select id="set-ir-quality">
+              <option>Custom</option><option>Best</option><option>High</option><option>Medium</option><option>Low</option>
+            </select>
+          </div>
+        </div>
+        <div class="ps-section">
+          <div class="ps-label">Recording</div>
+          <div class="ps-row"><span>Quality</span>
+            <select id="set-rec-quality">
+              <option>Best</option><option>High</option><option>VeryGood</option><option>Good</option><option>Medium</option><option>Low</option>
+            </select>
+          </div>
+          <div class="ps-row"><span>Resolution</span><select id="set-rec-res"></select></div>
+          <div class="ps-row"><span>Frame rate</span><select id="set-rec-fps"></select></div>
+        </div>
+        <div class="ps-section">
+          <div class="ps-label">Audio</div>
+          <div class="ps-row"><span>Capture</span>
+            <select id="set-audio">
+              <option value="both">In-game and microphone</option>
+              <option value="ingame">In-game only</option>
+              <option value="off">Off</option>
+            </select>
+          </div>
+        </div>
+        <div class="ps-section">
+          <div class="ps-label">Recordings</div>
+          <div class="ps-row"><span>Temp files</span><span class="ps-path" id="set-tmp">-</span></div>
+          <div class="ps-row"><span>Videos</span><span class="ps-path" id="set-videos">-</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="osc.js"></script>
+</body>
+</html>

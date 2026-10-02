@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- NVIDIA OSC.exe — CEF host ของเราเลียนแบบ NVIDIA Share.exe (หน้า OSC)
+         WPF + CefSharp OSR: หน้าต่าง AllowsTransparency + browser โปร่ง =
+         per-pixel alpha แบบเดียวกับ offscreen rendering ของ Share แท้
+         สัญญากับหน้า osc\index.html: QUERY_OSC_REGISTER_CLOSE_EVENT (persistent),
+         QUERY_FULLSCREEN_STATE, QUERY_WIN_CLOSE_OSC, QUERY_OSC_SET_DISPLAY_RECTS,
+         QUERY_OSC_SET_EXPERIMENTAL, QUERY_HTTPSERVER_START (v1 ไม่ทำ)
+         config: Project\NvConfig\nvidia-osc.json -->
+    <OutputType>WinExe</OutputType>
+    <AssemblyName>NVIDIA OSC</AssemblyName>
+    <RootNamespace>NvidiaOsc</RootNamespace>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
+    <UseWPF>true</UseWPF>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <PlatformTarget>x64</PlatformTarget>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <ApplicationIcon>..\..\..\NvContainer\NvContainer-Capture\NVIDIA ShadowPlay.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CefSharp.Wpf.NETCore" Version="138.0.340" />
+  </ItemGroup>
+
+</Project>

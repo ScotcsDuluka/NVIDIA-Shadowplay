@@ -1,0 +1,86 @@
+== /ShadowPlay/v.1.0/GetSupported
+Cannot GET /ShadowPlay/v.1.0/GetSupported
+
+== /ShadowPlay/v.1.0/OSC/MainView
+Cannot GET /ShadowPlay/v.1.0/OSC/MainView
+
+== /ShadowPlay/v.1.0/WindowState
+Cannot GET /ShadowPlay/v.1.0/WindowState
+
+== /ShadowPlay/v.1.0/Record/Settings
+{"quality":"VeryGood","resolution":"In-game","framerate":60,"bitrateBps":50000000}
+
+== /ShadowPlay/v.1.0/Record/Running
+{"running":false}
+
+== /ShadowPlay/v.1.0/RecordPaths
+{"videos":"C:\\Users\\ScotcsDuluka\\Videos","tempFiles":"C:\\Users\\SCOTCS~1\\AppData\\Local\\Temp\\"}
+
+== /ShadowPlay/v.1.0/Resolutions
+{"resolutions":["In-game","2160p 4K","1440p HD","1080p HD","720p HD","480p","360p","240p"]}
+
+== /ShadowPlay/v.1.0/Framerates
+{"framerates":[60,30]}
+
+== /ShadowPlay/v.1.0/Audio
+{"mode":"both"}
+
+== /ShadowPlay/v.1.0/Broadcast/Support
+{"support":true}
+
+== /ShadowPlay/v.1.0/Broadcast/Settings
+{"quality":"Good","resolution":"720p HD","framerate":30,"bitrateBps":3500000,"provider":"Twitch"}
+
+== /ShadowPlay/v.1.0/DesktopCapture/Support
+{"support":true}
+
+== /ShadowPlay/v.1.0/Screenshot/Support
+{"support":true}
+
+== /ShadowPlay/v.1.0/Hotkey
+Cannot GET /ShadowPlay/v.1.0/Hotkey
+
+== /ShadowPlay/v.1.0/4KSupport
+{"support":true}
+
+== /ShadowPlay/v.1.0/GetHDRState
+{"active":false}
+
+== /ShadowPlay/v1.0/OSC/GetCustomize/Record
+Cannot GET /ShadowPlay/v1.0/OSC/GetCustomize/Record
+
+== /ShadowPlay/v1.0/OSC/GetCustomize/InstantReplay
+Cannot GET /ShadowPlay/v1.0/OSC/GetCustomize/InstantReplay
+
+== /ShadowPlay/v1.0/OSC/GetCustomize/Broadcast
+Cannot GET /ShadowPlay/v1.0/OSC/GetCustomize/Broadcast
+
+== /ShadowPlay/v.1.0/Webcam/Settings
+{"enable":false,"position":"RightBottom","size":"Small"}
+
+== POST /ShadowPlay/v.1.0/GetSupported
+{"type":"Error","code":3,"codeText":"Invalid argument","message":"Argument doesn't have 'language' property"}
+
+== POST /ShadowPlay/v.1.0/OSC/MainView
+{"type":"Error","code":3,"codeText":"Invalid argument","message":"Argument doesn't have 'fetchPartial' property"}
+
+== POST /ShadowPlay/v.1.0/WindowState
+Cannot POST /ShadowPlay/v.1.0/WindowState
+
+== POST /ShadowPlay/v.1.0/Hotkey
+Cannot POST /ShadowPlay/v.1.0/Hotkey
+
+== POST /ShadowPlay/v1.0/OSC/GetCustomize/Record
+{"type":"Error","code":3,"codeText":"Invalid argument","message":"Argument doesn't have 'quality' property"}
+
+== POST /ShadowPlay/v1.0/OSC/GetCustomize/InstantReplay
+{"type":"Error","code":3,"codeText":"Invalid argument","message":"Argument doesn't have 'quality' property"}
+
+== POST GetSupported {language}
+{"MediaPack":true}
+== POST OSC/MainView {fetchPartial:false}
+{"webcamPresent":true,"webcamShown":false,"micPresentCount":3,"broadcastProvider":"AlwaysAsk","coplayEnabled":false,"audioMode":"both","micMode":"alwayson","instantReplayEnabled":false,"instantReplayRunning":false,"manualRecordEnabled":false}
+== POST GetCustomize/Record {quality:VeryGood}
+{"type":"Error","code":3,"codeText":"Invalid argument","message":"Argument doesn't have 'resolution' property"}
+== POST GetCustomize/InstantReplay {quality:VeryGood}
+{"type":"Error","code":3,"codeText":"Invalid argument","message":"Argument doesn't have 'resolution' property"}

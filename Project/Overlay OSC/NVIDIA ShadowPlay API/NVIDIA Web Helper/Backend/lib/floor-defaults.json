@@ -1,0 +1,381 @@
+{
+ "_provenance": "Real NVIDIA backend response captures (commit 01b6a02; intel floor 2026-09-19/22). Do not hand-edit: regenerate with scripts/gen-floor-defaults.py.",
+ "generatedAt": "2026-09-22T20:05:24",
+ "endpoints": {
+  "/ShadowPlay/v.1.0/Resolutions": {
+   "status": 200,
+   "body": {
+    "resolutions": [
+     "In-game",
+     "2160p 4K",
+     "1440p HD",
+     "1080p HD",
+     "720p HD",
+     "480p",
+     "360p",
+     "240p"
+    ]
+   }
+  },
+  "/ShadowPlay/v.1.0/FrameRates": {
+   "status": 200,
+   "body": {
+    "framerates": [
+     60,
+     30
+    ]
+   }
+  },
+  "/ShadowPlay/v.1.0/GetSupported": {
+   "status": 404,
+   "body": "Cannot GET /ShadowPlay/v.1.0/GetSupported\n"
+  },
+  "/ShadowPlay/v.1.0/RecordPaths": {
+   "status": 200,
+   "body": {
+    "videos": "C:\\Users\\ScotcsDuluka\\Videos",
+    "tempFiles": "C:\\Users\\SCOTCS~1\\AppData\\Local\\Temp\\"
+   }
+  },
+  "/ShadowPlay/v.1.0/Screenshot/Support": {
+   "status": 200,
+   "body": {
+    "support": true
+   }
+  },
+  "/SDK/v.1.0/Highlights/Active": {
+   "status": 200,
+   "body": {
+    "active": false
+   }
+  },
+  "/ShadowPlay/v1.0/OSC/Init": {
+   "status": 404,
+   "body": "Cannot POST /ShadowPlay/v1.0/OSC/Init\n"
+  },
+  "/ShadowPlay/v.1.0/InstantReplay/Enable": {
+   "status": 200,
+   "body": {
+    "status": false
+   }
+  },
+  "/ShadowPlay/v.1.0/InstantReplay/Running": {
+   "status": 200,
+   "body": {
+    "running": false
+   }
+  },
+  "/ShadowPlay/v.1.0/InstantReplay/Settings": {
+   "status": 200,
+   "body": {
+    "quality": "Custom",
+    "resolution": "1440p HD",
+    "framerate": 60,
+    "bitrateBps": 50000000,
+    "replayLengthSeconds": 15
+   }
+  },
+  "/ShadowPlay/v.1.0/InstantReplay/BufferLength": {
+   "status": 500,
+   "body": {
+    "type": "Error",
+    "code": -2147024809,
+    "codeText": "Unknown/Internal error"
+   }
+  },
+  "/ShadowPlay/v.1.0/Record/Enable": {
+   "status": 200,
+   "body": {
+    "status": false
+   }
+  },
+  "/ShadowPlay/v.1.0/Record/Running": {
+   "status": 200,
+   "body": {
+    "running": false
+   }
+  },
+  "/ShadowPlay/v.1.0/Record/Settings": {
+   "status": 200,
+   "body": {
+    "quality": "Custom",
+    "resolution": "1440p HD",
+    "framerate": 60,
+    "bitrateBps": 50000000
+   }
+  },
+  "/ShadowPlay/v.1.0/Record/Concurrency/Manual": {
+   "status": 500,
+   "body": {
+    "type": "Error",
+    "code": 3,
+    "codeText": "Invalid argument",
+    "message": "Unknown concurrency type"
+   }
+  },
+  "/ShadowPlay/v.1.0/Microphone/Present": {
+   "status": 200,
+   "body": {
+    "present": 2
+   }
+  },
+  "/ShadowPlay/v.1.0/Audio": {
+   "status": 200,
+   "body": {
+    "mode": "both"
+   }
+  },
+  "/ShadowPlay/v.1.0/Broadcast/Enable": {
+   "status": 200,
+   "body": {
+    "status": false
+   }
+  },
+  "/ShadowPlay/v.1.0/Broadcast/Running": {
+   "status": 200,
+   "body": {
+    "running": false
+   }
+  },
+  "/ShadowPlay/v.1.0/Broadcast/Support": {
+   "status": 200,
+   "body": {
+    "support": true
+   }
+  },
+  "/ShadowPlay/v.1.0/Broadcast/Settings": {
+   "status": 200,
+   "body": {
+    "quality": "Good",
+    "resolution": "720p HD",
+    "framerate": 30,
+    "bitrateBps": 3500000,
+    "provider": "YTL"
+   }
+  },
+  "/ShadowPlay/v.1.0/Broadcast/LastProvider": {
+   "status": 200,
+   "body": {
+    "lastprovider": 1
+   }
+  },
+  "/ShadowPlay/v.1.0/Broadcast/Provider": {
+   "status": 200,
+   "body": {
+    "provider": "AlwaysAsk"
+   }
+  },
+  "/ShadowPlay/v.1.0/Webcam/Present": {
+   "status": 200,
+   "body": {
+    "present": true
+   }
+  },
+  "/ShadowPlay/v.1.0/Webcam/Enable": {
+   "status": 200,
+   "body": {
+    "status": false
+   }
+  },
+  "/ShadowPlay/v.1.0/Hotkey/pmocoverlay": {
+   "status": 200,
+   "body": {
+    "keys": [
+     18,
+     82
+    ]
+   }
+  },
+  "/ShadowPlay/v.1.0/Highlights/Session": {
+   "status": 200,
+   "body": {
+    "active": false
+   }
+  },
+  "/ShadowPlay/v.1.0/DesktopCapture/Support": {
+   "status": 200,
+   "body": {
+    "support": true
+   }
+  },
+  "/ShadowPlay/v.1.0/DesktopCapture/Support/Reason": {
+   "status": 200,
+   "body": {
+    "support": true
+   }
+  },
+  "/ShadowPlay/v.1.0/DesktopCapture/Enable": {
+   "status": 200,
+   "body": {
+    "enable": true
+   }
+  },
+  "/ShadowPlay/v1.0/OSC/GetCustomize/InstantReplay": {
+   "status": 404,
+   "body": {}
+  },
+  "/ShadowPlay/v1.0/OSC/GetCustomize/Record": {
+   "status": 404,
+   "body": {}
+  },
+  "/SDK/v.1.0/Instance": {
+   "status": 200,
+   "body": {
+    "active": false
+   }
+  },
+  "/HardwareInformation/v.1.0/GPU": {
+   "status": 404,
+   "body": {}
+  },
+  "/HardwareInformation/v.1.0/Info": {
+   "status": 404,
+   "body": {}
+  },
+  "/SystemInfo/v.1.0/GPU": {
+   "status": 404,
+   "body": {}
+  },
+  "/SystemInfo/v.1.0/Driver": {
+   "status": 404,
+   "body": {}
+  },
+  "/Account/v.1.0/UserToken": {
+   "status": 500,
+   "body": {
+    "type": "Error",
+    "code": 2147942402,
+    "codeText": "Unknown error",
+    "message": "Failed to get User Info"
+   }
+  },
+  "/Account/v.1.0/PrivacySettings": {
+   "status": 500,
+   "body": {
+    "type": "Error",
+    "code": 3,
+    "codeText": "Invalid argument",
+    "message": "Argument doesn't have 'userId' or 'clientId' property, requires one of them."
+   }
+  },
+  "/Settings/v.1.0/Language": {
+   "status": 200,
+   "body": {
+    "language": ""
+   }
+  },
+  "/Settings/v.1.0/RewardsNotificationPreference": {
+   "status": 200,
+   "body": {}
+  },
+  "/PiplConfig/v.1.0/data": {
+   "status": 200,
+   "body": {
+    "daysToExpire": 1,
+    "isConnectEnabled": true,
+    "configData": {
+     "jarvis": {
+      "server": "https://accounts.nvgs.nvidia.com"
+     },
+     "gfwsl": {
+      "server": "https://gfwsl.geforce.com/"
+     },
+     "aem": {
+      "server": "https://www.nvidia.com/"
+     },
+     "vrs": {
+      "server": "https://www.nvidia.com"
+     },
+     "jsEvents": {
+      "server": "https://events.gfe.nvidia.com"
+     },
+     "nvTelemetry": {
+      "eventsServer": "https://events.gfe.nvidia.com/v1.0/events/json",
+      "feedbackServer": "https://telemetry.gfe.nvidia.com/gfc/v2.0/head",
+      "feedbackAttachmentServer": "https://telemetry.gfe.nvidia.com/gfc/v2.0/attachment"
+     },
+     "redirect": {
+      "server": "https://www.nvidia.com/content/drivers/redirect.asp?language="
+     }
+    }
+   }
+  },
+  "/gfe/bp": {
+   "status": 404,
+   "body": {}
+  },
+  "/beta": {
+   "status": 200,
+   "body": {
+    "beta": false
+   }
+  },
+  "/Applications/v.1.0/": {
+   "status": 200,
+   "body": []
+  },
+  "/Localization/v.1.0/SupportedLocales": {
+   "status": 404,
+   "body": {}
+  }
+ },
+ "customize": {
+  "Record": {
+   "status": 200,
+   "body": {
+    "resolutions": [
+     "In-game",
+     "2160p 4K",
+     "1440p HD",
+     "1080p HD",
+     "720p HD",
+     "480p",
+     "360p",
+     "240p"
+    ],
+    "framerates": [
+     60,
+     30
+    ],
+    "quality": "Custom",
+    "resolution": "1440p HD",
+    "framerate": 60,
+    "bitrate": {
+     "current": 50000000,
+     "min": 10000000,
+     "max": 130000000,
+     "default": 50000000
+    }
+   }
+  },
+  "InstantReplay": {
+   "status": 200,
+   "body": {
+    "resolutions": [
+     "In-game",
+     "2160p 4K",
+     "1440p HD",
+     "1080p HD",
+     "720p HD",
+     "480p",
+     "360p",
+     "240p"
+    ],
+    "framerates": [
+     60,
+     30
+    ],
+    "replayLengthSeconds": 15,
+    "quality": "Custom",
+    "resolution": "1440p HD",
+    "framerate": 60,
+    "bitrate": {
+     "current": 50000000,
+     "min": 10000000,
+     "max": 130000000,
+     "default": 50000000
+    }
+   }
+  }
+ }
+}

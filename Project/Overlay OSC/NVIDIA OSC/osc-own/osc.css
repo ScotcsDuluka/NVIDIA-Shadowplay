@@ -1,0 +1,225 @@
+/* NVIDIA ShadowPlay OSC — ค่าจาก CSS แท้ของ NVIDIA (สกัดจาก app.js) */
+* { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+html, body {
+  width: 100% !important; height: 100% !important;
+  overflow: hidden !important;
+  background: rgba(0, 0, 0, 0) !important;
+  cursor: default;
+}
+body * { font-family: 'Segoe UI' !important; }
+button { cursor: pointer; background: none; border: none; color: inherit; }
+:focus { outline: 0; }
+
+/* เวล: .common-overlay rgba(0,0,0,.75) */
+#veil {
+  position: fixed; inset: 0; z-index: 1;
+  background: rgba(0, 0, 0, .75);
+  opacity: 0; pointer-events: none;
+  transition: opacity .18s ease;
+}
+body.open #veil { opacity: 1; pointer-events: auto; }
+
+/* เวที: ออกแบบที่ 1920x1200 (สัดส่วนเดียวกับ overlay แท้) แล้ว scale เข้าจอ */
+#stage {
+  position: absolute; left: 50%; top: 50%;
+  width: 1920px; height: 1200px;
+  transform-origin: center center;
+  z-index: 2; opacity: 0; pointer-events: none;
+  transition: opacity .2s ease;
+  perspective: 2400px;
+}
+body.open #stage { opacity: 1; pointer-events: auto; }
+
+/* ── top-bar แท้ ── */
+.top-bar {
+  position: absolute; top: 0; left: 0; right: 0; height: 80px;
+  display: flex; align-items: center;
+  background: rgba(0, 0, 0, .9);
+  padding-left: 8px; padding-right: 21px;
+}
+.top-bar-icon { width: 64px; height: 64px; margin-left: 8px; flex: none; }
+.top-bar-text {
+  font-size: 32px; font-weight: bolder; color: #fff; margin-left: 14px;
+  text-decoration: none; text-transform: none;
+  position: absolute; left: 0; right: 0; text-align: center; pointer-events: none;
+}
+.top-bar-close-button {
+  margin-left: auto; width: 38px; height: 38px; flex: none;
+  border: 3px solid transparent; position: relative; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.top-bar-close-button:hover, .top-bar-close-button:focus { border: 3px solid #76b900; }
+
+/* ── main-menu-container แท้ ── */
+.main-menu-container { padding-left: 40px; padding-right: 40px; position: relative; padding-top: 80px; }
+.list { position: relative; background: transparent !important; height: 700px; }
+.menu-item {
+  width: 240px; height: 240px; display: block; text-align: center; overflow: visible;
+  font-size: 24px; font-weight: 700; text-decoration: none; text-transform: none;
+  color: #fff; background: rgba(0, 0, 0, .85) !important;
+  position: absolute; border: 3px solid transparent;
+  transition: transform .25s ease;
+}
+.menu-item:hover { transform: scale(1.03); z-index: 10; }
+.menu-item:focus { border: 3px solid #76b900; }
+.menu-button { width: 100%; height: 100%; display: block; padding: 0; }
+
+/* ไทล์กลาง: header 57 / icon 120 / footer 57 (แท้) */
+.instant-replay-tile .osc-tile-header, .manual-record-tile .osc-tile-header,
+.broadcast-tile .osc-tile-header,
+.instant-replay-tile .osc-tile-footer, .manual-record-tile .osc-tile-footer,
+.broadcast-tile .osc-tile-footer {
+  height: 57px !important; display: flex; justify-content: center; align-items: center;
+}
+.instant-replay-tile .osc-tile-header h2, .manual-record-tile .osc-tile-header h2,
+.broadcast-tile .osc-tile-header h2 { font-size: 18px; font-weight: 700; color: #fff; }
+.instant-replay-tile .osc-tile-footer h3, .manual-record-tile .osc-tile-footer h3,
+.broadcast-tile .osc-tile-footer h3 { font-size: 16px; font-weight: lighter; color: #919191; }
+.instant-replay-tile .osc-tile-footer h3.highlighted,
+.manual-record-tile .osc-tile-footer h3.highlighted { color: #76b900; font-weight: 700; }
+.instant-replay-tile .osc-tile-footer h3.alternate,
+.manual-record-tile .osc-tile-footer h3.alternate { color: #f7dd00; font-weight: 700; }
+.instant-replay-tile .osc-tile-icon, .manual-record-tile .osc-tile-icon,
+.broadcast-tile .osc-tile-icon {
+  height: 120px; display: flex; justify-content: center; align-items: center; line-height: 0;
+}
+.instant-replay-tile .osc-tile-icon span, .manual-record-tile .osc-tile-icon span,
+.broadcast-tile .osc-tile-icon span { font-size: 120px; }
+
+/* ตำแหน่ง: กลุ่มกลาง 3 ไทล์เว้น 55 (แท้) — เริ่มที่ x 660 ของเวที */
+.instant-replay-tile { left: 660px; top: 155px; }
+.manual-record-tile { left: 955px; top: 155px; }
+.broadcast-tile { left: 1250px; top: 155px; }
+
+/* ซ้าย: แถวเล็ก 240x80 ซ้อน (screenshot/ansel/mods) ตำแหน่งแท้ left -280 จากกลุ่มกลาง */
+.screenshot-tile, .ansel-tile, .mods-tile { left: 380px; width: 240px !important; }
+.screenshot-tile { top: 155px; height: 80px !important; }
+.ansel-tile { top: 255px; height: 80px !important; }
+.mods-tile { top: 355px; height: 80px !important; }
+.tile-row { display: flex; align-items: center; padding-left: 16px; }
+.left-tile-offset { padding-left: 0; }
+.gallery-text { text-align: left; font-size: 18px; margin-left: 12px; }
+.help-text { color: gray; font-size: 12px !important; font-weight: lighter; margin-left: 12px; text-align: left; }
+.tile-textcol { display: flex; flex-direction: column; align-items: flex-start; }
+
+/* ขวา: mic/camera/pref 80px + performance กว้าง + gallery — ตามแท้ right -120/-200/-280 */
+.mic-tile { right: 280px; width: 80px !important; top: 255px; height: 100px !important; left: auto; }
+.camera-tile { right: 200px; width: 80px !important; top: 255px; height: 100px !important; left: auto; }
+.preferences-tile { right: 120px; width: 80px !important; top: 255px; height: 100px !important; left: auto; }
+.performance-tile { right: 120px; top: 155px; height: 80px !important; width: 240px !important; left: auto; }
+.gallery-tile { right: 120px; top: 375px; height: 240px !important; width: 240px !important; left: auto; }
+.gallery-tile-align { display: flex; align-items: center; }
+.gallery-tile .gallery-tile-align, .performance-tile .gallery-tile-align { padding: 0 14px; }
+.mic-tile .menu-button, .camera-tile .menu-button, .preferences-tile .menu-button {
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* ── dropdown (md-menu-content แท้: พื้น #212326) ── */
+.tile-dropdown {
+  display: none; position: absolute; left: 50%; transform: translateX(-50%);
+  top: 100%; min-width: 240px; z-index: 30;
+  background: #212326; border: 3px solid transparent;
+}
+.menu-item.open .tile-dropdown { display: block; }
+.menu-item.open { border: 3px solid #76b900; }
+.dd-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; cursor: pointer; width: 100%;
+  font-size: 16px; font-weight: 400; color: #fff; text-align: left;
+  border: 3px solid transparent;
+}
+.dd-item:hover { border: 3px solid #76b900; }
+.dd-item .dd-icon { font-size: 20px; color: #fff; }
+.dd-item .dd-hotkey { margin-left: auto; color: #919191; font-size: 13px; }
+.dd-divider { height: 1px; background: #383838; margin: 4px 10px; }
+
+/* ── NOTIFIER แท้ ── */
+.notifier-green {
+  box-sizing: border-box; position: absolute; overflow: hidden;
+  right: -330px; width: 300px; height: 90px; top: 105px;
+  transition-property: right; transition-duration: .25s;
+  transition-delay: .25s; background-color: #76b900; z-index: 1000;
+}
+.notifier-black {
+  position: absolute; overflow: hidden;
+  right: -330px; width: 300px; height: 90px; top: 105px;
+  transition-property: right; transition-duration: .25s;
+  transition-delay: 0s; background-color: #000; border-left: 5px solid #76b900;
+  z-index: 1001;
+}
+.notifier { width: 100%; height: 100%; opacity: 0; transition-property: opacity; display: flex; align-items: center; }
+.notifier-icon { box-sizing: border-box; padding: 0 20px; width: 88px; height: 48px; font-size: 48px; flex: none; }
+.notifier-text-container { display: flex; }
+.notifier-text { padding-right: 15px; color: #fff; font-size: 16px; font-weight: 400; }
+.notifier-text p { margin: 0; }
+#notifier.show .notifier-green { transition-delay: 0s; right: 0; }
+#notifier.show .notifier-black { transition-delay: .25s; right: 0; }
+#notifier.show .notifier-black > .notifier { transition-duration: .5s; transition-delay: .5s; opacity: 1; }
+#notifier.flip > .notifier-black, #notifier.flip > .notifier-green {
+  transition: transform 1s; transform-style: preserve-3d; transform: rotateX(180deg);
+}
+#notifier.flip > .notifier-black > .notifier {
+  transition: transform 1s; transform-style: preserve-3d; transform: rotateX(-180deg);
+}
+#notifier { position: fixed; inset: 0; pointer-events: none; z-index: 50; }
+
+/* ── ไอคอนฟอนต์แท้ nvgcshare ── */
+@font-face {
+  font-family: 'nvgcshare';
+  src: url('nvgcshare.woff2') format('woff2');
+  font-weight: normal; font-style: normal;
+}
+[class^="icon-"], [class*=" icon-"] {
+  font-family: 'nvgcshare' !important; speak: none; font-style: normal;
+  font-weight: normal; font-variant: normal; text-transform: none; line-height: 1;
+  -webkit-font-smoothing: antialiased;
+}
+.icon-replay:before { content: '\e935'; }
+.icon-record:before { content: '\e933'; }
+.icon-broadcast:before { content: '\e901'; }
+.icon-gallery:before { content: '\e912'; }
+.icon-screenshot:before { content: '\e937'; }
+.icon-camera:before { content: '\e908'; }
+.icon-freestyle:before { content: '\e953'; }
+.icon-settings:before { content: '\e900'; }
+.icon-mic_on:before { content: '\e92b'; }
+.icon-mic_off:before { content: '\e92a'; }
+.icon-mic_ptt:before { content: '\e92c'; }
+.icon-webcam_on:before { content: '\e942'; }
+.icon-webcam_off:before { content: '\e941'; }
+.icon-app_close:before { content: '\e91a'; }
+.icon-performance:before { content: '\e90c'; }
+.icon-audio_mixer:before { content: '\e90f'; }
+.icon-play:before { content: '\e92f'; }
+.icon-stop:before { content: '\e939'; }
+.icon-save:before { content: '\e936'; }
+.icon-pause:before { content: '\e92e'; }
+.icon-share:before { content: '\e91e'; }
+.icon-normal { color: #fff !important; }
+.icon-highlighted { color: #76b900 !important; }
+.icon-alternate { color: #f7dd00 !important; }
+.icon-disabled { color: #888 !important; }
+.icon48 { font-size: 48px; }
+.icon26 { font-size: 26px; }
+.icon120 { font-size: 120px; }
+.osc-tile-icon span, .top-bar-close-button span { display: inline-block; }
+
+/* ── หน้า Settings ── */
+.page { position: absolute; inset: 0; background: rgba(0,0,0,.92); z-index: 40; display: none; }
+.page.show { display: block; }
+.ps-top { height: 80px; display: flex; align-items: center; padding: 0 30px; background: rgba(0,0,0,.9); }
+.ps-back { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+.ps-back:hover { background: rgba(255,255,255,.12); }
+.ps-top h2 { font-size: 28px; font-weight: 700; color: #fff; margin-left: 18px; }
+.ps-body { padding: 30px 60px; overflow-y: auto; max-height: calc(100% - 80px); }
+.ps-section { margin-bottom: 34px; }
+.ps-label { font-size: 20px; font-weight: 700; color: #76b900; margin-bottom: 14px; }
+.ps-row { display: flex; align-items: center; gap: 20px; margin-bottom: 12px; font-size: 16px; color: #e4e6e9; }
+.ps-row > span:first-child { width: 220px; color: #cfd2d6; }
+.ps-row select {
+  background: #212326; color: #fff; border: 3px solid transparent; font-size: 15px;
+  padding: 6px 10px; min-width: 260px; font-family: 'Segoe UI' !important;
+}
+.ps-row select:hover, .ps-row select:focus { border: 3px solid #76b900; }
+.ps-path { color: #919191; font-size: 14px; user-select: text; }
