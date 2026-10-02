@@ -123,6 +123,8 @@ $logDirs = @(
     'C:\ProgramData\NVIDIA',
     'C:\ProgramData\NVIDIA Corporation\NVIDIA App\NvContainer',
     (Join-Path $env:LOCALAPPDATA 'NVIDIA Corporation\NvNode'),
+    (Join-Path $env:LOCALAPPDATA 'NVIDIA Corporation\NVIDIA Share'),
+    (Join-Path $B 'Overlay OSC\NVIDIA Share'),
     (Join-Path $B 'Logs')
 )
 $hits = New-Object System.Collections.Generic.List[string]
