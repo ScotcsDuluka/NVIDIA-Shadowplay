@@ -306,3 +306,28 @@ helper WMHK 7 → node CShadowPlayHotkeyReceiver (System: Hotkey, Module: Node) 
 **fix**: ลบ require เดิม + data-floor.js ฉบับ self-contained (inline ทุก shape: HOTKEY_DEFAULTS 30 ตัว · settings · states · dropdowns — ต้นฉบับ = Close Project\...\Backend\lib\)
 **ผล**: fireServer :59002 LISTENING (03:02:42) · :59001+59002 = 200 · fired OpenShare → overlayToggle emitted (03:03:19) — ห่วงโซ่ครบ: nvsphelper(Alt+Z) → :59002 → shim → WindowState → หน้าเปิดเอง
 **สถาปัตยกรรมสุดท้าย (ผู้ใช้กำหนด)**: NVIDIA แค่ Share.exe + Web Helper.exe/node — nvcontainer NVIDIA ถูกแทนด้วย NvContainer.exe (ของเรา: spawn/ดูแล node+Share + ถือ pairing) + nvsphelper.exe (hotkey-only) — ทั้งหมดอยู่ในต้นไม้ build\NVIDIA ShadowPlay\ (portable)
+
+## §18 — Phase 1: การทดลองสะอาด nvcontainer แท้จาก build path (2026-10-03)
+
+**Evidence ทั้งหมด**: `OscProvision\Logs\phase1-evidence\` (phase1-clean.log, phase1-RESULT.txt, log-*.log 24 ไฟล์, node-direct-run-stderr.txt) · backup ก่อน flip: `Logs\phase1-before\` (roll back = reg import 2 ไฟล์)
+
+### ✅ ผ่าน (FACT — log จริง)
+1. **nvcontainer.exe แท้รันเป็น service จาก build path ได้จริง** — ImagePath → `build\...\NvContainer\genuine\nvcontainer.exe` · service Running · โหลด plugin ครบ (NvcPluginManager: Watchdog/Telemetry/Broker Started) · PID 26176
+2. **Watchdog ปลุก container ลูกจาก build path ได้** — log แสดง `Folder: ...\genuine\plugins\SPUser` + `Restart container for ...\genuine\plugins\User` (SPUser/User spawn จาก build จริง; พฤติกรรม spawn-and-exit = UNKNOWN อาจปกติเมื่อ Share ยังไม่ attach)
+3. **"Unknown executable path" = 0 บรรทัด** — grep ครบทุก log ทุก dir (ProgramData\NVIDIA, ProgramData\NVIDIA Corporation, LOCALAPPDATA\NVIDIA Corporation) ทั้ง 2 รอบการทดลอง — **บทเรียน §13 ข้อ 3 ("ValidatePID whitelist ตัวขวางใหญ่สุด") ไม่พบหลักฐานสนับสนุนเลยแม้แต่บรรทัดเดียว → ข้อสรุปเดิมมีแนวโน้มเป็น confound สูง** (ยังไม่ปิด — Share/helper ยังไม่ได้วิ่งครบในการทดลอง)
+4. Payload stage ครบ: container (nvcontainer 1248KB + TelemetryApi + plugins 5+AIUser จาก PF), node (399 ไฟล์), helper (ShadowPlay set)
+
+### ⛔ ตัวขวางใหม่ (FACT — ไม่เคยรู้มาก่อน)
+**node แท้ hardcode ที่อยู่ backend ผ่าน SHGetFolderPath**: binary มี string `SHGetFolderPath failed with %u` + `\NVIDIA Corporation\NvNode\index.js` → ประกอบ path = `PF(x86) + \NVIDIA Corporation\NvNode\index.js` — **ไม่อ่าน registry/config/cwd/ตำแหน่งตัวเอง** (stderr: `Cannot find module 'C:\Program Files (x86)\NVIDIA Corporation\NvNode\index.js'` แม้รันจาก build)
+- §8.2 "node แท้รัน index.js จากโฟลเดอร์ตัวเองเสมอ" = **INTERPRETATION ที่ถูกหักล้าง** — nvnode.log ยุคทำงาน (GenuineRuntime, 29 ก.ย.) โหลด addons จาก PF(x86)\NvNode ตลอด → Phase B-D ผ่านเพราะ reassembly §2 ฟื้น PF(x86)\NvNode ไว้จริง
+- วันนี้ **NVIDIA App ลบทิ้งหมด**: PF(x86)\NvNode (ว่าง) + registry `Global\NvNode` (port=59001, disableSecurity) + `Global\GFExperience\FullPath` (ทั้ง 2 view) — ทางเดิมตาย
+
+### 🎯 จุดตัดสินใจ OWNER (หยุดรอตามกติกา — แตะ binary หรือของที่ย้ายไม่เจอต้องถามก่อน)
+| ทาง | หมายถึง | เสี่ยง |
+|---|---|---|
+| ก) ฟื้น PF(x86)\NvNode จาก Payload (~350 ไฟล์) | node บูตทันที (กลไกเดิมที่เคยผ่าน) — container/Share/helper ยังอยู่ build | มี dependency ที่ PF อีก 1 ทาง (NVIDIA App update อาจลบซ้ำ) |
+| ข) Junction PF(x86)\NvNode → build\NvNode | ไฟล์จริงอยู่ build | บทเรียน §5: GetFinalPathName ตีกลับ → trusted-location ตรวจ addon อาจตาย; ต้อง admin |
+| ค) Binary patch Web Helper.exe | ปลด PF ทั้งหมด | ต้องอนุมัติ OWNER + node ตรวจ signature ไฟล์ที่โหลด (log: "File signature verified") — patch อาจพังทั้งสาย |
+
+ทุกทางต้อง re-create registry: `Global\NvNode` (port=59001, disableSecurity=1) + `Global\GFExperience\FullPath` (2 views) — ตามสูตรพิสูจน์แล้วเดิม
+
