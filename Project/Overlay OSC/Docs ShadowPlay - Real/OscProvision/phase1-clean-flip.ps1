@@ -67,8 +67,10 @@ Write-Host '=== [5] flip ImagePath → build (genuine) ==='
 $ip  = (Get-ItemProperty $svcKey).ImagePath
 $nip = $ip.Replace($PFCont, $Gen)
 Set-ItemProperty -Path $svcKey -Name ImagePath -Value $nip -Type ExpandString
+$ipNow = (Get-ItemProperty $svcKey).ImagePath
+if ($ipNow -notlike ('*' + $Gen + '*')) { Fail ('[5] assert: ImagePath ใหม่ไม่มี ' + $Gen + ' — ค่าปัจจุบัน: ' + $ipNow + ' · ค่าเดิม: ' + $ip) }
 Write-Host ('[5] เดิม: ' + $ip)
-Write-Host ('[5] ใหม่: ' + $nip)
+Write-Host ('[5] ใหม่: ' + $ipNow)
 
 # ---------- [6] flip Watchdog ทุก profile ที่มีจริง (แทน string — รักษา flag) ----------
 Write-Host '=== [6] flip Watchdog profiles → build (genuine) ==='
@@ -78,6 +80,8 @@ foreach ($p in (Get-ChildItem $wdKey)) {
         $v = $prop.$n
         if ($v -and ($v -like ('*' + $PFCont + '*'))) {
             Set-ItemProperty -Path $p.PSPath -Name $n -Value $v.Replace($PFCont, $Gen)
+            $now = (Get-ItemProperty $p.PSPath).$n
+            if ($now -notlike ('*' + $Gen + '*')) { Fail ('[6] assert: ' + $p.PSChildName + '\' + $n + ' ไม่มี ' + $Gen + ' — ค่า: ' + $now) }
         }
     }
     $chk = Get-ItemProperty $p.PSPath
@@ -105,7 +109,26 @@ if ((Get-Service NvContainerLocalSystem).Status -ne 'Running') {
 }
 $st = (Get-Service NvContainerLocalSystem).Status
 Write-Host ('[8] service: ' + $st)
-if ($st -ne 'Running') { Fail 'service ไม่ขึ้นหลัง flip — ดู NvContainerLocalSystem.log (log dir ตาม ImagePath -f)' }
+if ($st -ne 'Running') {
+    Write-Host '[8] ยังไม่ Running หลัง flip + start 2 รอบ — AUTO-ROLLBACK (ห้ามทิ้งเครื่องในสถานะ flip โดย service ตาย)'
+    Get-CimInstance Win32_Process -Filter "Name='nvcontainer.exe'" -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+    reg.exe import (Join-Path $before 'service-NvContainerLocalSystem.reg')
+    reg.exe import (Join-Path $before 'Watchdog-all.reg')
+    Start-Sleep -Seconds 3
+    sc.exe start NvContainerLocalSystem | Out-Null
+    Start-Sleep -Seconds 14
+    if ((Get-Service NvContainerLocalSystem).Status -ne 'Running') {
+        sc.exe start NvContainerLocalSystem | Out-Null
+        Start-Sleep -Seconds 14
+    }
+    $rb = (Get-Service NvContainerLocalSystem).Status
+    if ($rb -eq 'Running') { $reason = 'ROLLED BACK: service ไม่ Running หลัง flip และ start 2 รอบ — import backup กลับแล้ว service กลับมา Running (สาเหตุการตายดู log ตาม -f ของ ImagePath ที่ flip ไป)' }
+    else { $reason = 'ROLLED BACK (INCOMPLETE): import backup แล้วแต่ service ยังไม่ Running (' + $rb + ') — ต้องตรวจต่อทันที' }
+    $reason | Set-Content -Path (Join-Path $Ev 'phase1-RESULT.txt') -Encoding UTF8
+    Write-Host ('[8] ' + $reason)
+    Stop-Transcript | Out-Null
+    exit 3
+}
 Start-Sleep -Seconds 10
 Write-Host '=== containers ที่เพิ่งบูต (ต้องมาจาก build ทั้งหมด) ==='
 Get-CimInstance Win32_Process -Filter "Name='nvcontainer.exe'" -ErrorAction SilentlyContinue | ForEach-Object {
@@ -130,12 +153,13 @@ $logDirs = @(
 $hits = New-Object System.Collections.Generic.List[string]
 foreach ($d in $logDirs) {
     if (-not (Test-Path $d)) { continue }
-    Get-ChildItem $d -Filter '*.log' -ErrorAction SilentlyContinue | ForEach-Object {
+    Get-ChildItem $d -Filter '*.log' -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
         $m = Select-String -Path $_.FullName -Pattern 'Unknown executable path' -SimpleMatch -ErrorAction SilentlyContinue
         foreach ($x in $m) { $hits.Add(($_.FullName + ':' + $x.LineNumber + ': ' + $x.Line)) }
         # สำเนา log เต็มเข้า repo (เฉพาะไฟล์ < 20MB)
         if ($_.Length -lt 20MB) {
-            Copy-Item $_.FullName (Join-Path $Ev ('log-' + $_.Name)) -Force -ErrorAction SilentlyContinue
+            $rel = $_.FullName.Substring($d.Length).TrimStart('\', '/').Replace('\', '__').Replace('/', '__')
+            Copy-Item $_.FullName (Join-Path $Ev ('log-' + $rel)) -Force -ErrorAction SilentlyContinue
         }
     }
 }
