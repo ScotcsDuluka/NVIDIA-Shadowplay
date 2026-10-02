@@ -1,8 +1,0 @@
-{
-  "nv-osc": true,
-  "nv-gpu-accel": true,
-  "nv-url-relative": "Resources/osc/index.html",
-  "nv-node-app": "",
-  "nv-plugin-folder-relative": "",
-  "nv-plugin-dependencies-relative": ""
-}
