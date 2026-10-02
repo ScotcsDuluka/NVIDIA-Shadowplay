@@ -76,7 +76,8 @@ if ($Mode -eq 'genuine') {
     $nodeDst = Join-Path $B 'NvNode'
     $nhPath  = Join-Path $nodeDst 'NVIDIA Web Helper.exe'
     $needNode = $true
-    if (Test-Path $nhPath) { if ((Get-Item $nhPath).Length -ge 20MB) { $needNode = $false } }
+    # ข้ามได้เมื่อ exe แท้ + node_modules อยู่ครบ (บั๊กเดิม: Copy-Item wildcard flatten node_modules ลง root — node ตายทันที)
+    if ((Test-Path $nhPath) -and ((Get-Item $nhPath).Length -ge 20MB) -and (Test-Path (Join-Path $nodeDst 'node_modules'))) { $needNode = $false }
     if ($needNode) {
         if (-not (Test-Path (Join-Path $payload.FullName 'NvNode\NVIDIA Web Helper.exe'))) { Fail ('ขาด node แท้: ' + (Join-Path $payload.FullName 'NvNode\NVIDIA Web Helper.exe')) }
         Copy-Genuine-Tree (Join-Path $payload.FullName 'NvNode') $nodeDst
