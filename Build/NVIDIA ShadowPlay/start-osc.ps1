@@ -7,6 +7,7 @@
 param([string]$Mode = 'genuine')
 
 $ErrorActionPreference = 'Continue'
+$isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
 $Root = 'C:\My Project\NVIDIA-Shadowplay'
 $B    = Join-Path $Root 'build\NVIDIA ShadowPlay'
 $Log  = Join-Path $B 'Logs'
@@ -98,6 +99,65 @@ if ($Mode -eq 'genuine') {
     $shareJson = Get-Content (Join-Path $ShareWd 'NVIDIA Share.json') -Raw
     if ($shareJson -match 'nv-osc=false') { Fail ('Share.json มี nv-osc=false — ห้ามบูต (แก้เป็น true ด้วยมือก่อน ปิด native OSC ทั้งสาย)') }
 
+    # 0e) PF anchor restore (§7.1 + ต้นไม้ node ที่ node แท้ hardcode หา) — idempotent + manifest hash ไว้เทียบทุกบูต
+    # FACT §18: node แท้ resolve script root = SHGetFolderPath(PF_x86) + "\NVIDIA Corporation\NvNode\index.js" (compiled-in ไม่มี override)
+    Write-Host '=== [0e] PF anchor restore (node tree + §7.1 mandatory) ==='
+    if (-not $isAdmin) { Fail '[0e] ต้องเขียน Program Files — รัน start-osc แบบ elevated (Run as Administrator)' }
+    $gfeExe = 'C:\My Project\GFE\GeForce_Experience_v3.28.0.412'
+    $pf86 = 'C:\Program Files (x86)\NVIDIA Corporation'
+    $pf64 = 'C:\Program Files\NVIDIA Corporation'
+    $anchorJobs = @(
+        @{ Key = 'PF(x86)\NvNode (node tree)';            Src = (Join-Path $payload.FullName 'NvNode');                         Dst = (Join-Path $pf86 'NvNode');                Tree = $true },
+        @{ Key = 'PF(x86)\Update Core\NvBackendAPI32';    Src = (Join-Path $gfeExe 'NvBackend\NvBackendAPI32.dll');             Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
+        @{ Key = 'PF(x86)\Update Core\NvTmRep';           Src = (Join-Path $payload.FullName 'NvBackend\NvTmRep.exe');          Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
+        @{ Key = 'PF(x86)\Update Core\NvSHIM';            Src = (Join-Path $payload.FullName 'NvBackend\NvSHIM.exe');           Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
+        @{ Key = 'PF(x86)\Update Core\AppOntology';       Src = (Join-Path $payload.FullName 'NvBackend\ApplicationOntology.7z'); Dst = (Join-Path $pf86 'Update Core');         Tree = $false },
+        @{ Key = 'PF(x86)\Update Core\FeatureWhitelist';  Src = (Join-Path $payload.FullName 'NvBackend\FeatureWhitelist.json'); Dst = (Join-Path $pf86 'Update Core');          Tree = $false },
+        @{ Key = 'PF\Update Core\NvBackendAPI64';         Src = (Join-Path $gfeExe 'NvBackend\NvBackendAPI64.dll');             Dst = (Join-Path $pf64 'Update Core');           Tree = $false },
+        @{ Key = 'PF\NvDriverUpdateCheck64';              Src = (Join-Path $gfeExe 'NvBackend\NvDriverUpdateCheck64.dll');      Dst = (Join-Path $pf64 'NvDriverUpdateCheck');   Tree = $false },
+        @{ Key = 'PF(x86)\ShadowPlay\nvspapi';            Src = (Join-Path $gfeExe 'ShadowPlay\nvspapi.dll');                   Dst = (Join-Path $pf86 'ShadowPlay');            Tree = $false },
+        @{ Key = 'PF(x86)\ShadowPlay\ipccommon';          Src = (Join-Path $gfeExe 'ShadowPlay\ipccommon.dll');                 Dst = (Join-Path $pf86 'ShadowPlay');            Tree = $false },
+        @{ Key = 'PF\ShadowPlay\nvspapi64';               Src = (Join-Path $payload.FullName 'ShadowPlay\nvspapi64.dll');       Dst = (Join-Path $pf64 'ShadowPlay');            Tree = $false },
+        @{ Key = 'PF\ShadowPlay\ipccommon64';             Src = (Join-Path $payload.FullName 'ShadowPlay\ipccommon64.dll');     Dst = (Join-Path $pf64 'ShadowPlay');            Tree = $false }
+    )
+    $restored = 0; $verified = 0
+    foreach ($job in $anchorJobs) {
+        if (-not (Test-Path $job.Src)) { Fail ('[0e] แหล่งของแท้หาย: ' + $job.Src) }
+        if ($job.Tree) {
+            $idxDst = Join-Path $job.Dst 'index.js'
+            if (-not ((Test-Path $idxDst) -and (Test-Path (Join-Path $job.Dst 'node_modules')))) {
+                Write-Host ('  restore tree → ' + $job.Dst)
+                Copy-Genuine-Tree $job.Src $job.Dst
+                $restored++
+            } else { $verified++ }
+        } else {
+            $dstFile = Join-Path $job.Dst (Split-Path $job.Src -Leaf)
+            if (-not (Test-Path $dstFile)) {
+                New-Item -ItemType Directory -Path $job.Dst -Force | Out-Null
+                Copy-Genuine $job.Src $dstFile
+                Write-Host ('  restore ' + $job.Key)
+                $restored++
+            } else { $verified++ }
+        }
+    }
+    # manifest ไว้เทียบ (จำนวนไฟล์ + hash) — NVIDIA App ลบซ้ำ = เทียบเจอทันที
+    $manifestPath = Join-Path $Log 'pf-anchor-manifest.txt'
+    $entries = @()
+    foreach ($job in $anchorJobs) {
+        if ($job.Tree) {
+            Get-ChildItem $job.Dst -Recurse -File | ForEach-Object { $entries += ((Get-FileHash $_.FullName -Algorithm MD5).Hash + '  ' + $_.FullName) }
+        } else {
+            $dstFile = Join-Path $job.Dst (Split-Path $job.Src -Leaf)
+            $entries += ((Get-FileHash $dstFile -Algorithm MD5).Hash + '  ' + $dstFile)
+        }
+    }
+    if (Test-Path $manifestPath) {
+        $prevCount = @(Get-Content $manifestPath).Count
+        if ($prevCount -ne $entries.Count) { Write-Host ('  ⚠ จำนวนไฟล์ anchor เปลี่ยน: ' + $prevCount + ' → ' + $entries.Count) }
+    }
+    $entries | Set-Content -Path $manifestPath -Encoding UTF8
+    Write-Host ('[0e] PF anchor: ' + $entries.Count + ' ไฟล์ (restore ' + $restored + ' · มีอยู่แล้ว ' + $verified + ') · manifest → ' + $manifestPath)
+
     Write-Host ('[0] stage OK · container=' + $genuine)
     Write-Host ('[0]          · node=' + $nodeDst)
     Write-Host ('[0]          · helper=' + $spDst)
@@ -131,6 +191,30 @@ $svc = Get-Service NvContainerLocalSystem
 Write-Host ('[1] service: ' + $svc.Status)
 $ip = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\NvContainerLocalSystem' -ErrorAction SilentlyContinue).ImagePath
 Write-Host ('[1] ImagePath: ' + $ip)
+
+# ---------- [1b] registry กุญแจ (สูตรพิสูจน์แล้วเดิม — NVIDIA App ไม่ใช้ค่าเหล่านี้ การฟื้นไม่กระทบมัน) ----------
+if ($Mode -eq 'genuine') {
+    Write-Host '=== [1b] registry: Global\NvNode + GFExperience\FullPath (idempotent) ==='
+    if (-not $isAdmin) { Fail '[1b] ต้องเขียน HKLM — รัน start-osc แบบ elevated (Run as Administrator)' }
+    $regJobs = @(
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\NvNode';              N = 'port';           T = 'DWord';  V = 59001 },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\NvNode';              N = 'disableSecurity'; T = 'DWord'; V = 1 },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\NvNode';  N = 'port';           T = 'DWord';  V = 59001 },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\NvNode';  N = 'disableSecurity'; T = 'DWord'; V = 1 },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\GFExperience';        N = 'FullPath';       T = 'String'; V = $ShareExe },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\GFExperience'; N = 'FullPath'; T = 'String'; V = $ShareExe }
+    )
+    foreach ($r in $regJobs) {
+        if (-not (Test-Path $r.P)) { New-Item -Path $r.P -Force | Out-Null }
+        $cur = (Get-ItemProperty -Path $r.P -ErrorAction SilentlyContinue).($r.N)
+        if ($cur -ne $r.V) {
+            Set-ItemProperty -Path $r.P -Name $r.N -Value $r.V -Type $r.T
+            if ($null -ne $cur) { $note = ' (เดิม: ' + $cur + ')' } else { $note = ' (สร้างใหม่)' }
+            Write-Host ('  set ' + $r.P + ' → ' + $r.N + '=' + $r.V + $note)
+        }
+    }
+    Write-Host '[1b] registry ok'
+}
 
 # ---------- [2] containers + agent (ตรวจ CommandLine ไม่ใช่แค่ชื่อ process) ----------
 Write-Host '=== [2] containers + agent (เช็ค CommandLine: SPUser / plugins\User) ==='
