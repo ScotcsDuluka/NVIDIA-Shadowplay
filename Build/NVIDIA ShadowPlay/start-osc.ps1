@@ -15,6 +15,36 @@ Start-Transcript -Path (Join-Path $Log 'start-osc.log') -Force | Out-Null
 
 function Fail([string]$msg) { Write-Host ('[FAIL] ' + $msg); Stop-Transcript | Out-Null; exit 1 }
 function Test-Http200([string]$url) { try { return ((Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec 2).StatusCode -eq 200) } catch { return $false } }
+function Same-File([string]$a, [string]$b) {
+    if (-not ((Test-Path $a -PathType Leaf) -and (Test-Path $b -PathType Leaf))) { return $false }
+    return ((Get-FileHash $a -Algorithm MD5 -ErrorAction SilentlyContinue).Hash -eq (Get-FileHash $b -Algorithm MD5 -ErrorAction SilentlyContinue).Hash)
+}
+# Copy-Genuine: idempotent — ข้ามถ้าเนื้อไฟล์ตรง (มีอยู่แล้ว หรือถูก lock โดย container ที่รันจากมัน) · copy ผิดพลาดอื่น = fail ชัด
+function Copy-Genuine([string]$src, [string]$dst) {
+    if (Test-Path $dst -PathType Leaf) {
+        if (Same-File $src $dst) { Write-Host ('  ข้าม (เนื้อไฟล์ตรง): ' + (Split-Path $dst -Leaf)); return }
+        try { Copy-Item $src $dst -Force } catch {
+            if (Same-File $src $dst) { Write-Host ('  ข้าม (ล็อกแต่เนื้อไฟล์ตรง): ' + (Split-Path $dst -Leaf)); return }
+            Fail ('copy ไม่สำเร็จ: ' + $src + ' → ' + $dst + ' — ' + $_.Exception.Message)
+        }
+    } else {
+        try { Copy-Item $src $dst -Force } catch { Fail ('copy ไม่สำเร็จ: ' + $src + ' → ' + $dst + ' — ' + $_.Exception.Message) }
+    }
+}
+# Copy-Genuine-Tree: ทีละไฟล์ — จัดการ leaf/dir ชนกัน + ไฟล์ล็อกที่เนื้อตรง (ข้าม)
+function Copy-Genuine-Tree([string]$src, [string]$dst) {
+    if (-not (Test-Path $dst)) { New-Item -ItemType Directory -Path $dst -Force | Out-Null }
+    foreach ($child in (Get-ChildItem $src -Force)) {
+        $dstChild = Join-Path $dst $child.Name
+        if ($child.PSIsContainer) {
+            if (Test-Path $dstChild -PathType Leaf) { Remove-Item $dstChild -Force }
+            Copy-Genuine-Tree $child.FullName $dstChild
+        } else {
+            if (Test-Path $dstChild -PathType Container) { Remove-Item $dstChild -Recurse -Force }
+            Copy-Genuine $child.FullName $dstChild
+        }
+    }
+}
 
 # Share แท้ใน build (ทั้งสองโหมดใช้ตัวเดียวกัน)
 $ShareExe   = Join-Path $B 'Overlay OSC\NVIDIA Share\NVIDIA Share.exe'
@@ -36,11 +66,11 @@ if ($Mode -eq 'genuine') {
     foreach ($f in 'nvcontainer.exe','NvContainerTelemetryApi.dll') {
         $src = Join-Path $payload.FullName ('NvContainer\' + $f)
         if (-not (Test-Path $src)) { Fail ('ขาดไฟล์ container แท้: ' + $src) }
-        Copy-Item $src (Join-Path $genuine $f) -Force
+        Copy-Genuine $src (Join-Path $genuine $f)
     }
     $plugSrc = Join-Path $payload.FullName 'NvContainer\plugins'
     if (-not (Test-Path $plugSrc)) { Fail ('ขาด plugins แท้: ' + $plugSrc) }
-    Copy-Item $plugSrc (Join-Path $genuine 'plugins') -Recurse -Force
+    Copy-Genuine-Tree $plugSrc (Join-Path $genuine 'plugins')
 
     # 0b) node แท้ → build\NvNode\ (Web Helper แท้ ~28MB — shim .NET = 0.6MB, ขนาดต้องเกิน 20MB)
     $nodeDst = Join-Path $B 'NvNode'
@@ -49,7 +79,7 @@ if ($Mode -eq 'genuine') {
     if (Test-Path $nhPath) { if ((Get-Item $nhPath).Length -ge 20MB) { $needNode = $false } }
     if ($needNode) {
         if (-not (Test-Path (Join-Path $payload.FullName 'NvNode\NVIDIA Web Helper.exe'))) { Fail ('ขาด node แท้: ' + (Join-Path $payload.FullName 'NvNode\NVIDIA Web Helper.exe')) }
-        Copy-Item (Join-Path $payload.FullName 'NvNode\*') $nodeDst -Recurse -Force
+        Copy-Genuine-Tree (Join-Path $payload.FullName 'NvNode') $nodeDst
     }
     if (-not (Test-Path $nhPath)) { Fail ('stage node ไม่สำเร็จ: ' + $nhPath) }
     if ((Get-Item $nhPath).Length -lt 20MB) { Fail ('node ที่ stage ไม่ใช่ตัวแท้ (' + [math]::Round((Get-Item $nhPath).Length / 1MB, 1) + 'MB — น่าจะเป็น shim) — หยุดบูต') }
@@ -58,7 +88,7 @@ if ($Mode -eq 'genuine') {
     $spDst = Join-Path $B 'ShadowPlay'
     if (-not (Test-Path (Join-Path $spDst 'nvsphelper64.exe'))) {
         if (-not (Test-Path (Join-Path $payload.FullName 'ShadowPlay\nvsphelper64.exe'))) { Fail ('ขาด helper แท้: ' + (Join-Path $payload.FullName 'ShadowPlay\nvsphelper64.exe')) }
-        Copy-Item (Join-Path $payload.FullName 'ShadowPlay\*') $spDst -Recurse -Force
+        Copy-Genuine-Tree (Join-Path $payload.FullName 'ShadowPlay') $spDst
     }
     if (-not (Test-Path (Join-Path $spDst 'nvsphelper64.exe'))) { Fail ('stage helper ไม่สำเร็จ: ' + (Join-Path $spDst 'nvsphelper64.exe')) }
 
