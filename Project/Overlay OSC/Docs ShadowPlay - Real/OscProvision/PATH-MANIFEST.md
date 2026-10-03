@@ -427,3 +427,26 @@ helper WMHK 7 → node CShadowPlayHotkeyReceiver (System: Hotkey, Module: Node) 
 1. ไล่ user context: หา format/ชื่อไฟล์ใน `\NVIDIA\accounts` (RE เฉพาะจุด: strings รอบ userid/User- ใน NvAccountAPINode.node + ProcMon ตอน UserToken) → seed ให้ UserToken กลับเป็น 401/200 ตามยุคทำงาน
 2. แล้ว GET /Capture/State จะตอบตาม (ถ้า root คือ user context) → หน้า boot ต่อ → settings sync → hotkey SET → Alt+Z
 3. RE binary (`GetCaptureState` early-exit) = เฉพาะเมื่อข้อ 1 ไม่พาไปถึง
+
+## §20 — คำตัดสินใจใหม่ของ OWNER: สถาปัตยกรรมปลายทาง + ลำดับงาน (จดตามคำสั่ง OWNER 2026-10-03 หลัง §19.3)
+
+**สถาปัตยกรรมปลายทาง (หมุดหมายสูงสุด — ทุกงานต่อจากนี้วัดกับสิ่งนี้):**
+- **OSC แท้ 100%** — UI + host + node ทำงานตามระบบแท้ทั้งหมด
+- **CaptureEngine เป็นของเรา: NvCapture.exe** — NVIDIA capture engine ถ้าข้าม/ถอดได้ให้ข้าม
+
+**ลำดับงาน (OWNER สั่ง — เรียงตามลำดับ):**
+1. **ปลด Capture/State → 500 ให้หน้า osc init ครบ** — เริ่มจากอ่าน call site ใน NvShadowPlayAPI.js ก่อน RE binary ตาม §19.2 (error จริง = **E_INVALIDARG 0x80070057 = args ไม่ถูก** → ไล่จาก **UserToken 500-vs-401 ก่อน**)
+   - สถานะตาม §19.3: call site อ่านแล้ว (`api.CaptureState(doReply)` — native รับ callback อย่างเดียว ไม่มี args จาก JS) → "args ไม่ถูก" = internal state ของ addon → ตัวตั้งต้น = **UserToken 500 (0x80070002) จาก accounts store หาย** → งานถัดไปตาม §19.3 = seed accounts store ให้ตรง format (dir เปล่า = พิษ ห้ามทำซ้ำ) ก่อน RE binary
+2. **เป้าหมาย Capture/State ระยะยาว = ตอบจากสถานะจริงของ NvCapture.exe** (แนว /Duluka plane ของสาย shim ที่เคยพิสูจน์) — **ไม่ใช่จาก SP Server**
+3. **ห้ามเสียเวลาแก้ 0x80040233 / SP Server enable / NVIDIA capture แท้** — OWNER ตัดสินแล้ว (ต่อยอดคำสั่งเดิม §13 "ระบบ Capture ไม่ต้องเปิด" — ตอนนี้ชัด: ของแท้ไม่แก้ แล้ว capture มีเจ้าของใหม่ = NvCapture.exe)
+4. **การถอด capture stack ทำหลัง Alt+Z ผ่านเท่านั้น** — ทีละชิ้น ตรวจ boot ทุกครั้ง (**HotkeyPlugin ถูก gate ด้วย capture stack**)
+
+**ขอบเขตของหลักการ "ไม่พึ่ง SP Server" (OWNER ชี้แจงเพิ่ม — ผูกกับข้อ 2/3):** ขอบเขต = **capture เท่านั้น** — settings/hotkey handshake ยังไหลผ่าน container ตามระบบแท้ (หน้า sync → SetProperty → Cfg2/Cfg3 → helper register) ดังนั้น: ถ้า Capture/State ผ่านแล้วหน้า sync แต่ container ยังปฏิเสธ SetProperty — งาน m_pSettings SET (เดิมคือทาง 1 ขั้น 3 IpcCommon) **กลับมาเป็น contingency หลักทันที ไม่ใช่ถูกตัดทิ้ง**
+
+**กติกาเดิม (ยังผูกทุกข้อ):** verify ด้วย log จริง / ห้าม push GitHub / UAC ผ่านอัตโนมัติแล้ว
+
+**ผลต่อแผนเดิม (สรุปเพื่อ session ถัดไป):**
+- ขั้นแรก §19.3 (seed accounts store → UserToken กลับ 401/200) = ยังอยู่เส้นทางเดิม สอดคล้องข้อ 1 ตรง — ไม่ต้องเปลี่ยนแผน
+- RE `GetCaptureState` early-exit (§19.2 / §19.3 ข้อ 3) = เฉพาะเมื่อ seed ไม่พาไปถึง — ถ้าต้อง patch ยาว ให้เขียนไปทางตอบจากสถานะ NvCapture.exe ไม่ใช่อาศัย SP Server
+- IpcCommon handshake (ทาง 1 ขั้น 3 ของ §19.1) = **contingency หลัก** ตามขอบเขตด้านบน (ยังไม่ตัดทิ้ง) — ใช้ทันทีเมื่อหน้า sync แล้ว container ยังปฏิเสธ SetProperty
+- recovery `-RecoverSpUser` (§19.1) + Launch-200 ถาวร [5]→[6] = ยังผูกเหมือนเดิม
