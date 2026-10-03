@@ -4,7 +4,23 @@
 #   ของแท้หาไม่เจอ = FAIL ชัดเจน (exit 1) — ห้าม fallback ไป shim เงียบ ๆ (shim เฉพาะ -Mode ours)
 # ลำดับ §10: [0] stage → [1] service → [2] containers ×3 + agent → [3] node :59001 → [4] helper → [5] Share (attach) → [6] re-arm + รายงาน
 # สูตรที่ยึด: Set-ItemProperty เท่านั้น (ไม่ sc config) · helper ต้องหลัง node 200 · re-arm /Launch ทุกรอบ · ห้าม nv-osc=false
-param([string]$Mode = 'genuine')
+param([string]$Mode = 'genuine', [switch]$RecoverSpUser)
+
+# $RecoverSpUser = recovery procedure แยก (input Phase 2): kill เฉพาะ SPUser container แล้วปล่อย Watchdog respawn
+# (FACT A4: SPUser-only respawn ปลอดภัย — Share รอด · ตัวฆ่า Share = full service restart เท่านั้น ห้ามใช้ตอน recovery)
+if ($RecoverSpUser) {
+    Write-Host '=== RECOVERY: kill เฉพาะ SPUser container (Watchdog respawn เอง) ==='
+    Get-CimInstance Win32_Process | Where-Object { $_.Name -eq "nvcontainer.exe" -and $_.CommandLine -match "SPUser" } | ForEach-Object {
+        Write-Host ("[KILL] SPUser PID " + $_.ProcessId)
+        Stop-Process -Id $_.ProcessId -Force
+    }
+    foreach ($i in 1..20) {
+        Start-Sleep -Seconds 2
+        $sp = Get-CimInstance Win32_Process | Where-Object { $_.Name -eq "nvcontainer.exe" -and $_.CommandLine -match "SPUser" }
+        if ($sp) { Write-Host ("SPUser respawn: PID " + $sp.ProcessId); break }
+    }
+    exit 0
+}
 
 $ErrorActionPreference = 'Continue'
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
@@ -129,6 +145,7 @@ if ($Mode -eq 'genuine') {
         @{ Key = 'PF(x86)\NvTelemetry (API32/Bridge32)';  Src = (Join-Path $gfeExe 'NvTelemetry');                              Dst = (Join-Path $pf86 'NvTelemetry');           Tree = $true },
         @{ Key = 'PF\NvTelemetry (API64/Bridge64)';       Src = (Join-Path $gfeExe 'NvTelemetry');                              Dst = (Join-Path $pf64 'NvTelemetry');           Tree = $true },
         @{ Key = 'PF\ShadowPlay (helper anchor — full set)'; Src = (Join-Path $payload.FullName 'ShadowPlay');                  Dst = (Join-Path $pf64 'ShadowPlay');            Tree = $true },
+        @{ Key = 'PF(x86)\ShadowPlay (x86 set — node symlink A7)'; Src = (Join-Path $gfeExe 'ShadowPlay');                        Dst = (Join-Path $pf86 'ShadowPlay');            Tree = $true },
         @{ Key = 'PF(x86)\Update Core\NvBackendAPI32';    Src = (Join-Path $gfeExe 'NvBackend\NvBackendAPI32.dll');             Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
         @{ Key = 'PF(x86)\Update Core\NvTmRep';           Src = (Join-Path $payload.FullName 'NvBackend\NvTmRep.exe');          Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
         @{ Key = 'PF(x86)\Update Core\NvSHIM';            Src = (Join-Path $payload.FullName 'NvBackend\NvSHIM.exe');           Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
