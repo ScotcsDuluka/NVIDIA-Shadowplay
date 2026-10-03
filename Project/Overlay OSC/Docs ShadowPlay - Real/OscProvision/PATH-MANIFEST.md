@@ -412,3 +412,18 @@ helper WMHK 7 → node CShadowPlayHotkeyReceiver (System: Hotkey, Module: Node) 
 - ตัว raise = **`CShadowPlayApi::GetCaptureState` ฝั่ง node** (NvShadowPlayAPINode.node) — fail ก่อนติดต่อ container
 - บริบทรองรับ hint ของ OWNER: `GET /Account/v.1.0/UserToken → 500` (ไม่ login) + SP Server log `UserID=`undefined`` → เงื่อนไข fail น่าจะเป็น **user context** ไม่ใช่ settings เอง
 - **เป้า RE ถัดไป (แคบมาก)**: หาเงื่อนไข early-exit ใน `CShadowPlayApi::GetCaptureState` (NvShadowPlayAPINode.node) ว่าอ่าน state จากไหน (user session? MMF? registry?) — แก้ให้คืน default state ได้ = หน้า boot ต่อ = ทั้ง settings sync + hotkey ไหลเอง
+
+### §19.3 — แก้บันทึก + ผลการอ่าน call site JS (ปิด session 2026-10-03 ค่ำ — คำสั่ง OWNER)
+
+**1. แก้ error code (OWNER ถูกต้อง):** -2147024809 = **0x80070057 = E_INVALIDARG** (ไม่ใช่ 0x80070007 ตามที่เคยเขียน) — E_INVALIDARG = อาร์กิวเมนต์ไม่ถูกต้อง → ตอน RE ให้ไล่จาก "ใครส่งอะไรเข้ามาผิด" ไม่ใช่ "state อ่านจากไหน" อย่างเดียว
+
+**2. call site JS อ่านแล้ว (ฟรี — ก่อน RE binary):**
+- `NvShadowPlayAPI.js:1893` — `GET /Capture/State` → `api.CaptureState(doReply)` — **native รับแค่ callback ไม่มี args อื่น** (ไม่มี token/userId/session ส่งจาก JS) → "ใครส่งผิด" = internal state ของ addon ล้วน
+- **UserToken 500 = `Failed to get User Info` (0x80070002 ERROR_FILE_NOT_FOUND)** — native อ่าน user info จาก **accounts store ที่หายไป**: strings ใน NvAccountAPINode.node = `\NVIDIA\accounts` + `userid`/`null` + `User-*-NotificationSettings.dat` + `InstallerGrantsConsent.txt` — NVIDIA App เคาะ store นี้ไป
+- **ยืนยัน insight ของ OWNER**: ยุคทำงาน UserToken = 401 (account service ตอบ offline ปกติ — มี store) · ของเรา = 500 (store หาย — สาย account พังก่อนตอบปกติ) → **การแก้อาจอยู่ที่ provisioning ฝั่ง account store ไม่ใช่ RE GetCaptureState เลย**
+- **⚠ crash mode ใหม่ที่ค้นพบ (ห้ามทำซ้ำ):** สร้าง `%LOCALAPPDATA%\NVIDIA\accounts` เปล่า → native ตอบ NoAccount **ไม่มี err + userInfo ว่าง** → `NvAutoDownload.js:965 JSON.parse(response.userInfo)` throw "Unexpected end of JSON input" → node ตายทันที — **ต้อง seed ไฟล์ accounts ให้ตรง format ถึงจะปลอดภัย** (dir เปล่า = พิษ) — ทดลองแล้ว revert คืนสถานะเสถียรเรียบร้อย (node 200 ✓)
+
+**ขั้นแรกของ session ถัดไป (เรียงตามลำดับ):**
+1. ไล่ user context: หา format/ชื่อไฟล์ใน `\NVIDIA\accounts` (RE เฉพาะจุด: strings รอบ userid/User- ใน NvAccountAPINode.node + ProcMon ตอน UserToken) → seed ให้ UserToken กลับเป็น 401/200 ตามยุคทำงาน
+2. แล้ว GET /Capture/State จะตอบตาม (ถ้า root คือ user context) → หน้า boot ต่อ → settings sync → hotkey SET → Alt+Z
+3. RE binary (`GetCaptureState` early-exit) = เฉพาะเมื่อข้อ 1 ไม่พาไปถึง
