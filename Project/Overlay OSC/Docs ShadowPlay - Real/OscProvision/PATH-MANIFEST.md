@@ -476,3 +476,49 @@ helper WMHK 7 → node CShadowPlayHotkeyReceiver (System: Hotkey, Module: Node) 
 - start-osc.ps1 ต้อง elevated (guard [0e]) — รันผ่าน `Start-Process -Verb RunAs` + wrapper script เก็บ output ลง `%TEMP%\start-osc-run.log`
 - CaptureCore.log timestamp = `[DD:HH:MM:SS:mmm]` (ไม่มีเดือน/ปี) · ไฟล์ครอบคลุมเฉพาะวันนี้ — **log ยุคสำเร็จ (§8.2/§13) ไม่เคยถูก archive** → กติกาใหม่: ถ้า boot ผ่านเกณฑ์ ให้ copy CaptureCore.log เก็บไว้ทุกครั้ง
 - node peers: `ShadowplayApi22580, ShadowplayServer` — bus เห็นกันทั้งคู่ (MessageBus join ปกติทั้งสองฝั่ง)
+
+### §20.2 — OWNER ตัดสิน: เลือก (ข) ปฏิเสธ (ก) + นโยบาย "genuine + registered patches" (2026-10-03 ดึก)
+
+**คำตัดสินใจ:** ตาม §20.1 ข้อ 3 — **เลือก (ข)** (สถาปัตยกรรม §20 ตรง: NvCapture.exe เป็นผู้ตอบ capture boundary) · **ปฏิเสธ (ก)** (patch .node binary) เหตุผล 3 ข้อ:
+1. .node addon ถูก signature-verify ตอน boot (nvnode.log: "File signature verified" ต่อโมดูล — พิสูจน์แล้ว) — patch = เสี่ยงโมดูลไม่โหลดทั้งสาย ShadowPlayAPI
+2. ขัดหลัก "OSC แท้ 100% ทำงานตามระบบแท้" ที่ OWNER ย้ำ
+3. แก้ GetCaptureState เดี่ยว ๆ ยังชนกำแพงเดิมตอน settings sync ต่อ (Get/Set สำเร็จ = 0 ตลอดวัน) — เสียแรงไม่ปลดปลายทาง
+
+**Implementation (ข) — ตัดที่ชั้น JS (NvShadowPlayAPI.js = ไฟล์ JS ธรรมดา ไม่ถูก sign — สาย shim เคยพิสูจน์แนว surgical edit):**
+- จุดตัด = ขอบเขต capture ตาม §20: **Capture/State + Capture/PIDMode → ตอบจากสถานะ NvCapture.exe แนว /Duluka plane**
+- **INTERIM (จดตามคำสั่ง OWNER):** ถ้า wire ไป NvCapture.exe ยังไม่พร้อม → ตอบ static ก่อน:
+  - `Capture/State` → `{"state":"Ready"}` (shape จากหน้า: `e.data.state` — 0135/0004.shadowPlayService.js:1405; ห้ามตอบ "PID" = ทาง notebook co-proc)
+  - `Capture/PIDMode` → `{"valid":false}` (shape: `e.data.valid` — :130; desktop แท้ = PID mode ไม่ valid)
+- Patch อยู่ที่ **PF(x86)\NvNode\NvShadowPlayAPI.js** (tree ที่ node โหลดจริง — §18) · genuine คงไว้ที่ Payload\NvNode · marker: `[NvCapture-interim §20.2]`
+
+**นโยบาย MD5 manifest ใหม่ (OWNER กำหนด):** นิยาม = **"genuine + registered patches"** — patch ชั้น JS ต้อง**ลงทะเบียน**เป็น patch ที่ตั้งใจ (พร้อมเหตุผล — ทะเบียนอยู่ในหัวข้อนี้) ไม่ใช่ถูก flag เป็น corruption แล้ว re-stage ทับ · start-osc.ps1 มี step **[0h]** re-apply patch ถ้า marker หาย (idempotent — กัน NVIDIA App ลบ tree แล้ว [0e] restore ของแท้ทับ; backup ของแท้ = `Logs\phase1-evidence\patch-backup\NvShadowPlayAPI.js.genuine` + Payload\NvNode)
+
+**คาดหน้าต่อไป + วิธีวัด (OWNER กำหนด):** หลัง Capture/State ไม่ 500 หน้าเดินต่อใน init chain (DesktopCapture/Support/Reason → Broadcast2K → MainView → AudioSettings → 8K60) — จับ request log หา gate ถัดไป (น่าจะ settings sync) · **ถ้า container ยังปฏิเสธ Get/Set ให้สืบสาย `CSettings::Refresh GetMsHybridSystemConfigInfo failed` ก่อนหนึ่งรอบ** — m_pSystemConfig init ไม่ครบ อาจเป็นสาเหตุจริงที่ Get/Set ตาย (แก้จุดนั้น = ทางแท้สุด ไม่ต้อง patch อะไร) — "benign บน desktop" ตอนนี้เป็น assumption ยังไม่ใช่ evidence
+
+**กติกา:** "archive log ทุกครั้งที่ boot ผ่าน" — OWNER อนุมัติแล้ว ใช้ได้เลย
+
+### §20.3 — ผล patch [0h]: หน้าผ่าน Capture/State ครั้งแรก + gate ถัดไป + MsHybrid ถูกตัด (2026-10-03 ดึก — หลักฐาน: Logs\phase1-evidence\log-*-20261003-2348-postPatch-firstPass.log)
+
+**1. Registered patch [0h] ใช้งานได้จริง (FACT — curl + request log จริง):**
+- patch ลงที่ PF(x86)\NvNode\NvShadowPlayAPI.js — marker `[NvCapture-interim §20.2]` 2 จุด (บรรทัด ~1907/~1931) · genuine call ถูก comment ไว้คืนทุกจุด · start-osc.ps1 มี step **[0h]** re-apply อัตโนมัติถ้า marker หาย (idempotent) · backup ของแท้ = `Logs\phase1-evidence\patch-backup\NvShadowPlayAPI.js.genuine` + Payload\NvNode
+- `GET /Capture/State → 200 {"state":"Ready"}` · `GET /Capture/PIDMode → 200 {"valid":false}` (curl จริง)
+- **หน้า boot ขยับครั้งแรกตั้งแต่ §19**: chain #13 `Capture/State → 200` (เดิม = จุดตาย wave 2 ตาม §19.1) → เดินต่อทันที
+- กับดักเล็ก: node ที่เกิดจาก script elevated kill จาก shell ปกติไม่ได้ (Access denied) — ต้อง kill ผ่าน elevated wrapper แล้วรัน start-osc ใหม่ ไม่งั้น script เห็น "node อยู่แล้ว path ตรง" และ**ไม่โหลด patch** (JS โหลดตอน node start เท่านั้น)
+
+**2. Gate map ของ init chain (ณ จบ session นี้):**
+- ผ่านแล้ว: HardwareInformation 200 · **UserToken 200 (§20.1)** · PrivacySettings 200 · Launch 200 · **Capture/State 200 (patch นี้)**
+- ไม่ block: POST Hotkey/DynamicToggle 500 (หน้าเดินต่อได้) · GET /Launch 200 (แต่ POST /Launch ยัง 500 — script [6] guard)
+- **gate ถัดไป = `DesktopCapture/Support/Reason → 500`** (#15, 23:38:19) — addon คิวรี `GetProperty("IsDesktopCaptureSupportedReason")` → server E_INVALIDARG (คู่ขนาน NODJS↔CNTNR เหมือนเดิม)
+- อยู่ถัดจากนั้น (ยังไม่ถึง): Broadcast2K → MainView → AudioSettings → 8K60 — ล้วนอ่านผ่าน Get/Set สายเดียวกัน
+- หมายเหตุ: DesktopCapture/Support/Reason เป็น**capability query** — attach-time probes ของ server คำนวณครบแล้ว (หน้าต่าง CreateServerImplInterface: GetMPOSupportedReason/GetHDRScreenshotSupportedReason/NVEnc caps ฯลฯ ผ่านหมด) แต่ถูก guard ปฏิเสธก่อนอ่านได้
+
+**3. MsHybrid round (คำสั่ง OWNER หนึ่งรอบก่อน deep-RE): ตัด — ไม่ใช่ root**
+- `CSettings::Refresh GetMsHybridSystemConfigInfo failed` + `CSystemConfiguration::GetMsHybridSystemConfigInfo Adapter enumeration is invalid` เกิด**รอบเดียวทั้งวัน** (บูต 21:07 CNTNR 10248) · log level **[R] ไม่ใช่ [E]** · เป็น refresh path ไม่ใช่ init path
+- Get/Set ถูกปฏิเสธใน**ทุกบูต** รวมบูตที่ไม่มี MsHybrid fail · `GetMsHybridByDefaultSupportedReason dwRetCode(0x1)` ปกติทุกบูต
+- สรุป: ไม่ใช่สาเหตุของ Get/Set ตาย — ไม่ต้องตามต่อ
+
+**4. ต่อไปตามแผน OWNER: deep-RE guard Get/Set ของ CServerImpl (_nvspcaps64.dll — RE อ่านอย่างเดียว)**
+- คำถามที่ RE ต้องตอบ: guard ไหนยิง E_INVALIDARG — (i) m_pSettings จริง ๆ เป็น NULL (ขัด CreateSettings-ไม่เคย-fail) (ii) settings map ว่าง + SetProperty ก็โดน guard ก่อนเขียน (iii) state gate (server "not enabled" หลัง SetSP fail)
+- hypothesis แรกจาก strings: `CSettings::SetParam: m_eActiveSPClient[%d]` — server track **active SP client** · วันนี้ Get/Set ล้วนมาจาก NODJS client · **Share client ไม่เคยยิง Get/Set เลย** (0 ครั้งทั้ง log — ทำแค่ CreateShadowPlayApiInterface + GetCaptureSessionParam ตอน attach) · enable มาจาก rundll32 origin(7) + NODJS origin(4) — ถ้า guard ผูก active client กับ enable/attach handshake = ตรง hunch §19.1 ทาง 1 ขั้น 3 (IpcCommon handshake SP Server ↔ Share's shadowplay2)
+- กติกา: RE = อ่านอย่างเดียว · patch binary ต้องขออนุมัติ OWNER (กฎ §18)
+- **หมายเหตุ repo:** build\NVIDIA ShadowPlay\start-osc.ps1 ([0h] ใหม่) อยู่**นอก git** (build tree = portable ไม่ track) — ทะเบียน patch ฉบับเต็มอยู่ใน §20.2 + ไฟล์จริงบนดิสก์
