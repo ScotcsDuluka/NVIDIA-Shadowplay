@@ -213,6 +213,20 @@ if ($Mode -eq 'genuine') {
     }
     Write-Host ('[0f] GFE hardlink: linked=' + $linked + ' skipped=' + $skipped + ' failed=' + $failed)
 
+    # 0g) runtime data dirs (§6 — สร้างล่วงหน้า idempotent ก่อน service start — ทุก plugin resolve path ตอน init ไม่ retry)
+    Write-Host '=== [0g] runtime data dirs (§6) ==='
+    $runtimeDirs = @(
+        (Join-Path $env:ProgramData 'NVIDIA Corporation\NvNode'),
+        (Join-Path $env:ProgramData 'NVIDIA Corporation\ShadowPlay'),
+        (Join-Path $env:ProgramData 'NVIDIA'),
+        (Join-Path $env:LOCALAPPDATA 'NVIDIA Corporation\NvNode'),
+        (Join-Path $env:LOCALAPPDATA 'NVIDIA Corporation\NVIDIA Share')
+    )
+    foreach ($d in $runtimeDirs) {
+        if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null; Write-Host ('  สร้าง: ' + $d) }
+    }
+    Write-Host ('[0g] runtime dirs ok (' + $runtimeDirs.Count + ')')
+
     Write-Host ('[0] stage OK · container=' + $genuine)
     Write-Host ('[0]          · node=' + $nodeDst)
     Write-Host ('[0]          · helper=' + $spDst)
