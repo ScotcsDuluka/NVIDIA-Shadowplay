@@ -193,6 +193,29 @@ Write-Host ('[1] service: ' + $svc.Status)
 $ip = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\NvContainerLocalSystem' -ErrorAction SilentlyContinue).ImagePath
 Write-Host ('[1] ImagePath: ' + $ip)
 
+# ถ้า service รันอยู่แต่ไม่มี container ลูก (SPUser/User agent) = watchdog หมดโควตา retry จากรอบก่อน
+# → restart service รอบเดียวเพื่อ re-arm (ล้าง FailureActions ก่อน stop ตามสูตร §9)
+if ($svc.Status -eq 'Running') {
+    $child = @(Get-CimInstance Win32_Process -Filter "Name='nvcontainer.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match 'plugins\\User|plugins\\SPUser' })
+    if ($child.Count -eq 0) {
+        Write-Host '[1] ไม่มี container ลูกทั้งที่ service รันอยู่ — restart service เพื่อ re-arm watchdog'
+        if (-not $isAdmin) { Fail '[1] ต้อง restart service — รัน start-osc แบบ elevated (Run as Administrator)' }
+        reg.exe add 'HKLM\SYSTEM\CurrentControlSet\Services\NvContainerLocalSystem' /v FailureActions /t REG_BINARY /d 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 /f | Out-Null
+        sc.exe stop NvContainerLocalSystem | Out-Null
+        Start-Sleep -Seconds 5
+        Get-CimInstance Win32_Process -Filter "Name='nvcontainer.exe'" -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+        Start-Sleep -Seconds 2
+        sc.exe start NvContainerLocalSystem | Out-Null
+        Start-Sleep -Seconds 14
+        if ((Get-Service NvContainerLocalSystem).Status -ne 'Running') {
+            sc.exe start NvContainerLocalSystem | Out-Null
+            Start-Sleep -Seconds 14
+        }
+        Write-Host ('[1] service หลัง restart: ' + (Get-Service NvContainerLocalSystem).Status)
+        Start-Sleep -Seconds 10
+    }
+}
+
 # ---------- [1b] registry กุญแจ (สูตรพิสูจน์แล้วเดิม — NVIDIA App ไม่ใช้ค่าเหล่านี้ การฟื้นไม่กระทบมัน) ----------
 if ($Mode -eq 'genuine') {
     Write-Host '=== [1b] registry: Global\NvNode + GFExperience\FullPath (idempotent) ==='
