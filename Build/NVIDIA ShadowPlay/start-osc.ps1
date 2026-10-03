@@ -85,6 +85,10 @@ if ($Mode -eq 'genuine') {
     }
     if (-not (Test-Path $nhPath)) { Fail ('stage node ไม่สำเร็จ: ' + $nhPath) }
     if ((Get-Item $nhPath).Length -lt 20MB) { Fail ('node ที่ stage ไม่ใช่ตัวแท้ (' + [math]::Round((Get-Item $nhPath).Length / 1MB, 1) + 'MB — น่าจะเป็น shim) — หยุดบูต') }
+    # MessageBus.dll ใน payload node tree = x64 (ผิด arch สำหรับ node x86 — ทำ bridge fail 193) — บังคับใช้ตัว x86 จาก NvContainerX86Dlls
+    $mb86 = Join-Path $payload.FullName 'NvContainerX86Dlls\MessageBus.dll'
+    if (-not (Test-Path $mb86)) { Fail ('ขาด MessageBus x86: ' + $mb86) }
+    Copy-Genuine $mb86 (Join-Path $nodeDst 'MessageBus.dll')
 
     # 0c) helper แท้ → build\ShadowPlay\ (nvsphelper64.exe + ไลบรารีข้างเคียง)
     $spDst = Join-Path $B 'ShadowPlay'
@@ -111,6 +115,14 @@ if ($Mode -eq 'genuine') {
         @{ Key = 'PF\NvBackend (agent home — §2 map)';    Src = (Join-Path $payload.FullName 'NvBackend');                      Dst = (Join-Path $pf64 'NvBackend');             Tree = $true },
         @{ Key = 'PF(x86)\NvStreamSrv (node bridge)';     Src = (Join-Path $gfeExe 'GFExperience.NvStreamSrv\x86\server');      Dst = (Join-Path $pf86 'NvStreamSrv');           Tree = $true },
         @{ Key = 'PF\NvStreamSrv (x64 server — §3.2)';    Src = (Join-Path $gfeExe 'GFExperience.NvStreamSrv\amd64\server');    Dst = (Join-Path $pf64 'NvStreamSrv');           Tree = $true },
+        @{ Key = 'PF(x86)\NvContainer (x86 dlls §3.3)';   Src = (Join-Path $payload.FullName 'NvContainerX86Dlls');             Dst = (Join-Path $pf86 'NvContainer');           Tree = $true },
+        @{ Key = 'PF\NvContainer\MessageBus (x64)';       Src = (Join-Path $payload.FullName 'NvContainer\MessageBus.dll');     Dst = (Join-Path $pf64 'NvContainer');           Tree = $false },
+        @{ Key = 'PF\NvContainer\libprotobuf (x64)';      Src = (Join-Path $payload.FullName 'NvContainer\libprotobuf.dll');    Dst = (Join-Path $pf64 'NvContainer');           Tree = $false },
+        @{ Key = 'PF\NvContainer\libcrypto (x64)';        Src = (Join-Path $payload.FullName 'NvContainer\libcrypto-1_1.dll');  Dst = (Join-Path $pf64 'NvContainer');           Tree = $false },
+        @{ Key = 'PF\NvContainer\libssl (x64)';           Src = (Join-Path $payload.FullName 'NvContainer\libssl-1_1.dll');     Dst = (Join-Path $pf64 'NvContainer');           Tree = $false },
+        @{ Key = 'PF\NvContainer\Poco (x64)';             Src = (Join-Path $payload.FullName 'NvContainer\Poco.dll');           Dst = (Join-Path $pf64 'NvContainer');           Tree = $false },
+        @{ Key = 'PF\NvContainer\PocoInit (x64)';         Src = (Join-Path $payload.FullName 'NvContainer\PocoInitializer.dll'); Dst = (Join-Path $pf64 'NvContainer');          Tree = $false },
+        @{ Key = 'PF\GFE\dependencies\CrimsonUtil';       Src = (Join-Path $gfeExe 'GFExperience\dependencies\CrimsonUtil.dll'); Dst = (Join-Path $pf64 'NVIDIA GeForce Experience\dependencies'); Tree = $false },
         @{ Key = 'PF(x86)\Update Core\NvBackendAPI32';    Src = (Join-Path $gfeExe 'NvBackend\NvBackendAPI32.dll');             Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
         @{ Key = 'PF(x86)\Update Core\NvTmRep';           Src = (Join-Path $payload.FullName 'NvBackend\NvTmRep.exe');          Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
         @{ Key = 'PF(x86)\Update Core\NvSHIM';            Src = (Join-Path $payload.FullName 'NvBackend\NvSHIM.exe');           Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
@@ -144,6 +156,8 @@ if ($Mode -eq 'genuine') {
         }
     }
     # manifest ไว้เทียบ (จำนวนไฟล์ + hash) — NVIDIA App ลบซ้ำ = เทียบเจอทันที
+    # MessageBus.dll ใน node tree ฝั่ง PF(x86) ก็เป็น x64 ปนมาเหมือนกัน — บังคับ x86 เช่นเดียวกับ build\NvNode
+    Copy-Genuine $mb86 (Join-Path $pf86 'NvNode\MessageBus.dll')
     $manifestPath = Join-Path $Log 'pf-anchor-manifest.txt'
     $entries = @()
     foreach ($job in $anchorJobs) {
@@ -238,7 +252,22 @@ if ($Mode -eq 'genuine') {
         @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\ShadowPlay\NVSPCAPS'; N = 'IsShadowPlayEnabled'; T = 'DWord'; V = 1 },
         @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\ShadowPlay\NVSPCAPS'; N = 'IsShadowPlayEnabledUser'; T = 'DWord'; V = 1 },
         @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\ShadowPlay\NVSPCAPS'; N = 'IsShadowPlayEnabled'; T = 'DWord'; V = 1 },
-        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\ShadowPlay\NVSPCAPS'; N = 'IsShadowPlayEnabledUser'; T = 'DWord'; V = 1 }
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\ShadowPlay\NVSPCAPS'; N = 'IsShadowPlayEnabledUser'; T = 'DWord'; V = 1 },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'MessageBus.dll'; T = 'String'; V = 'C:\Program Files\NVIDIA Corporation\NvContainer\MessageBus.dll' },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'libprotobuf.dll'; T = 'String'; V = 'C:\Program Files\NVIDIA Corporation\NvContainer\libprotobuf.dll' },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'libcrypto-1_1.dll'; T = 'String'; V = 'C:\Program Files\NVIDIA Corporation\NvContainer\libcrypto-1_1.dll' },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'libssl-1_1.dll'; T = 'String'; V = 'C:\Program Files\NVIDIA Corporation\NvContainer\libssl-1_1.dll' },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'Poco.dll'; T = 'String'; V = 'C:\Program Files\NVIDIA Corporation\NvContainer\Poco.dll' },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'PocoInitializer.dll'; T = 'String'; V = 'C:\Program Files\NVIDIA Corporation\NvContainer\PocoInitializer.dll' },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'NvStreamBase.dll'; T = 'String'; V = 'C:\Program Files\NVIDIA Corporation\NvStreamSrv\NvStreamBase.dll' },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'RtspServer.dll'; T = 'String'; V = 'C:\Program Files\NVIDIA Corporation\NvStreamSrv\RtspServer.dll' },
+        @{ P = 'HKLM:\SOFTWARE\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'CrimsonUtil.dll'; T = 'String'; V = 'C:\Program Files\NVIDIA Corporation\NVIDIA GeForce Experience\dependencies\CrimsonUtil.dll' },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'MessageBus.dll'; T = 'String'; V = 'C:\Program Files (x86)\NVIDIA Corporation\NvContainer\MessageBus.dll' },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'libprotobuf.dll'; T = 'String'; V = 'C:\Program Files (x86)\NVIDIA Corporation\NvContainer\libprotobuf.dll' },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'libcrypto-1_1.dll'; T = 'String'; V = 'C:\Program Files (x86)\NVIDIA Corporation\NvContainer\libcrypto-1_1.dll' },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'libssl-1_1.dll'; T = 'String'; V = 'C:\Program Files (x86)\NVIDIA Corporation\NvContainer\libssl-1_1.dll' },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'Poco.dll'; T = 'String'; V = 'C:\Program Files (x86)\NVIDIA Corporation\NvContainer\Poco.dll' },
+        @{ P = 'HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\NvContainer\ModuleMap'; N = 'PocoInitializer.dll'; T = 'String'; V = 'C:\Program Files (x86)\NVIDIA Corporation\NvContainer\PocoInitializer.dll' }
     )
     foreach ($r in $regJobs) {
         if (-not (Test-Path $r.P)) { New-Item -Path $r.P -Force | Out-Null }
