@@ -368,3 +368,19 @@ helper WMHK 7 → node CShadowPlayHotkeyReceiver (System: Hotkey, Module: Node) 
 
 **ค้าง (นอกขอบเขต OSC — OWNER สั่งไว้):** POST /Launch → 500 (ตระกูล settings-sync gap — capture layer ยังไม่เปิด 0x80040233) · nvsphelper64 ยังต้องทดสอบ Alt+Z จริงโดย OWNER
 
+
+## §19 — m_pSettings deadlock แมปครบ (2026-10-03 ค่ำ — input ของ Phase 2/3)
+
+**FACT จาก log + binary strings (ทาง 1 ขั้นแรก):**
+1. `CServerImpl::CreateSettings` = ถูกเรียกจาก **constructor/Initialize ของ CServerImpl เอง** (strings: "CServerImpl::CServerImpl: CreateSettings failed" / "Initialize: CreateSettings failed") — ไม่มี failure log = **m_pSettings ถูกสร้างแล้วแต่ "ว่าง"**
+2. settings = in-memory ล้วน (ไม่มี settings file — ค้น .json/.dat/.db ใน _nvspcaps64.dll = ไม่มี) — เติมด้วย IPC SetProperty stream จากหน้า osc เท่านั้น
+3. หน้า osc **connected แล้ว** (`Socket XA27uQE04tV--rARAAAA connected` 21:35) — boot หน้า: HardwareInformation 200 → UserToken 500 (ไม่ login) → PrivacySettings 200 → **DynamicToggle 500** → Launch 200 → Language/beta 200 → **Capture/State 500 → หน้าหยุด** → DesktopCapture/Support/Reason ไม่ถูกเรียก → ไม่มี settings sync
+4. `COverlayApi::CreateOverlay: hr[0]` = overlay สร้างสำเร็จบน Share ตัวใหม่ ✓
+5. `CreateSymbolicLink failed = 3` = หายไปแล้วหลังฟื้นชุด x86 ShadowPlay (NvRemux.dll ฯลฯ) — ไม่ใช่ตัวขวางแล้ว
+6. ตัวฆ่า Share = **full service restart เท่านั้น** · SPUser-only respawn ปลอดภัย (Watchdog respawn รอบแรก, Share รอด — พิสูจน์ด้วย A4 + ProcMon) → recovery ของ supervisor = `-RecoverSpUser` (ใส่ใน start-osc แล้ว)
+
+**deadlock เชิงโครงสร้าง**: settings ว่าง → Capture/State 500 → หน้าไม่ sync → settings ว่าง (วงจร) — การเปิดต้องแก้ที่ handshake IpcCommon ระหว่าง SP Server ↔ Share's shadowplay2 (ทาง 1) หรือ deviation ที่ต้องขออนุมัติ (patch หน้า osc / binary)
+
+**A3 ตัดทาง C**: เครื่อง Intel (HUAWEI-PC) ไม่มี key `GFExperience\ShadowPlay` เลย → GFE ไม่เขียน Cfg2/Cfg3 บนเครื่องไม่มี NVIDIA GPU → ตัดตามเงื่อนไข ✓
+
+**สถานะ stack ปัจจุบัน (รอดหลัง A7 boot 20:16 + fixes)**: container ×3 (Service/User/SPUser — ShadowplayServer joined) · node 3528 (200, callback armed) · Share ×2 (overlay hr[0]) · helper armed · Launch 200 · เหลือ: settings sync + hotkey config
