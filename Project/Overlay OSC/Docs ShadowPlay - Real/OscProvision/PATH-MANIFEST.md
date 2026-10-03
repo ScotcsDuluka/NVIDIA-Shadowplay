@@ -550,3 +550,24 @@ CServerImpl::EnableShadowPlay: SetSP failed! 0x80004005
 - **กลับสู่สูตร §13: nvcontainer (service + SPUser) จาก PF แท้** — node/Share/helper ยังอยู่ build ตาม §8/§17 · แก้ = ImagePath + Watchdog SPUserX64 profile ชี้ PF + ปรับ start-osc (เกณฑ์ §18.1 "containers จาก build genuine" ต้องแก้ตาม) · ทดสอบคาดหวัง: SetSP ผ่าน → enable hr[0] → Get/Set ฟื้น → DesktopCapture/Support/Reason 200 → settings sync ไหล → หน้า boot จนจบ
 - ทางเลือกสุดท้าย (ถ้า OWNER ยืนยัน container จาก build): patch whitelist ของ ValidatePID ใน nvcontainer.exe — binary patch ขัด genuine-100% → **ไม่แนะนำ**
 - patch [0h] ที่ route JS คงอยู่เหมือนเดิม (interim ตาม §20.2) — ถ้า flip สำเร็จ ค่อยประเมินว่าจะถอดหรือคงไว้
+
+### §20.5 — FLIP สำเร็จ: container แท้จาก PF → SetSP ผ่าน → enable hr[0] → Get/Set ฟื้นครบ (2026-10-04 00:1x — OWNER อนุมัติตามข้อเสนอ §20.4)
+
+**เงื่อนไข 4 ข้อของ OWNER (ผลครบ):**
+1. **PF anchor แบบ [0e] ✓** — start-osc.ps1 step **[0i]**: restore `Payload\NvContainer` → `PF\NvContainer` ทีละไฟล์ (Copy-Genuine-Tree) + **mirror-clean** (Remove-Extra-Tree — ลบของแปลกที่ไม่มีใน Payload) + MD5 manifest `Logs\pf-container-manifest.txt` · step **[1d]**: flip idempotent (ImagePath + Watchdog Folder/Container/Parameters — string-replace คำนำหน้า path เดียว คง flag/log path ทั้งหมด)
+2. **เกณฑ์ §18.1 แก้ใหม่**: acceptance = **"container แท้จาก PF anchor (provisioned by start-osc [0i]) · node/Share/helper จาก build"** — justification: ValidatePID ทำงานที่ขั้น SetSP (หลักฐาน log คู่ §20.4) · patch whitelist ถูกปฏิเสธตามหลัก genuine-100%
+3. **ลำดับทดสอบผ่านเกือบครบ** (หลักฐาน: `Logs\phase1-evidence\log-*-20261004-0017-PF-flip-pass.log`):
+   - SetSP ผ่าน: `CServerIpc::SetSP : IN(19724, 5)` — **ไม่มี ValidatePID fail อีกเลย**
+   - enable hr[0] สะอาด: `EnableShadowPlay: IN → out hr[0]` ไม่มี failed-to-start / SetSP-failed
+   - Get/Set ฟื้น (จาก 0 ตลอดวัน → นับไม่ถ้วน): DesktopCapture/Support/Reason **200 {"support":true}** · 8k60 **200 {"support":false}** (1080 Ti — ถูกต้อง) · **POST OSC/MainView 200** (webcam/mic×3/audioMode/instantReplay ครบ) · **AudioSettings 200 {"systemVolumePercent":100}** · POST /Launch **200** · POST /Osc 200 · hotkey routes 200 ทั้งชุด
+   - หน้า boot สด (Share restart, container อุ่น): **chain จบครบ** Capture/State 200 (patch [0h]) → DesktopCapture 200 → MainView 200 → AudioSettings 200 → hotkey/* 200 → 8k60 200 → Osc 200 — ไม่มี 500 ที่เป็นความพังของ stack (เหลือ 500 ที่ = คำตอบถูกต้องเมื่อไม่มีเกม: Capture/ProcessInfo/4294967293 + DeepDVC)
+   - ⏳ Alt+Z จริง = รอ OWNER กด (ฉีดคีย์ keybd_event ไม่ผ่าน — helper กรอง injected keys; ตาม §18 Alt+Z จริงเป็นของ OWNER อยู่แล้ว)
+4. **กติกาเดิมครบ** — archive ✓ (`log-*-20261004-0017-PF-flip-pass.log`) · ห้าม push ✓ · recovery = -RecoverSpUser ✓
+
+**กับดักใหม่ที่เจอระหว่าง flip (สำคัญ — เคย kill service ทั้งหมด exit 14109):**
+- **NVIDIA App ทิ้ง duplicate plugin ที่ PF**: `plugins\LocalSystem\NvMessageBusBroadcast.dll` (ตัวไม่มีขีดล่าง ของ App) + `_NvMessageBusBroadcast.dll` (ตัวแท้) อยู่ร่วมกัน → container โหลดตัว App ก่อน (N ก่อน _) แล้วชนชื่อ plugin ตัวเอง → "Failing loading of plugin ... because of existing plugin 'NvMessageBusBroadcast'" → exit **14109** · fix = **Remove-Extra-Tree** ใน [0i] (mirror ตาม Payload — ของแปลกถูกลบทุกบูต)
+
+**บทเรียน/สถานะค้างเล็ก:**
+- **cold-cache first-call timeout**: property บางตัว (hotkey props, 8k60, MainView/Audio data) ครั้งแรกหลัง container เกิดใหม่ server คำนวณเกิน timeout 500ms ของ client IpcSyncCall → 500 หนึ่งครั้ง → ครั้งถัดไป 200 (cache) · ผล = หน้าที่ boot "สดหลัง container ใหม่" อาจชน 500 ครั้งแรกของบาง route — page reload รอบสองผ่านครบ (หรือ warm ด้วย curl ก่อน) — ยังไม่แก้ที่ต้นเหตุ (timeout คือพฤติกรรมแท้)
+- Cfg2/Cfg3 ยังไม่ถูกเขียน (reg query ไม่เจอ) — hotkey ผู้ใช้ยังว่าง (`keys: []`); node ใช้ default (openshare [18,88]) — การ SET hotkey จริงจากหน้า = งานถัดไปหลัง OWNER ยืนยัน Alt+Z
+- [0h] patch (Capture/State boundary) คงอยู่ตามคำสั่ง OWNER — ไม่เกี่ยวกับ flip (ขอบเขต capture ของ NvCapture.exe ตาม §20)
