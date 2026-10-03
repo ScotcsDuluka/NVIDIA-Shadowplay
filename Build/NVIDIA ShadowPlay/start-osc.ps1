@@ -108,6 +108,7 @@ if ($Mode -eq 'genuine') {
     $pf64 = 'C:\Program Files\NVIDIA Corporation'
     $anchorJobs = @(
         @{ Key = 'PF(x86)\NvNode (node tree)';            Src = (Join-Path $payload.FullName 'NvNode');                         Dst = (Join-Path $pf86 'NvNode');                Tree = $true },
+        @{ Key = 'PF\NvBackend (agent home — §2 map)';    Src = (Join-Path $payload.FullName 'NvBackend');                      Dst = (Join-Path $pf64 'NvBackend');             Tree = $true },
         @{ Key = 'PF(x86)\Update Core\NvBackendAPI32';    Src = (Join-Path $gfeExe 'NvBackend\NvBackendAPI32.dll');             Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
         @{ Key = 'PF(x86)\Update Core\NvTmRep';           Src = (Join-Path $payload.FullName 'NvBackend\NvTmRep.exe');          Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
         @{ Key = 'PF(x86)\Update Core\NvSHIM';            Src = (Join-Path $payload.FullName 'NvBackend\NvSHIM.exe');           Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
