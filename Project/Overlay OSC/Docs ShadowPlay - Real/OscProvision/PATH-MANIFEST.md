@@ -405,3 +405,10 @@ helper WMHK 7 → node CShadowPlayHotkeyReceiver (System: Hotkey, Module: Node) 
 **recovery procedure (ห้ามลืม):** ตัวฆ่า Share = full service restart เท่านั้น · ฟื้นตัว = `start-osc.ps1 -RecoverSpUser` (kill เฉพาะ SPUser ห้าม restart service) · ลำดับ Launch-200 ถาวร = [5] kill zombie → Share สด attach 15 วิ → [6] Launch ครั้งเดียว (guard fail-2)
 
 **A3:** ทาง C ถูกตัด — เครื่อง Intel (HUAWEI-PC) ไม่มี key `GFExperience\ShadowPlay` เลย (reg query คืน ERROR)
+
+### §19.2 — เจาะ error ของ Capture/State ได้เป๊ะ (ยิบหลักฐาน — ปรับเป้า RE ให้แคบลง)
+
+- `GET /Capture/State` (21:41:06, request #25) → node raise **ในเครื่องทันที**: `{code:-2147024809 = 0x80070007}` — **CaptureCore เงียบสนิทช่วงนั้น** = ไม่ได้ยิงไป SP Server เลย (ต่างจาก GetProperty/SetCaptureSessionParam ที่เด้ง m_pSettings จาก container)
+- ตัว raise = **`CShadowPlayApi::GetCaptureState` ฝั่ง node** (NvShadowPlayAPINode.node) — fail ก่อนติดต่อ container
+- บริบทรองรับ hint ของ OWNER: `GET /Account/v.1.0/UserToken → 500` (ไม่ login) + SP Server log `UserID=`undefined`` → เงื่อนไข fail น่าจะเป็น **user context** ไม่ใช่ settings เอง
+- **เป้า RE ถัดไป (แคบมาก)**: หาเงื่อนไข early-exit ใน `CShadowPlayApi::GetCaptureState` (NvShadowPlayAPINode.node) ว่าอ่าน state จากไหน (user session? MMF? registry?) — แก้ให้คืน default state ได้ = หน้า boot ต่อ = ทั้ง settings sync + hotkey ไหลเอง
