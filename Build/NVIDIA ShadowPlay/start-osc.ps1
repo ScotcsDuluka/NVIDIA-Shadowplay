@@ -20,13 +20,15 @@ function Same-File([string]$a, [string]$b) {
     if (-not ((Test-Path $a -PathType Leaf) -and (Test-Path $b -PathType Leaf))) { return $false }
     return ((Get-FileHash $a -Algorithm MD5 -ErrorAction SilentlyContinue).Hash -eq (Get-FileHash $b -Algorithm MD5 -ErrorAction SilentlyContinue).Hash)
 }
-# Copy-Genuine: idempotent — ข้ามถ้าเนื้อไฟล์ตรง (มีอยู่แล้ว หรือถูก lock โดย container ที่รันจากมัน) · copy ผิดพลาดอื่น = fail ชัด
+# Copy-Genuine: idempotent — ข้ามถ้าเนื้อไฟล์ตรง (มีอยู่แล้ว หรือถูก lock โดย container ที่รันจากมัน)
+# ล็อกแต่เนื้อไม่ตรง = เตือน + ข้าม (runtime วางไว้เองและกำลังใช้ — แทนไม่ได้ตอนนี้) · ไฟล์หายจริง = fail ชัด
 function Copy-Genuine([string]$src, [string]$dst) {
     if (Test-Path $dst -PathType Leaf) {
         if (Same-File $src $dst) { Write-Host ('  ข้าม (เนื้อไฟล์ตรง): ' + (Split-Path $dst -Leaf)); return }
         try { Copy-Item $src $dst -Force } catch {
             if (Same-File $src $dst) { Write-Host ('  ข้าม (ล็อกแต่เนื้อไฟล์ตรง): ' + (Split-Path $dst -Leaf)); return }
-            Fail ('copy ไม่สำเร็จ: ' + $src + ' → ' + $dst + ' — ' + $_.Exception.Message)
+            Write-Host ('  ⚠ ล็อกโดย process ที่รันอยู่ — ข้าม (ใช้ของที่มีอยู่): ' + (Split-Path $dst -Leaf) + ' — ' + $_.Exception.Message)
+            return
         }
     } else {
         try { Copy-Item $src $dst -Force } catch { Fail ('copy ไม่สำเร็จ: ' + $src + ' → ' + $dst + ' — ' + $_.Exception.Message) }
