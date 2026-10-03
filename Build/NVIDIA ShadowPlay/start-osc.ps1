@@ -212,46 +212,24 @@ else {
     if (-not (Test-Path $HelperExe)) { Fail ('ไม่พบ helper (ours): ' + $HelperExe) }
 }
 
-# ---------- [1] service NvContainerLocalSystem (RUNNING = ไม่แตะ) ----------
-Write-Host '=== [1] service NvContainerLocalSystem (RUNNING = ไม่แตะ) ==='
+# ---------- [1] A1 Light-era order: หยุด service ก่อน (Share ต้องมีชีวิตก่อน container init — §11) ----------
+Write-Host '=== [1] หยุด service (A1: Share ต้องมาก่อน container init) ==='
 $svc = Get-Service NvContainerLocalSystem -ErrorAction SilentlyContinue
 if (-not $svc) { Fail 'ไม่มี service NvContainerLocalSystem — restore registry ก่อน (PATH-MANIFEST §3.1)' }
-if ($svc.Status -ne 'Running') {
-    Start-Service NvContainerLocalSystem
-    Start-Sleep -Seconds 10
-    if ((Get-Service NvContainerLocalSystem).Status -ne 'Running') {
-        Write-Host '  รอบแรกไม่ขึ้น — start รอบสอง (pattern ปกติของ container แท้)'
-        Start-Service NvContainerLocalSystem
-        Start-Sleep -Seconds 10
-    }
+if (-not $isAdmin) { Fail '[1] ต้อง stop/start service — รัน start-osc แบบ elevated (Run as Administrator)' }
+reg.exe add 'HKLM\SYSTEM\CurrentControlSet\Services\NvContainerLocalSystem' /v FailureActions /t REG_BINARY /d 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 /f | Out-Null
+if ($svc.Status -eq 'Running') {
+    sc.exe stop NvContainerLocalSystem | Out-Null
+    Start-Sleep -Seconds 5
 }
-$svc = Get-Service NvContainerLocalSystem
-Write-Host ('[1] service: ' + $svc.Status)
+Get-CimInstance Win32_Process -Filter "Name='nvcontainer.exe'" -ErrorAction SilentlyContinue | ForEach-Object {
+    Write-Host ('[KILL] nvcontainer PID ' + $_.ProcessId)
+    Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue
+}
+Start-Sleep -Seconds 2
+Write-Host '[1] service หยุดแล้ว (จะสตาร์ตหลัง Share ยืนรอ — ขั้น [2])'
 $ip = (Get-ItemProperty 'HKLM:\SYSTEM\CurrentControlSet\Services\NvContainerLocalSystem' -ErrorAction SilentlyContinue).ImagePath
 Write-Host ('[1] ImagePath: ' + $ip)
-
-# ถ้า service รันอยู่แต่ไม่มี SPUser container (capture server) = watchdog หมดโควตา retry จากรอบก่อน
-# → restart service รอบเดียวเพื่อ re-arm + reload ปลั๊กอินทั้งหมดด้วย dependency ที่ครบแล้ว (ล้าง FailureActions ก่อน stop ตามสูตร §9)
-if ($svc.Status -eq 'Running') {
-    $spUser = @(Get-CimInstance Win32_Process -Filter "Name='nvcontainer.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match 'SPUser' })
-    if ($spUser.Count -eq 0) {
-        Write-Host '[1] ไม่มี SPUser container ทั้งที่ service รันอยู่ — restart service เพื่อ re-arm watchdog + reload plugins'
-        if (-not $isAdmin) { Fail '[1] ต้อง restart service — รัน start-osc แบบ elevated (Run as Administrator)' }
-        reg.exe add 'HKLM\SYSTEM\CurrentControlSet\Services\NvContainerLocalSystem' /v FailureActions /t REG_BINARY /d 0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000 /f | Out-Null
-        sc.exe stop NvContainerLocalSystem | Out-Null
-        Start-Sleep -Seconds 5
-        Get-CimInstance Win32_Process -Filter "Name='nvcontainer.exe'" -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
-        Start-Sleep -Seconds 2
-        sc.exe start NvContainerLocalSystem | Out-Null
-        Start-Sleep -Seconds 14
-        if ((Get-Service NvContainerLocalSystem).Status -ne 'Running') {
-            sc.exe start NvContainerLocalSystem | Out-Null
-            Start-Sleep -Seconds 14
-        }
-        Write-Host ('[1] service หลัง restart: ' + (Get-Service NvContainerLocalSystem).Status)
-        Start-Sleep -Seconds 10
-    }
-}
 
 # ---------- [1b] registry กุญแจ (สูตรพิสูจน์แล้วเดิม — NVIDIA App ไม่ใช้ค่าเหล่านี้ การฟื้นไม่กระทบมัน) ----------
 if ($Mode -eq 'genuine') {
@@ -302,8 +280,28 @@ if ($Mode -eq 'genuine') {
     Write-Host '[1b] registry ok'
 }
 
-# ---------- [2] containers + agent (ตรวจ CommandLine ไม่ใช่แค่ชื่อ process) ----------
-Write-Host '=== [2] containers + agent (เช็ค CommandLine: SPUser / plugins\User) ==='
+# ---------- [1c] Share attach mode (ยืนรอ ก่อน container init — Light era: "Share มีชีวิตก่อน container init") ----------
+if ($Mode -eq 'genuine') {
+    Write-Host '=== [1c] Share attach mode (ยืนรอก่อน service) ==='
+    if (-not (Get-Process 'NVIDIA Share' -ErrorAction SilentlyContinue)) {
+        Start-Process -FilePath $ShareExe -WorkingDirectory $ShareWd -WindowStyle Hidden
+        Start-Sleep -Seconds 12
+    }
+    Write-Host ('[1c] Share: ' + @(Get-Process 'NVIDIA Share' -ErrorAction SilentlyContinue).Count + ' ตัว (ยืนรอ container init — Light era)')
+}
+
+# ---------- [2] start service (Share พร้อมแล้ว) + รอ SPUser container spawn ----------
+Write-Host '=== [2] start service + รอ SPUser container ==='
+sc.exe start NvContainerLocalSystem | Out-Null
+Start-Sleep -Seconds 14
+if ((Get-Service NvContainerLocalSystem).Status -ne 'Running') {
+    Write-Host '  รอบแรกไม่ขึ้น — start รอบสอง (pattern ปกติของ container แท้)'
+    sc.exe start NvContainerLocalSystem | Out-Null
+    Start-Sleep -Seconds 14
+}
+$svc = Get-Service NvContainerLocalSystem
+Write-Host ('[2] service: ' + $svc.Status)
+if ($svc.Status -ne 'Running') { Fail '[2] service ไม่ขึ้น — ดู log ตาม -f ใน ImagePath' }
 $deadline = (Get-Date).AddSeconds(60)
 $containers = @()
 while ((Get-Date) -lt $deadline) {
@@ -357,23 +355,53 @@ if ($hpOur.Count -eq 0) {
 }
 Write-Host ('[4] helper: ' + @(Get-Process nvsphelper64 -ErrorAction SilentlyContinue).Count + ' ตัว (' + $HelperExe + ')')
 
-# ---------- [5] Share (attach mode — Share ยืนรอ container เข้าเกาะ) ----------
-Write-Host '=== [5] Share (attach mode) ==='
-if (-not (Get-Process 'NVIDIA Share' -ErrorAction SilentlyContinue)) {
-    Start-Process -FilePath $ShareExe -WorkingDirectory $ShareWd
-    Start-Sleep -Seconds 10
-}
-Start-Sleep -Seconds 20
+# ---------- [5] Share สถานะ (เริ่มที่ [1c] แล้ว — ตรวจว่ารอดจนถึงตอนนี้) ----------
+Write-Host '=== [5] Share สถานะ (attach mode) ==='
 $shareCount = @(Get-Process 'NVIDIA Share' -ErrorAction SilentlyContinue).Count
 Write-Host ('[5] Share: ' + $shareCount + ' ตัว (attach mode ×2 = ปกติ — spawn mode จะ crash 0xc0000005)')
 
-# ---------- [6] re-arm POST /Launch + รายงาน + tail gate ----------
-Write-Host '=== [6] re-arm POST /Launch (ทุกรอบหลัง container cycle) ==='
-try {
-    $r = Invoke-WebRequest -Uri $LaunchUrl -Method POST -Body '{"launch":true}' -ContentType 'application/json' -UseBasicParsing -TimeoutSec 15
-    Write-Host ('[6] Launch → ' + $r.StatusCode)
-} catch { Write-Host ('[6] Launch → ' + $_.Exception.Message) }
+# ---------- [6] re-arm POST /Launch + GUARD (fail 2 ครั้ง = หยุดรายงาน ไม่วน kill) + หมุด attach ----------
+Write-Host '=== [6] re-arm POST /Launch (guard: fail 2 ครั้ง = หยุด) ==='
+$guardFile = Join-Path $Log 'launch-fail-count.txt'
+$failCount = 0
+if (Test-Path $guardFile) { [void][int]::TryParse((Get-Content $guardFile -ErrorAction SilentlyContinue), [ref]$failCount) }
+$launched = $false
+if ($failCount -ge 2) {
+    Write-Host ('[6] GUARD: Launch fail มาแล้ว ' + $failCount + ' ครั้งติด — ไม่ยิงอีก (ตามคำสั่ง OWNER) — ตรวจ CaptureCore m_pSettings/CreateSettings ก่อนรันใหม่')
+} else {
+    try {
+        $r = Invoke-WebRequest -Uri $LaunchUrl -Method POST -Body '{"launch":true}' -ContentType 'application/json' -UseBasicParsing -TimeoutSec 15
+        Write-Host ('[6] Launch → ' + $r.StatusCode)
+        $launched = $true
+        Set-Content -Path $guardFile -Value '0' -Encoding UTF8
+    } catch {
+        $we = $_.Exception.Response
+        $code = ''
+        if ($we) { $code = [int]$we.StatusCode }
+        Write-Host ('[6] Launch → FAIL (' + $code + ')')
+        $failCount++
+        Set-Content -Path $guardFile -Value ([string]$failCount) -Encoding UTF8
+        Write-Host ('[6] GUARD: fail count = ' + $failCount + $(if ($failCount -ge 2) { ' — ครั้งถัดไปจะหยุด (ไม่วน kill)' } else { '' }))
+    }
+}
 Start-Sleep -Seconds 8
+
+# หมุด A1: CreateSettings (ต้องเกิดแล้วหลัง Launch 200 — m_pSettings ไม่ NULL)
+$ccLog = 'C:\ProgramData\NVIDIA Corporation\ShadowPlay\CaptureCore.log'
+if ($launched -and (Test-Path $ccLog)) {
+    $cs = @(Select-String -Path $ccLog -Pattern 'CreateSettings' -SimpleMatch -ErrorAction SilentlyContinue)
+    Write-Host ('[6] หมุด CreateSettings ใน CaptureCore: ' + $cs.Count + ' ครั้ง' + $(if ($cs.Count -gt 0) { ' ✓ m_pSettings น่าจะไม่ NULL แล้ว — ทดสอบ POST /Hotkey/overlaytoggle' } else { ' — ยังไม่เกิด (m_pSettings ยัง NULL)' }))
+    if ($cs.Count -gt 0) {
+        try {
+            $req2 = [Net.WebRequest]::Create('http://127.0.0.1:59001/ShadowPlay/v.1.0/Hotkey/overlaytoggle')
+            $req2.Method = 'POST'; $req2.ContentType = 'application/json'; $req2.Timeout = 15000
+            $b2 = [Text.Encoding]::UTF8.GetBytes('{"keys":[18,90]}')
+            $req2.ContentLength = $b2.Length
+            $s2 = $req2.GetRequestStream(); $s2.Write($b2, 0, $b2.Length); $s2.Close()
+            try { $r2 = $req2.GetResponse(); $rd2 = New-Object IO.StreamReader($r2.GetResponseStream()); Write-Host ('[6] overlaytoggle SET → ' + [int]$r2.StatusCode + ' ' + $rd2.ReadToEnd()) } catch { $w2 = $_.Exception.Response; if ($w2) { $rd2 = New-Object IO.StreamReader($w2.GetResponseStream()); Write-Host ('[6] overlaytoggle SET → ' + [int]$w2.StatusCode + ' ' + $rd2.ReadToEnd()) } else { Write-Host ('[6] overlaytoggle SET err: ' + $_.Exception.Message) } }
+        } catch { Write-Host ('[6] overlaytoggle err: ' + $_.Exception.Message) }
+    }
+}
 
 $containersFinal = @(Get-CimInstance Win32_Process -Filter "Name='nvcontainer.exe'" -ErrorAction SilentlyContinue)
 Write-Host '=== รายงานสรุป ==='
@@ -383,7 +411,7 @@ Write-Host ('service: ' + (Get-Service NvContainerLocalSystem).Status +
             ' · Share: ' + @(Get-Process 'NVIDIA Share' -ErrorAction SilentlyContinue).Count +
             ' · helper: ' + @(Get-Process nvsphelper64 -ErrorAction SilentlyContinue).Count)
 foreach ($c in $containersFinal) { Write-Host ('  container PID ' + $c.ProcessId + ' จาก ' + $c.ExecutablePath) }
-$cc = 'C:\ProgramData\NVIDIA\CaptureCore.log'
+$cc = 'C:\ProgramData\NVIDIA Corporation\ShadowPlay\CaptureCore.log'
 if (Test-Path $cc) {
     Write-Host '--- CaptureCore.log (tail gate) ---'
     Get-Content $cc -Tail 5
