@@ -128,6 +128,7 @@ if ($Mode -eq 'genuine') {
         @{ Key = 'ProgramData piplConfig (§6 seed)';      Src = (Join-Path $payload.FullName 'ProgramDataSeeds\NvNode\piplConfig.json'); Dst = (Join-Path $env:ProgramData 'NVIDIA Corporation\NvNode'); Tree = $false },
         @{ Key = 'PF(x86)\NvTelemetry (API32/Bridge32)';  Src = (Join-Path $gfeExe 'NvTelemetry');                              Dst = (Join-Path $pf86 'NvTelemetry');           Tree = $true },
         @{ Key = 'PF\NvTelemetry (API64/Bridge64)';       Src = (Join-Path $gfeExe 'NvTelemetry');                              Dst = (Join-Path $pf64 'NvTelemetry');           Tree = $true },
+        @{ Key = 'PF\ShadowPlay (helper anchor — full set)'; Src = (Join-Path $payload.FullName 'ShadowPlay');                  Dst = (Join-Path $pf64 'ShadowPlay');            Tree = $true },
         @{ Key = 'PF(x86)\Update Core\NvBackendAPI32';    Src = (Join-Path $gfeExe 'NvBackend\NvBackendAPI32.dll');             Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
         @{ Key = 'PF(x86)\Update Core\NvTmRep';           Src = (Join-Path $payload.FullName 'NvBackend\NvTmRep.exe');          Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
         @{ Key = 'PF(x86)\Update Core\NvSHIM';            Src = (Join-Path $payload.FullName 'NvBackend\NvSHIM.exe');           Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
