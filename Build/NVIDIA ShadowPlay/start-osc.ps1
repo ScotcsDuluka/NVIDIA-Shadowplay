@@ -386,10 +386,18 @@ if ($hpOur.Count -eq 0) {
 }
 Write-Host ('[4] helper: ' + @(Get-Process nvsphelper64 -ErrorAction SilentlyContinue).Count + ' ตัว (' + $HelperExe + ')')
 
-# ---------- [5] Share สถานะ (เริ่มที่ [1c] แล้ว — ตรวจว่ารอดจนถึงตอนนี้) ----------
-Write-Host '=== [5] Share สถานะ (attach mode) ==='
+# ---------- [5] Share สด attach (ลำดับถาวรจาก Launch-200: node up → Share สด → Launch ครั้งเดียว) ----------
+Write-Host '=== [5] Share สด (attach — ลำดับถาวร Launch-200) ==='
+$zombies = @(Get-Process 'NVIDIA Share' -ErrorAction SilentlyContinue)
+if ($zombies.Count -gt 0) {
+    Write-Host ('[5] kill zombie Share ×' + $zombies.Count)
+    $zombies | ForEach-Object { Stop-Process -Id $_.Id -Force -ErrorAction SilentlyContinue }
+    Start-Sleep -Seconds 4
+}
+Start-Process -FilePath $ShareExe -WorkingDirectory $ShareWd -WindowStyle Hidden
+Start-Sleep -Seconds 15
 $shareCount = @(Get-Process 'NVIDIA Share' -ErrorAction SilentlyContinue).Count
-Write-Host ('[5] Share: ' + $shareCount + ' ตัว (attach mode ×2 = ปกติ — spawn mode จะ crash 0xc0000005)')
+Write-Host ('[5] Share: ' + $shareCount + ' ตัว (สด — พร้อม attach)')
 
 # ---------- [6] re-arm POST /Launch + GUARD (fail 2 ครั้ง = หยุดรายงาน ไม่วน kill) + หมุด attach ----------
 Write-Host '=== [6] re-arm POST /Launch (guard: fail 2 ครั้ง = หยุด) ==='
