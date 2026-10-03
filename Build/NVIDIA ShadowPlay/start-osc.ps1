@@ -181,6 +181,21 @@ if ($Mode -eq 'genuine') {
     $entries | Set-Content -Path $manifestPath -Encoding UTF8
     Write-Host ('[0e] PF anchor: ' + $entries.Count + ' ไฟล์ (restore ' + $restored + ' · มีอยู่แล้ว ' + $verified + ') · manifest → ' + $manifestPath)
 
+    # 0f) GFE dir hardlink (§11 proven — COscProcMgr หา OSC exe ที่ Program Files ตรง ๆ ไม่ใช่ FullPath registry)
+    Write-Host '=== [0f] hardlink build Share tree → PF GFE dir ==='
+    $gfeDir = Join-Path $pf64 'NVIDIA GeForce Experience'
+    $linked = 0; $skipped = 0; $failed = 0
+    Get-ChildItem $ShareWd -Recurse -File | ForEach-Object {
+        $rel = $_.FullName.Substring($ShareWd.Length + 1)
+        $t = Join-Path $gfeDir $rel
+        $tdir = Split-Path $t -Parent
+        if (-not (Test-Path $tdir)) { New-Item -ItemType Directory -Force -Path $tdir | Out-Null }
+        if (Test-Path $t) { $skipped++; return }
+        cmd /c mklink /H "`"$t`"" "`"$($_.FullName)`"" | Out-Null
+        if ($LASTEXITCODE -eq 0) { $linked++ } else { $failed++; Write-Host ('  FAIL: ' + $rel) }
+    }
+    Write-Host ('[0f] GFE hardlink: linked=' + $linked + ' skipped=' + $skipped + ' failed=' + $failed)
+
     Write-Host ('[0] stage OK · container=' + $genuine)
     Write-Host ('[0]          · node=' + $nodeDst)
     Write-Host ('[0]          · helper=' + $spDst)
