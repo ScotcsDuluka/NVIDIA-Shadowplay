@@ -123,6 +123,7 @@ if ($Mode -eq 'genuine') {
         @{ Key = 'PF\NvContainer\Poco (x64)';             Src = (Join-Path $payload.FullName 'NvContainer\Poco.dll');           Dst = (Join-Path $pf64 'NvContainer');           Tree = $false },
         @{ Key = 'PF\NvContainer\PocoInit (x64)';         Src = (Join-Path $payload.FullName 'NvContainer\PocoInitializer.dll'); Dst = (Join-Path $pf64 'NvContainer');          Tree = $false },
         @{ Key = 'PF\GFE\dependencies\CrimsonUtil';       Src = (Join-Path $gfeExe 'GFExperience\dependencies\CrimsonUtil.dll'); Dst = (Join-Path $pf64 'NVIDIA GeForce Experience\dependencies'); Tree = $false },
+        @{ Key = 'ProgramData piplConfig (§6 seed)';      Src = (Join-Path $payload.FullName 'ProgramDataSeeds\NvNode\piplConfig.json'); Dst = (Join-Path $env:ProgramData 'NVIDIA Corporation\NvNode'); Tree = $false },
         @{ Key = 'PF(x86)\Update Core\NvBackendAPI32';    Src = (Join-Path $gfeExe 'NvBackend\NvBackendAPI32.dll');             Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
         @{ Key = 'PF(x86)\Update Core\NvTmRep';           Src = (Join-Path $payload.FullName 'NvBackend\NvTmRep.exe');          Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
         @{ Key = 'PF(x86)\Update Core\NvSHIM';            Src = (Join-Path $payload.FullName 'NvBackend\NvSHIM.exe');           Dst = (Join-Path $pf86 'Update Core');           Tree = $false },
