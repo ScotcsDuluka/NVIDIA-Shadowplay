@@ -19,3 +19,16 @@ nvnode.log ยุคทำงาน (GenuineRuntime, 29 ก.ย.): addons โห
 grep "Unknown executable path": 0 บรรทัด ทุก log ทุก dir (run1+run2, container แท้จาก build + spawn ลูกจาก build)
 containers: service จาก build genuine อยู่รอด + Watchdog ปลุก SPUser/User จาก build ได้ (spawn-and-exit = UNKNOWN)
 node/shaRe/helper: บล็อกที่ node blocker ข้างบน
+
+===== RUN 11 FINAL (16:30:57) — BOOT ผ่านครบ =====
+exitcode: 0 (ไม่มี FAIL)
+[3] node :59001 → 200 ✓ (node แท้ PID 8476 จาก build\NvNode — Initialize ครบทุก module)
+[4] helper: 1 ✓ (nvsphelper64 PID 15844 ALIVE — หลัง restore PF\ShadowPlay ชุดเต็ม)
+[5] Share: 2 ✓ (attach mode จาก build\Overlay OSC\NVIDIA Share)
+containers: 2 จาก build\...\NvContainer\genuine ✓
+CaptureCore.log: "MessageBus joined - System: Hotkey, Module: HotkeyPlugin" ✓ (หมุดหมาย §10 ตรงเป๊ะ)
+CaptureCore.log: "UWPSetOSCDismissHotKeys: [2] eSPHKID_OSC Hotkeys set for UWP" ✓
+grep "Unknown executable path": 0 บรรทัด ทุก log ทุก dir (final) ✓
+เกณฑ์อ้างอิง mission (Share: 2, helper: 1): ตรงเป๊ะ ✓
+ค้าง: [6] POST /Launch → 500 (ตระกูล settings-sync gap §9 — capture layer, นอกขอบเขต OSC ตามที่ OWNER สั่งไว้)
+fixes ที่ใช้: 11 ชั้น — stage flatten, node tree PF(x86), NvBackend agent, GFE identity reg, watchdog re-arm restart, ModuleMap 15 ค่า, x86 MessageBus, NvStreamSrv 2 views, NvTelemetry 2 views, piplConfig seed, PF\ShadowPlay full set

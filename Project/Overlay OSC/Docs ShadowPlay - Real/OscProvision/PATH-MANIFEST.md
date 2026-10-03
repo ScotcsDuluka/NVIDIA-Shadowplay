@@ -331,3 +331,40 @@ helper WMHK 7 → node CShadowPlayHotkeyReceiver (System: Hotkey, Module: Node) 
 
 ทุกทางต้อง re-create registry: `Global\NvNode` (port=59001, disableSecurity=1) + `Global\GFExperience\FullPath` (2 views) — ตามสูตรพิสูจน์แล้วเดิม
 
+### ✅ §18.1 ผลสุดท้าย (2026-10-03 16:30) — OWNER เลือกทาง ก + boot ผ่านครบ
+
+**EXITCODE=0 · เกณฑ์อ้างอิง mission ตรงเป๊ะ: Share: 2 · helper: 1 · node :59001 → 200 · containers จาก build genuine**
+
+หมุดหมายหลักฐาน (CaptureCore.log + nvnode.log — คัดลอกอยู่ Logs\phase1-evidence\):
+- `MessageBus joined - System: Hotkey, Module: HotkeyPlugin` ✓ (หมุด §10 ตรงเป๊ะ)
+- `UWPSetOSCDismissHotKeys: [2] eSPHKID_OSC Hotkeys set for UWP` ✓
+- node แท้ Initialize ครบทุก module (PiplConfig/BackendAPI/Account/DriverInstall/downloader/GameStream/Gallery/Camera) + serve request จริงหลายพัน request
+- **grep "Unknown executable path" = 0 บรรทัด ทุก log ทุก dir (final)** — ข้อสรุปเดิม "ValidatePID ปฏิเสธ build path" = **confound ยืนยัน** (หลัง boot ผ่านครบ)
+
+**สูตร restore ที่ต้องมี (NVIDIA App ลบทั้งหมด — start-osc.ps1 [0e]/[1b] ทำ idempotent ทุกบูต + manifest MD5):**
+| องค์ประกอบ | ที่ตั้ง | ที่มา |
+|---|---|---|
+| node tree (399 ไฟล์ + MessageBus x86) | PF(x86)\NvNode\ | Payload\NvNode (+แทน MessageBus x64→x86 จาก NvContainerX86Dlls) |
+| agent home | PF\NvBackend\ | Payload\NvBackend |
+| NvStreamSrv (bridge x86 + server x64) | PF(x86)\NvStreamSrv\ + PF\NvStreamSrv\ | GFE extract GFExperience.NvStreamSrv |
+| NvTelemetry API/Bridge | PF(x86)\NvTelemetry\ + PF\NvTelemetry\ | GFE extract NvTelemetry |
+| ShadowPlay ชุดเต็ม (helper anchor) | PF\ShadowPlay\ | Payload\ShadowPlay |
+| Update Core (NvBackendAPI32/64 + agent files) | PF(x86)\Update Core\ + PF\Update Core\ | GFE extract NvBackend + Payload\NvBackend |
+| NvDriverUpdateCheck | PF\NvDriverUpdateCheck\ | GFE extract |
+| nvspapi/ipccommon x86 | PF(x86)\ShadowPlay\ | GFE extract ShadowPlay |
+| piplConfig seed | ProgramData\NVIDIA Corporation\NvNode\ | Payload\ProgramDataSeeds |
+| registry | Global\NvNode (port/disableSecurity 2 views) · GFExperience (FullPath→build Share, Version, Installed, Architecture) · NVSPCAPS · ModuleMap 9+6 ค่า (NVIDIA App hijack คืนค่าแท้) | .reg harvest + §3.2/§3.3 |
+
+**กับดักใหม่ที่ต้องจำ (บล็อกเรียงตามลำดับที่เจอ):**
+1. `Copy-Item src\* dst -Recurse` flatten node_modules → node ตาย require ไม่เจอ — ใช้ copy ทีละไฟล์ (Copy-Genuine-Tree)
+2. node แท้ hardcode index.js ผ่าน SHGetFolderPath(PF_x86) — §8.2 "รันจากโฟลเดอร์ตัวเอง" = ผิด
+3. NvBackendPlugin init ตาย 2ms ถ้าไม่มี PF\NvBackend (CSIDL_PROGRAM_FILES anchor)
+4. GetGFEVersionSync อ่าน registry GFExperience Version — ขาด = RegQueryValueExW(2) fatal
+5. Watchdog หมด retry แล้วไม่ลองใหม่ — ต้อง restart service เพื่อ re-arm (เมื่อ service รันอยู่แต่ไม่มี container ลูก)
+6. bridge 193 = MessageBus x64 ปนใน tree x86 (loader เจอที่ dir ของ exe ก่อน)
+7. consent fatal ต้องมี NvTelemetry API/Bridge ครบทั้ง 2 views + piplConfig
+8. helper "Could not locate %s (126)" = SHGetKnownFolderPath(PF)\ShadowPlay anchor — ต้องมีชุดเต็ม
+9. nvnode async logger ทิ้ง stack ตอน fatal — stderr capture เท่านั้นที่ได้จริง
+
+**ค้าง (นอกขอบเขต OSC — OWNER สั่งไว้):** POST /Launch → 500 (ตระกูล settings-sync gap — capture layer ยังไม่เปิด 0x80040233) · nvsphelper64 ยังต้องทดสอบ Alt+Z จริงโดย OWNER
+
