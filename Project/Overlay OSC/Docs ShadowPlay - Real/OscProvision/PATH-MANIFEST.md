@@ -384,3 +384,24 @@ helper WMHK 7 → node CShadowPlayHotkeyReceiver (System: Hotkey, Module: Node) 
 **A3 ตัดทาง C**: เครื่อง Intel (HUAWEI-PC) ไม่มี key `GFExperience\ShadowPlay` เลย → GFE ไม่เขียน Cfg2/Cfg3 บนเครื่องไม่มี NVIDIA GPU → ตัดตามเงื่อนไข ✓
 
 **สถานะ stack ปัจจุบัน (รอดหลัง A7 boot 20:16 + fixes)**: container ×3 (Service/User/SPUser — ShadowplayServer joined) · node 3528 (200, callback armed) · Share ×2 (overlay hr[0]) · helper armed · Launch 200 · เหลือ: settings sync + hotkey config
+
+### §19.1 — HANDOFF session ถัดไป (2026-10-03 ค่ำ — OWNER decision: ทาง 1 สายหลัก, C ตัด, ทาง 2 งด)
+
+**สถานะปัจจุบัน (แก้ไขจาก §19 เดิม — ปลดความกำกวม):**
+- m_pSettings = **มีตัวตน** (สร้างเงียบใน CServerImpl constructor — log เฉพาะตอน fail, ไม่เคย fail) **แต่ว่าง** → ทุก Get/Set คืน E_INVALIDARG 0x80070057
+- หน้า osc **connected แล้ว** (socket.io) — boot หน้า: HardwareInformation 200 → UserToken 500 (ไม่ login) → PrivacySettings 200 → DynamicToggle 500 → Launch 200 → Language/beta 200 → **Capture/State 500 → หน้าหยุด**
+- **จุดตัดสินใจเดียวของหน้า = GET /ShadowPlay/v.1.0/Capture/State** — ถ้า 200 ทั้ง settings sync และ hotkey จะไหลเอง
+
+**ทาง 2 งด (พิสูจน์จาก app.js unpacked — docs/osc/unpacked/src/app/0135.appService.js):**
+- boot chain แบบคลื่น `.then()`: wave 2 = `h.init()` = shadowPlayService.init (มี Capture/State — 500 = reject) → `t.all()` ตาย → **wave 7 (`g.init()` = hotkeyService.init — ตัว register OSC_TOGGLE handler) + wave 8 (`h.setOscReady()` = หมุด OSC-ready) ไม่มีวันรัน**
+- handler ถูก register **หลัง** Capture/State → เขียน Cfg2/Cfg3 ให้ helper ก็ Alt+Z ยังเงียบ (หน้าไม่มี handler) — งด RE format
+- อธิบายยุค §13: Alt+Z ได้เพราะ chain หน้าเคยจบครั้งแรกแล้ว (Cfg2/Cfg3 ถูกเขียนช่วงนั้น) — NVIDIA App มาเคาะทีหลัง
+
+**ขั้นต่อไปของทาง 1 (เรียงตามลำดับ):**
+1. RE `CServerImpl::GetCaptureState` ใน _nvspcaps64.dll — ทำไม settings ว่าง = E_INVALIDARG (0x80070007) แทนการตอบ default state — จุดเดียวจบวงจร
+2. ถ้า patch/แก้จุดเดียวได้ (ต้องอนุมัติ OWNER ถ้าเป็น binary) → Capture/State 200 → หน้า boot ต่อ → DesktopCapture/Support/Reason → settings sync → CreateSettings/SetProperty → hotkey SET → Cfg2/Cfg3 → Alt+Z ครบทั้งสายโดยไม่แตะ handshake
+3. ถ้าจุดเดียวไม่พอ ค่อยขยายเป็น IpcCommon handshake (SP Server ↔ shadowplay2 ของ Share)
+
+**recovery procedure (ห้ามลืม):** ตัวฆ่า Share = full service restart เท่านั้น · ฟื้นตัว = `start-osc.ps1 -RecoverSpUser` (kill เฉพาะ SPUser ห้าม restart service) · ลำดับ Launch-200 ถาวร = [5] kill zombie → Share สด attach 15 วิ → [6] Launch ครั้งเดียว (guard fail-2)
+
+**A3:** ทาง C ถูกตัด — เครื่อง Intel (HUAWEI-PC) ไม่มี key `GFExperience\ShadowPlay` เลย (reg query คืน ERROR)
