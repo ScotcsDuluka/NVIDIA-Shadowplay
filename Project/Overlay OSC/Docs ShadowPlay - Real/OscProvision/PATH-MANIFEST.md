@@ -450,3 +450,29 @@ helper WMHK 7 → node CShadowPlayHotkeyReceiver (System: Hotkey, Module: Node) 
 - RE `GetCaptureState` early-exit (§19.2 / §19.3 ข้อ 3) = เฉพาะเมื่อ seed ไม่พาไปถึง — ถ้าต้อง patch ยาว ให้เขียนไปทางตอบจากสถานะ NvCapture.exe ไม่ใช่อาศัย SP Server
 - IpcCommon handshake (ทาง 1 ขั้น 3 ของ §19.1) = **contingency หลัก** ตามขอบเขตด้านบน (ยังไม่ตัดทิ้ง) — ใช้ทันทีเมื่อหน้า sync แล้ว container ยังปฏิเสธ SetProperty
 - recovery `-RecoverSpUser` (§19.1) + Launch-200 ถาวร [5]→[6] = ยังผูกเหมือนเดิม
+
+### §20.1 — ผลการทำงานตาม §19.3 (2026-10-03 ดึก — session หลัง commit §20 3aceb8fe0a)
+
+**1. Accounts store แก้สำเร็จ (FACT — curl + log จริง):**
+- `\NVIDIA\accounts` = **ไฟล์ ไม่ใช่โฟลเดอร์** (`%LOCALAPPDATA%\NVIDIA\accounts`) — format = **Base64(UTF-16LE(JSON(userInfo)))** — decode จากไฟล์ 656 bytes ที่ native เขียนเอง
+- อธิบายครบ 3 อาการ: ไฟล์หาย → CreateFile fail 0x80070002 → "Failed to get User Info" → 500 · สร้าง**โฟลเดอร์**เปล่า (§19.3 crash test) → native อ่านได้ 0 bytes → NoAccount + userInfo ว่าง → NvAutoDownload `JSON.parse("")` ตาย · มีไฟล์ถูก format → อ่านคืนปกติ
+- **ขั้นตอน seed ที่ปลอดภัย (ไม่ต้อง RE format ด้วยมือ):** `POST http://127.0.0.1:59001/Account/v.1.0/UserToken` body `{"userInfo":{...}}` (object — handler stringify ให้เอง, NvAccountAPI.js:350 write mode) → native เขียนไฟล์ใน format มันเอง → ทดสอบแล้ว: 200 + ไฟล์โผล่ + GET คืน userInfo ครบ · ตัวอย่าง body ที่ใช้: `{userId:"0", deviceId:"<GUID>", displayName:"", email:"", buildPreference:"", dataTracking:{trackFunctionalData/trackTechnicalData:{level:"Full"}, trackBehavioralData:{level:"None"}}}`
+- **ผลหลัง restart node (start-osc.ps1 elevated — kill node ก่อนแล้วรันสคริปต์):** `GET /Account/v.1.0/UserToken = 200 เสถียร` · หน้า boot ไกลขึ้นจริง: PrivacySettings เริ่มส่ง `userId=0` ตาม seed (nvnode.log #7)
+- ยืนยัน insight §19.3: **401 ยุคทำงานไม่ได้มาจาก node handler** — `replyWithError` แจกแค่ 400/500 (NvAccountAPI.js:95-108) — 401 ต้องมาจากชั้นอื่น; สถานะเราตอนนี้ = 200 + userInfo "ยังไม่ login"
+
+**2. Capture/State ยัง 500 — และ §19.2 ถูกหักล้าง (FACT — log คู่ขนานเป๊ะ):**
+- `GET /Capture/State` **ไม่ได้ raise ในเครื่อง** — ยิงถึง server จริงผ่าน `GetProperty("DwmEnabled")`: คู่ขนาน NODJS `CShadowPlayApi::GetProperty: FAIL[0x80070057] name DwmEnabled` ↔ CNTNR `CServerImpl::GetProperty: E_INVALIDARG m_pSettings` — เข้าคู่กับ request #13 ของหน้า (22:44:29.908/.909) และ curl ของ session นี้ (22:54:06.787/.788) ทั้งสองครั้ง
+- root จึงกลับเป็น **จุดเดียวของ §19.1: CServerImpl ปฏิเสธ Get/Set ทั้งหมด** — วันนี้ Get/Set สำเร็จ = **0 ครั้งทั้งวัน** (grep `out pArgs hr[0]` ทั้งไฟล์ = 22 ครั้ง ล้วนเป็น EnableShadowPlay ที่ plugin override เป็น error code อยู่ดี)
+- CSettings มีชีวิต: ไม่มี "CreateSettings failed" เลย (count=0) · NVEnc caps probe ครบ H264/H265/10-bit (22:44:12) — ของที่พังคือ guard Get/Set ของ CServerImpl ไม่ใช่ตัว settings object
+- **EnableShadowPlay วันนี้**: `SetSP failed! 0x80004005` (22:44:13 หลัง attach) + `KillProcess: failed to kill 4684 (error 5)` — ตระกูล enable ที่ OWNER ตัดไว้ · เช้านี้ (A1 window) = `failed to start Share Process!` 0x80040233
+
+**3. ผลตัดสิน contingency (จุดที่ OWNER สั่งให้วัด):**
+- เงื่อนไขใน §20 ("Capture/State ผ่านแล้วค่อยดู SetProperty") **ไม่เกิด** — Capture/State ชนกำแพงเดียวกับ SetProperty (server guard เดียวกัน)
+- **งาน m_pSettings / Get-Set ฝั่ง server = critical path ไม่ใช่ contingency** — แต่ทางแก้ต้องไม่ใช่ SP Server enable แท้ (OWNER ตัด) → เหลือ 2 ทาง รอ OWNER เลือก:
+  - **(ก) patch `NvShadowPlayAPINode.node`** ให้ `GetCaptureState` ตอบ default state โดยไม่ถาม DwmEnabled จาก server (เข้ากับ strings addon: "Shadowplay is not running..." status gate) — ⚠ ต้องอนุมัติ OWNER (แตะ binary NVIDIA) + **ต้อง patch ที่ Payload/stage ด้วย** เพราะ start-osc.ps1 [0e] จะ re-stage จาก Payload ทุกบูต (MD5) — patch ในไฟล์เดียวจะโดนทับ
+  - **(ข) เดินสถาปัตยกรรม §20 ตรง ๆ:** ให้ NvCapture.exe เป็นผู้ตอบ Capture/State ผ่านแนว /Duluka plane (shim/MMF พิสูจน์แล้ว §17) — settings/hotkey ยังไหลผ่าน container ตามขอบเขต §20
+
+**4. กับดัก/บทเรียนใหม่ (ห้ามลืม):**
+- start-osc.ps1 ต้อง elevated (guard [0e]) — รันผ่าน `Start-Process -Verb RunAs` + wrapper script เก็บ output ลง `%TEMP%\start-osc-run.log`
+- CaptureCore.log timestamp = `[DD:HH:MM:SS:mmm]` (ไม่มีเดือน/ปี) · ไฟล์ครอบคลุมเฉพาะวันนี้ — **log ยุคสำเร็จ (§8.2/§13) ไม่เคยถูก archive** → กติกาใหม่: ถ้า boot ผ่านเกณฑ์ ให้ copy CaptureCore.log เก็บไว้ทุกครั้ง
+- node peers: `ShadowplayApi22580, ShadowplayServer` — bus เห็นกันทั้งคู่ (MessageBus join ปกติทั้งสองฝั่ง)
