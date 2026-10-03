@@ -522,3 +522,31 @@ helper WMHK 7 → node CShadowPlayHotkeyReceiver (System: Hotkey, Module: Node) 
 - hypothesis แรกจาก strings: `CSettings::SetParam: m_eActiveSPClient[%d]` — server track **active SP client** · วันนี้ Get/Set ล้วนมาจาก NODJS client · **Share client ไม่เคยยิง Get/Set เลย** (0 ครั้งทั้ง log — ทำแค่ CreateShadowPlayApiInterface + GetCaptureSessionParam ตอน attach) · enable มาจาก rundll32 origin(7) + NODJS origin(4) — ถ้า guard ผูก active client กับ enable/attach handshake = ตรง hunch §19.1 ทาง 1 ขั้น 3 (IpcCommon handshake SP Server ↔ Share's shadowplay2)
 - กติกา: RE = อ่านอย่างเดียว · patch binary ต้องขออนุมัติ OWNER (กฎ §18)
 - **หมายเหตุ repo:** build\NVIDIA ShadowPlay\start-osc.ps1 ([0h] ใหม่) อยู่**นอก git** (build tree = portable ไม่ track) — ทะเบียน patch ฉบับเต็มอยู่ใน §20.2 + ไฟล์จริงบนดิสก์
+
+### §20.4 — ROOT CAUSE: ValidatePID ปฏิเสธ nvcontainer จาก build path ในขั้น SetSP (2026-10-03 ดึกล่าง — ก่อนเข้า deep-RE)
+
+**ขอบเขตชี้แจง OWNER (จดตามคำสั่ง):** "ห้ามแก้ SP enable" ใช้กับ **NVIDIA capture engine เท่านั้น** — ถ้า RE พิสูจน์ว่า state machine (SetSP/enable) เป็นเงื่อนไขของช่องทาง settings/hotkey ที่ UI ยังต้องใช้ การแก้ = **อยู่ใน scope** (ทำให้ระบบแท้ทำงานจริง) — capture ยังเป็น NvCapture.exe ตาม §20 เสมอ
+
+**หลักฐาน 3 ชิ้นฟรี (ตามคำสั่ง):**
+1. **client registration**: Share client ทำแค่ `CreateShadowPlayApiInterface: IN ver(10008) client(0)` — ไม่มี RegisterClient จาก Share เลย (เจอเฉพาะ NODJS → `HelperClientInterfaceImpl::RegisterClient Client connected sucessfully` ตอน node 22:21) — **แต่ไม่ใช่จุดขวาง** (ดูข้อ 3 — ตัวจริงอยู่ที่ SetSP)
+2. **Share debug.log วันนี้**: CEF boot ปกติ (Node already running → Node info request success → Site load done) — ไม่มี shadowplay2-fail · มี `should close osc` ซ้ำหลายรอบ = container ฆ่า OSC เมื่อ boot ไม่สมบูรณ์ (พฤติกรรม §11 ตรง) — ขั้น shadowplay2 ไม่ได้หาย แต่ถูกฆ่าท้ายสาย
+3. **SetSP failed ไม่ได้ตายเพราะอ่าน property — ตายที่ ValidatePID** (log คู่เดียวกันทุกบูตที่ enable ถึงขั้นนี้: 18:11/18:29/18:33/18:50/23:38):
+```
+CServerIpc::SetSP : IN(16272, 5)                                    ← SPUser container (PID 16272) แจ้ง state 5 ไป service container
+ShadowPlayController::ValidatePIDUnknown executable path C:\My Project\...\build\NVIDIA ShadowPlay\NvContainer\genuine\nvcontainer.exe
+ShadowPlayController::SetSP: ValidatePID failed with error 0x000003F0
+ShadowPlayServicePlugin::ProcessReceivedIpcMessage: ConfigureSP failed 0x000003F0
+CServerImpl::EnableShadowPlay: SetSP failed! 0x80004005
+```
+- ลำดับ enable ก่อนตาย: `EnableNvFBC: OUT ret 0x0` (ผ่าน) → `ControlHeplerProcess` → `Starting nvosc` (125ms ผ่าน) → `SetSP` ← **ตายที่นี่ทุกครั้ง** · caller ที่โดนเช็ค = **exe path ของ SPUser container ที่รันจาก build**
+
+**สายใย root เดียว (ประกอบครบทุกเหตุการณ์ตั้งแต่ §18):**
+- §13 รู้ไว้แล้ว: "nvcontainer ต้องเป็น PF เท่านั้น — ShadowPlayController::ValidatePID ปฏิเสธ path อื่น ('Unknown executable path')" — สูตร §13 บูต container จาก PF → SetSP ผ่าน → enable hr[0] → Get/Set ใช้ได้ทั้งระบบ
+- §18 ย้าย container ไป build ("containers จาก build genuine" = เกณฑ์ §18.1) → SetSP ตายทุกบูต → enable ไม่มีวันสำเร็จ → server ค้างสถานะ unauthorized → **กำแพง Get/Set E_INVALIDARG ทั้งหมด (m_pSettings)** → Capture/State-เดิม 500 → DesktopCapture/Support/Reason 500 → settings sync ไม่ไหล → หน้าบูตไม่จบ
+- **แก้บันทึก §18: สรุป "ValidatePID = confound" ผิดจังหวะ** — การทดลอง §18 ไม่เคยไปถึงขั้น SetSP (attach/enable ไม่ครบ) จึง grep เจอ 0 บรรทัด · วันนี้ enable ถึงขั้นนั้นทุกบูต → error โผล่ตรง ๆ (string `ValidatePIDUnknown executable path` = คำต่อกัน มี substring ตามที่ §13 บันทึก)
+- deep-RE แบบ disassembly: ไม่มี objdump/binutils บนเครื่อง — strings-RE ถึงขีดแล้ว แต่**ไม่จำเป็นแล้ว**: root ที่เห็นตรงเป็นทดสอบได้ด้วยการ flip path (ถูกกว่า RE)
+
+**ข้อเสนอ (ทางแท้ — ไม่ patch อะไรเลย — ⏸ รออนุมัติ OWNER ตามกฎ §18):**
+- **กลับสู่สูตร §13: nvcontainer (service + SPUser) จาก PF แท้** — node/Share/helper ยังอยู่ build ตาม §8/§17 · แก้ = ImagePath + Watchdog SPUserX64 profile ชี้ PF + ปรับ start-osc (เกณฑ์ §18.1 "containers จาก build genuine" ต้องแก้ตาม) · ทดสอบคาดหวัง: SetSP ผ่าน → enable hr[0] → Get/Set ฟื้น → DesktopCapture/Support/Reason 200 → settings sync ไหล → หน้า boot จนจบ
+- ทางเลือกสุดท้าย (ถ้า OWNER ยืนยัน container จาก build): patch whitelist ของ ValidatePID ใน nvcontainer.exe — binary patch ขัด genuine-100% → **ไม่แนะนำ**
+- patch [0h] ที่ route JS คงอยู่เหมือนเดิม (interim ตาม §20.2) — ถ้า flip สำเร็จ ค่อยประเมินว่าจะถอดหรือคงไว้
