@@ -589,3 +589,24 @@ CServerImpl::EnableShadowPlay: SetSP failed! 0x80004005
 - (หมายเหตุ: GFE-dir Share.json = คอนฟิกยุค §17 (`nv-node-app` ชี้ Overlay OSC\NvNode shim launcher — ต้นตอ shim node จับ :59001 หลังไฟดับ) + `nv-gpu-accel=false` — ตั้งใจตาม §12 anti-spiral; §13 เคยเห็น overlay ด้วย flag เดียวกัน จึงไม่ใช่ตัวปิดกั้นการมองเห็น)
 
 **งานถัดไป (รอ OWNER เลือกทาง):** ต่อชั้นนำเสนอ — (ก) รัน/ต่อ presenter ของเรา (NvOverlay\Cef หรือ NVIDIA OSC Native) ให้รับ toggle จากหน้าแล้ววาด topmost — ตรงสถาปัตยกรรม §20 (render = NvCapture.exe ของเรา) · (ข) ต่อ render attach แท้ของ nvspcap64 (§13 ค้าง) — เสี่ยง spiral §12 ต้องระวัง
+
+### §20.7 — ทาง (ค): mirror คอนฟิกแท้ + ยืนยัน binary แล้ว — ยังไม่วาด (รายงานตามเงื่อนไข OWNER: rect + log ครบ) (2026-10-04 บ่ายแก่)
+
+**1. ตัวตน binary ✓** — NVIDIA Share.exe ที่รัน (GFE dir) = **3,347,496 bytes = genuine 3.3MB** (เท่ากับ NvOverlay\Cef\genuine\ และ Overlay OSC\NVIDIA Share\ ทุกตัว) · bootstrap 1MB (NvOverlay\Cef\) ไม่ได้รัน · ที่มาของ Share = `$ShareExe = build\...\Overlay OSC\NVIDIA Share\` ([0f] hardlink → GFE dir)
+
+**2. Share.json 3 ฉบับ + mirror ✓ (⚠ discrepancy ต้องรายงาน):**
+- **genuine harvest** (NvOverlay\Cef\genuine\ 353B): `nv-osc=true · nv-gpu-accel=FALSE · nv-url-relative=osc/index.html · nv-node-app=NvNode\nvnodejslauncher.exe (relative ใน layout แท้) · nv-node-data · nv-plugin-* · nv-remote-debugging-port=9222`
+- **ข้อขัดแย้งกับคาดหมาย OWNER**: ฉบับแท้ระบุ `nv-gpu-accel=false` ไม่ใช่ true — ตามกติกา "เทียบไม่ตรง = รายงาน + ตามฉบับแท้" ผม**คง false** (§12 ก็ตั้ง false กัน spiral มาก่อน) — ถ้า OWNER ต้องการ true แม้ฉบับแท้เป็น false = registered deviation ต้องชัดเจน
+- **สิ่งที่แก้จริง**: ตัด absolute shim `nv-node-app` ทิ้ง (ต้นตอ shim node จับ :59001) → mirror ฉบับแท้ byte-for-byte ทั้ง build tree + ตำแหน่งรัน (GFE dir) — relative path ตายใน layout เรา = ไม่มีวัน spawn → **MMF pairing กับ node แท้ตาม fallback ของ OWNER** + ได้ `:9222` (CEF remote debugging — เครื่องมือใหม่ล้ำค่า)
+- backup คอนฟิกเดิม: `patch-backup\NVIDIA Share.json.{build,gfe-dir}.pre-genuine-mirror`
+- **[0f.1] เพิ่มใน start-osc.ps1**: force-mirror Share.json build → GFE dir ทุกบูต (เดิม hardlink loop ข้ามไฟล์ที่มีอยู่ — คอนฟิกไม่เคยอัปเดต) — ลงทะเบียนตามนโยบาย genuine + registered patches
+
+**3. ผลทดสอบ Alt+Z รอบใหม่ (CDP ยิง `Hotkey_OSC` เข้าหน้าตรง + กดจริงของ OWNER 16:49):**
+- หน้าตอบสนอง handler ทุกครั้ง แต่ route ค้าง `#/base` — ไม่เคยผ่าน `$viewContentLoaded → allowOSCPainting(true)` (ประตูวาดของหน้าเอง)
+- **window rect ระหว่างยิง (EnumWindows, pid 4416)**: `NVIDIA GeForce Overlay` = vis=**True** (0,0)-(1680,1050) · `NVIDIA GeForce Overlay DT` = vis=**False** (0,0)-(1680,1050) ← พื้นผิวนำเสนอ (ชั้น DT §10) ซ่อน · CEF browser window = vis=False (156,156)-(1416,887)
+- **close-flood**: "should close osc" 22 ครั้ง/นาที ตอน 17:18:27 (หลัง restart Share ด้วยคอนฟิกใหม่) แล้วเป็นคู่ ๆ ตามจังหวะ toggle = osc ถูกสร้างแล้วถูกปิดวนลูป — ไม่ใช่ page reload (socket connected = 2 ครั้งทั้งวัน)
+- ไม่มี ShowOverlay/OpenShare/NotifyOverlayState log แม้แต่บรรทัดเดียวทั้งวัน
+
+**4. สรุปทางเทคนิค:** ทุกชั้นบน (helper→node→page→MainView) ผ่าน · หน้าต่าง overlay มีอยู่จริงและ vis=True · พื้นผิว DT ซ่อน + หน้าไม่ยอม allowOSCPainting + ถูก close-flood รังควาน = การวาดไม่เคยเริ่ม · คอนฟิก/binary แท้ยังไม่พอ — ตัวขับ DT/presentation (ชั้น 4) คือชิ้นที่ขาดจริง ๆ (เดิมเป็นหน้าที่ของสาย shim)
+
+**5. เครื่องมือใหม่ที่ได้จากคอนฟิกแท้:** `:9222` CDP — อ่าน/สั่งหน้า osc ได้ตรง (eval JS, ดู hash, ยิง event) — ใช้ต่อได้ทุกงาน
