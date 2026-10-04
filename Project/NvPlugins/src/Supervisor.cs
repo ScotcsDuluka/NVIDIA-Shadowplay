@@ -545,10 +545,19 @@ namespace NvPlugins
                 Fix = null   // log-only — ค่าจริงมาจาก registry ที่ server อ่านตอน init
             },
             new Step {
-                Name = "[7] NvCapture.exe capture engine :59077 (เจ้าของการอัด — §21.2)",
+                Name = "[7] NvCapture.exe capture engine :59077 (เจ้าของการอัด — §21.2) [PAUSED]",
                 Rollback = "kill process ที่เรา spawn — engine ไม่เขียนอะไรนอกจาก config/ไฟล์อัดของตัวเอง",
                 Fatal = false,   // engine ล่ม = boundary ตอบ fail-soft (200) — หน้ายังไม่ jam
                 Verify = _ => {
+                    // OWNER 2026-10-05: capture พักก่อน — flag ไฟล์เดียวปิดทั้งระบบ (ลบ flag = เปิดกลับ)
+                    var flag = Build + @"\..\..\Project\NvConfig\capture-disabled.flag";
+                    if (File.Exists(flag)) {
+                        var alive = false;
+                        foreach (var (pid, path) in ProcList("NvCapture")) {
+                            try { if (Process.GetProcessById(pid) != null) alive = true; } catch { }
+                        }
+                        return alive ? "capture PAUSED แต่ engine ยังรัน — ต้อง kill" : null;   // paused + engine ตาย = OK
+                    }
                     var exe = CaptureEngineExe;
                     if (!File.Exists(exe)) return "ไม่มี engine build: " + exe;
                     foreach (var (pid, path) in ProcList("NvCapture"))
@@ -557,6 +566,12 @@ namespace NvPlugins
                     return "engine ไม่ได้รัน หรือ /health ไม่ตอบ (127.0.0.1:59077)";
                 },
                 Fix = (d, log) => {
+                    if (File.Exists(Build + @"\..\..\Project\NvConfig\capture-disabled.flag")) {
+                        foreach (var (pid, path) in ProcList("NvCapture")) {
+                            try { Process.GetProcessById(pid).Kill(); log("[KILL] NvCapture PID " + pid + " (capture paused)"); } catch { }
+                        }
+                        return;
+                    }
                     foreach (var (pid, path) in ProcList("NvCapture"))
                         if (path.Length > 0 && !path.Equals(CaptureEngineExe, StringComparison.OrdinalIgnoreCase)) {
                             try { Process.GetProcessById(pid).Kill(); log("[KILL] NvCapture ผิด path PID " + pid); } catch { }
