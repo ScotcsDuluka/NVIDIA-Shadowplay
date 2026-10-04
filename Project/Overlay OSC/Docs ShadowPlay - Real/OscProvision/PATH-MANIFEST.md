@@ -719,3 +719,24 @@ CServerImpl::EnableShadowPlay: SetSP failed! 0x80004005
 - สาย genuine WMHK→MessageBus→node (§20.6 เคยสรุปว่า "ไม่เคยถึงหน้า") มีโอกาสทำงานได้แล้วในสถานะนี้ — ให้ผลการกดจริงเป็นตัวตัดสิน; ถ้ายังไม่ถึงหน้า = กลับไป NvPlugins OscHotkey ตาม §20.8 (ยังไม่ต้อง — ทดสอบก่อน)
 - start-osc โหมด genuine มี [0f] อยู่แล้ว = future-boot ปลอดภัย; รอบ manual ต้องจำ: **Share.exe ต้องมีใน PF GFE dir เสมอ** (เกณฑ์ใหม่เสนอใส่ status command ของ §21)
 - ความเข้าใจเก่าที่ RE หักล้าง: "FullPath registry = ตัวควบคุม" (จริงคือ dead-family) · "detect ใช้ client-registration" (ไม่เกี่ยว — ไม่มี code ตรวจ RegisterClient ในสาย enable) · "Share ต้อง attach ก่อน enable" (ไม่จำเป็น — container spawn เองและไม่รอ)
+
+### §20.12 — 🏆 OWNER ยืนยัน "ติดแล้ว ใช้ osc ได้ดีมาก เหมือน OSC แท้ๆ (จริงๆ มันก็แท้)" — ปิดเกณฑ์ §20.11 เต็ม (2026-10-05 02:3x — หลักฐาน: Logs\phase1-evidence\log-CaptureCore-20261005-0238-altz-works-owner-confirmed.log)
+
+**1. ตัวขวางชั้น hotkey สุดท้าย + แก้ (ต่อจาก §20.11):** Alt+Z กดแล้วเงียบทั้งสาย เพราะ **server จำ openshare = [18,88] = Alt+X** (encoding VK ยืนยันจาก `screenshot:[18,112]`=Alt+F1 default แท้ และ `FSPresetHKey2=0x58='X'` ใน registry) — ที่มา: `GetHotkeyProperty: reg read failed, falling back to default value` = **registry ไม่เคยมีค่า hotkey ของ openshare** (ค่าอื่นอยู่ครบใน HKCU\...\Global\ShadowPlay\NVSPCAPS เป็น `<Name>HKey<N>` REG_BINARY) addon เลยใช้ default ตกแต่ง — OWNER กด Alt+Z ไม่ match จึงไม่มี trace แม้แต่บรรทัด
+- แก้ด้วย **route แท้ที่หน้า settings ใช้เอง**: `POST /ShadowPlay/v.1.0/Hotkey/openshare` body `{"keys":[18,90]}` → GET ยืนยัน [18,90] → `SetProperty: IN(HotKeyChanged)` ไหลถึง server → **helper 13504 re-arm ทันที** (`UWPSetOSCDismissHotKeys: eSPHKID_OSC Hotkeys set for UWP`) → หน้า socket.io ต่อค้าง (`25640 ↔ :59001 ESTABLISHED` — ต่างจากยุค §20.7 ที่ socket ไม่เคยต่อ)
+
+**2. ผลการกดจริงของ OWNER (log — รอบ toggle คู่ ๆ หลายครั้ง):**
+```
+CShadowPlayHotkeyReceiver::PluginCallback: Received message 7   ← helper WMHK(7) → node receiver
+COverlayApi::SetInputRedirectionMode: mode[3] → COverlayApi::SetSP(25640,5)/(19300,5)   ← เปิด
+CShadowPlayHotkeyReceiver::PluginCallback: Received message 7   ← กดซ้ำ
+COverlayApi::SetInputRedirectionMode: mode[4] → COverlayApi::SetSP(25640,2)/(19300,2)   ← ปิด
+```
+48 × กดใน archive — สาย Alt+Z แท้เต็มเส้น: helper WMHK → bus → node `CShadowPlayHotkeyReceiver` → หน้า (socket.io) → overlay → input redirection ครบ · Data ใน osc ครบตามคำบอก OWNER
+
+**3. สถานะปลายทาง §20 (ขั้น OSC แท้ 100%):** ✅ UI + host + node ทำงานตามระบบแท้ครบ — containers แท้จาก PF · node แท้ 25616 ครอง :59001 · Share แท้ (hardlink build) ถูก container spawn เองจาก GFE dir · helper แท้ · Alt+Z แท้ · เหลือตามแผน §20: **CaptureEngine = NvCapture.exe** (OWNER บอกเอง "Capture ใช้ไม่ได้" = ตามคาด — NVIDIA capture ไม่แก้ตามข้อ 3 ของ §20; งาน capture stack = ลำดับถัดไปตามข้อ 4 "ทำหลัง Alt+Z ผ่านเท่านั้น" — ปลดล็อกแล้ว)
+
+**4. ค้างเล็ก (จดไว้ทำใน Phase 2):**
+- **Alt+Z อยู่แค่ memory ของ server** (ยังไม่ลง registry/Cfg2/Cfg3 — ต่างจาก hotkey อื่น) → container restart = กลับไป Alt+X; ทางแก้ = settings-sync จากหน้า (POST Hotkey จาก page) หรือ registered boot step (POST `{"keys":[18,90]}` หลัง enable)
+- node addon counter "start attempts" = 2/5 ใช้ไปของ session node ปัจจุบัน (restart node = รีเซ็ต — ไม่มีผลเว้นแต่ enable ต้องยิงซ้ำหลังแก้สาย)
+- การบูตครั้งหน้า: ลำดับเต็ม = start-osc โหมด genuine ([0f] hardlink + [3] node → auto-enable) → POST /Launch → POST Hotkey openshare [18,90] — เสนอใส่เป็น step ใน §21
