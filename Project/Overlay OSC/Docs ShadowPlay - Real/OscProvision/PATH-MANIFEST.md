@@ -657,3 +657,37 @@ CServerImpl::EnableShadowPlay: SetSP failed! 0x80004005
 - ✓ Launch 200 / MainView 200 / DesktopCapture 200 (ผ่าน topology Custom ที่คุณใช้ — shim node :59001)
 - ⏳ "SetSP ผ่าน end-to-end" ยังพิสูจน์ไม่จบ: auto-enable trigger (rundll32 origin(7)) ใช้ retry 5 ครั้งหมดตั้งแต่ 19:06 (ตอน FullPath ยังชี้ path ตาย — แก้เป็น `build\...\Overlay OSC\NVIDIA Share\NVIDIA Share.exe` แล้ว) และไม่ยอม respawn หลัง service restart หลายรอบ = ปม trigger แยกต่างหาก (ไม่ใช่ patch) — จะปิดพร้อมงานรวมเส้นทางเดียว Phase 2 (การกลับมาของ genuine node :59001 จะพา enable กลับมาเอง)
 - แยกชัดตามคำสั่ง OWNER: patch นี้ = ปลด container anchor เท่านั้น — ปม route ค้างของหน้า (Alt+Z → CDP) ยังเป็นงานต่างหาก
+- **หมุดสถานะ (OWNER สั่งจด): "patch installed · end-to-end proof pending trigger lifecycle"** — ValidatePID fail=0 ตอนนี้ยังเป็นหลักฐานอ่อน (SetSP ยังไม่ถูกเรียกเลยหลัง patch เพราะ trigger ตายก่อน) — จะปิดเต็มเมื่อ enable ยิงใหม่ (หลังสลับ topology) และ SetSP ผ่านจริง
+
+### §20.10 — รอบสลับ topology + 2 การค้นพบใหญ่ (2026-10-04 ค่ำแก่ — รอบเดียวตามแผน OWNER)
+
+**1. genuine node ขึ้นได้แล้ว (pid 7060 ครอง :59001) — และสาเหตุที่เคยตาย:**
+- node แท้ตายตอน start ด้วย `NVIDIA Web Helper file already exists in this session` (uncaughtException → shutdown สะอาด)
+- RE กลไก (strings NvUtil.node): `ClaimSingleInstance` = CreateEvent `{23FC14F6-CBB0-400C-AB0D-D94A864ED2B7}` + **CreateFileMappingW `{8BA1E16C-FC54-4595-9782-E370A5FBE8DA}`** — mapping ยังอยู่ = ตายทันที
+- **ผู้ถือ mapping ตัวจริง = NvPlugins GUI (OscHotkey "pairing MMF + event")** — ตายยากเพราะ Share ที่ container เลี้ยง + GUI ถือ handle ค้าง · **นัยสำคัญ Phase 2: NvPlugins กับ node แท้กันเองบน pairing MMF — §21 ต้องให้ OscHotkey เปิด mapping แบบ open-by-name/ปล่อยเมื่อโหมด genuine**
+- ลำดับที่ผ่าน (หลัง kill NvPlugins + Share + node เก่า): **start node ก่อน → :59001 200 → start service** (สูตร §8.3 ที่แท้จริง)
+
+**2. Patched plugin ถูก container ปฏิเสธเพราะ SIGNATURE (จุดตัดสินใหม่ — รอ OWNER):**
+- หลักฐาน: service container log (เวลาใน log = **UTC** — 13:19 UTC = 20:19 ท้องถิ่น บูตปัจจุบัน): `Failed to load library ...build..._nvspserviceplugin64.dll. Error 2148098064 (กลุ่ม 0x8009 = CERT/TRUST)` → **Secure loading ตรวจ signature plugin → 2-byte patch ทำ signature พัง → ShadowPlayServicePlugin ไม่ถูกโหลด → "ServicePlugin" หายจาก bus (เทียบ peers boot แท้) → ข้อความ enable/SetSP จาก node หมดเวลา (0x800705b4)** — ValidatePID ยังไม่ได้ถูกเรียกจริง (หมุดอ่อน §20.9 ยืนยันตัวเอง)
+- สิ่งที่ยังทำงาน: ShadowplayServer (SPUser, plugin ไม่ได้ patch) อยู่บน bus → MainView/CaptureState ผ่าน (cold-cache ต้องยิงซ้ำหลัง container ใหม่) · genuine node + Launch route พร้อม
+- `-safemode` flag ทดสอบแล้ว = service ไม่ขึ้นเลย (ไม่ใช่ทาง) — ถอนแล้ว
+- **ทางเลือกรอ OWNER ตัดสิน:**
+  - **(A) binary patch ชั้นที่ 2** — ปิด branch signature-verify ของ Secure loader ใน nvcontainer.exe (WinVerifyTrust path) ให้ plugin (ที่ patch แล้ว) โหลดได้ → ต่อสาย SetSP จบ §20.9 — ต้องอนุมัติ (แตะ container core)
+  - **(B) ถอน patch + กลับสูตร PF (§20.5)** — chain แท้สมบูรณ์แบบพิสูจน์แล้ว (SetSP ผ่าน/enable hr[0]/Get/Set ฟื้น) ยกเว้นข้อเดียว: container ต้องอยู่ PF — ปม build-path จบด้วย "ยอมแพ้ PF anchor" + OscHotkey (NvPlugins) ยังเป็นชั้น hotkey/open
+  - **(C) hybrid**: container จาก PF (plugin signature สมบูรณ์) + คง patch ไว้เฉพาะไฟล์ build (ไม่ถูกโหลด) เผื่ออนาคต
+
+**3. สถานะเครื่อง (ณ รายงาน):** genuine node 7060 (:59001) · service+containers ×3 จาก build (patched, ServicePlugin ไม่โหลด) · Share ไม่รัน (ถูก kill ใน cycle) · OscHotkey/NvPlugins ถูก kill (BootCustom เปิดคืนได้) · FullPath registry = build Overlay OSC Share ถูกต้องแล้ว
+
+### §21 — Phase 2 spec: รวม boot logic เข้า NvPlugins (supervisor) — OWNER กำหนดหลักการ (2026-10-04)
+
+**หลักการ 3 ข้อ:** modular (แยก step ชัดแต่ละอันตรวจ/รันเดี่ยวได้) · transparent (ทุก step log อ่านได้ ตรวจสอบได้) · trustworthy (self-heal + rollback ทุก step)
+
+**โครงสร้างที่ต้องมี:**
+1. **แยก step** — boot = ลำดับ step ย่อยที่ประกาศชัด (service → PF anchor → registered patches → Share → node → helper → re-arm) แต่ละ step มีเงื่อนไขผ่าน/ไม่ผ่านของตัวเอง
+2. **status command** — `NvPlugins.exe status` = รายงานสถานะทุก step ปัจจุบัน (process ไหนรันจาก path ไหน, port, registry, patch marker) โดยไม่แตะอะไร
+3. **self-heal** — step ไหนพัง = ซ่อมเฉพาะ step นั้นจากแหล่งจริง (Payload/patch registry) ไม่ restart ทั้งชุด
+4. **rollback** — ทุก patch/flip ต้องมีทางย้อน (revert = copy จาก Payload, flip = สลับกลับได้) และ rollback ต้องไม่พังทีละหลาย step
+
+**สถาปัตยกรรมเป้าหมายปลายทาง (ต่อ §20):** NvPlugins = supervisor (OscHotkey ชั้น hotkey + OpenOsc ชั้นสั่งเปิด) · containers จาก build (patched) · node แท้ครอง :59001 · Share จาก build tree · shim node = interim ตอบ Data จน node แท้/NvCapture รับงานครบ
+
+**สถานะ:** spec จดแล้ว — implementation = งานถัดไปหลังปิดรอบ CDP/§20.9 นี้
