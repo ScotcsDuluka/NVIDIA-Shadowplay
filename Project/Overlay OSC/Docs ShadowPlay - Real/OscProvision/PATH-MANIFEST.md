@@ -610,3 +610,23 @@ CServerImpl::EnableShadowPlay: SetSP failed! 0x80004005
 **4. สรุปทางเทคนิค:** ทุกชั้นบน (helper→node→page→MainView) ผ่าน · หน้าต่าง overlay มีอยู่จริงและ vis=True · พื้นผิว DT ซ่อน + หน้าไม่ยอม allowOSCPainting + ถูก close-flood รังควาน = การวาดไม่เคยเริ่ม · คอนฟิก/binary แท้ยังไม่พอ — ตัวขับ DT/presentation (ชั้น 4) คือชิ้นที่ขาดจริง ๆ (เดิมเป็นหน้าที่ของสาย shim)
 
 **5. เครื่องมือใหม่ที่ได้จากคอนฟิกแท้:** `:9222` CDP — อ่าน/สั่งหน้า osc ได้ตรง (eval JS, ดู hash, ยิง event) — ใช้ต่อได้ทุกงาน
+
+### §20.8 — 🏆 PAINT สำเร็จผ่าน NvPlugins/DulukaPort topology — hotkey ตัวจริงคือ OscHotkey ไม่ใช่ nvsphelper64 (2026-10-04 ค่ำ — OWNER ทดสอบใน NvPlugins GUI แล้วยืนยัน "ติดแล้ว")
+
+**ผลทดสอบ (log + pixel จริง):**
+- **paint ยืนยัน**: screenshot diff เทียบ baseline จอเปล่า = **51,024 sampled pixels เปลี่ยนทั่วจอ** (0,0)-(1676,1048) — genuine chain ตอนล้มเหลว = 37 pixels (noise)
+- **ต้นสาย hotkey ที่จริง**: `dulukaport.out` = `[DulukaPort] Alt+Z -> POST /?hk=OpenShare → toggle -> 200` ซ้ำ — **DulukaPort OscHotkey (in-app hook) จับ Alt+Z เอง → fire :59002/?hk=OpenShare → overlayToggle → หน้าเปิดเอง** — nvsphelper64 WMHK → MessageBus → node receiver ไม่เคยพา overlay ไปถึงจอ (ชั้น 4 ตายมาตลอด)
+- **topology ที่ติด**: NvPlugins.exe (OscHotkey) + shim node :59001 (Custom Data) + :59002 fireServer + **Share.exe จาก build tree** (`Overlay OSC\NVIDIA Share\` — pid 12992: :9222 LISTENING + ต่อ :59001 ESTABLISHED หลายช่อง + Overlay window vis=True) — nvcontainer SPUser/User จาก PF ยังรัน
+- BootGenuine (18:54) ทำหน้าที่ของมันครบ: kill shim node ค้าง + re-arm Launch 200 — แต่การ paint เกิดผ่านสาย Custom
+
+**diff ตัวการ (จาก 4 ข้อที่สงสัย):**
+| จุด | start-osc (genuine chain) | NvPlugins Custom (WORKS) |
+|---|---|---|
+| ตัวจับ Alt+Z | nvsphelper64 WMHK → MessageBus → node receiver (ไม่เคยถึงหน้า) | **DulukaPort OscHotkey → POST OpenShare → 200 ทันที** |
+| node | genuine node :59001 | shim node :59001 + :59002 fireServer |
+| การเปิด | รอ page handler ผ่าน socket (ไม่มีวันมา) | **overlayToggle ยิงเข้าหน้าตรง — เปิดเอง** |
+| ผล DT | DT vis=False + close-flood + route ค้าง #/base | **หน้าเปิด + paint 51k pixels** |
+
+**ข้อสรุปสถาปัตยกรรม (ต่อยอด §20 + Phase 2):** หัวใจที่หายของสายแท้ = **ตัวจับ Alt+Z + สั่งเปิดแบบตรง (OpenShare fire)** — หน้าต่าง/พื้นผิววาด (Overlay window + DT) ของ Share แท้ใช้ได้อยู่แล้ว เมื่อหน้า "เปิด" ถูกต้อง · **NvPlugins เป็น supervisor** ตามแผน Phase 2: OscHotkey = ชั้น hotkey, OpenOsc = ชั่นสั่งเปิด, node ฝั่งไหนตอบ Data ค่อยรวมตาม §20 (OSC แท้ 100% — shim node เป็น interim ตอบ Data)
+
+**สถานะเครื่องหลังทดสอบ:** ทิ้ง topology ที่ติดไว้ตามที่ OWNER ใช้งานอยู่ (ไม่ kill อะไร) · archive: poll logs run1-run5 + dulukaport.out อยู่ที่ตำแหน่งเดิม · ไฟล์ Intel harvest ยังรอผลเสริม (ไม่บล็อกแล้ว — ทางตายเดินได้จริงแล้ว)
