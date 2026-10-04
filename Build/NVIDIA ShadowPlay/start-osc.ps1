@@ -51,6 +51,19 @@ function Copy-Genuine([string]$src, [string]$dst) {
     }
 }
 # Copy-Genuine-Tree: ทีละไฟล์ — จัดการ leaf/dir ชนกัน + ไฟล์ล็อกที่เนื้อตรง (ข้าม)
+function Remove-Extra-Tree([string]$src, [string]$dst) {
+    # mirror-clean: ลบไฟล์/โฟลเดอร์ใน dst ที่ไม่มีใน src — กันของแปลกปนที่ kill container (§20.5: NvMessageBusBroadcast.dll ของ NVIDIA App ทับซ้อนชื่อกับ _NvMessageBusBroadcast.dll → exit 14109)
+    if (-not (Test-Path $dst)) { return }
+    foreach ($child in (Get-ChildItem $dst -Force)) {
+        $srcChild = Join-Path $src $child.Name
+        if (-not (Test-Path $srcChild)) {
+            Remove-Item $child.FullName -Recurse -Force
+            Write-Host ('  ลบของแปลก (ไม่มีใน Payload): ' + $child.FullName)
+        } elseif ($child.PSIsContainer) {
+            Remove-Extra-Tree $srcChild $child.FullName
+        }
+    }
+}
 function Copy-Genuine-Tree([string]$src, [string]$dst) {
     if (-not (Test-Path $dst)) { New-Item -ItemType Directory -Path $dst -Force | Out-Null }
     foreach ($child in (Get-ChildItem $src -Force)) {
@@ -213,6 +226,16 @@ if ($Mode -eq 'genuine') {
     }
     Write-Host ('[0f] GFE hardlink: linked=' + $linked + ' skipped=' + $skipped + ' failed=' + $failed)
 
+    # [0f.1] Share.json force-mirror (§20.7 OWNER: คอนฟิกที่ตำแหน่งรัน = mirror ของ build tree ทุกบูต — hardlink loop ข้ามไฟล์ที่มีอยู่ จึงต้อง force แยก; ทะเบียน: genuine + registered patches §20.2)
+    $cfgSrc = Join-Path $ShareWd 'NVIDIA Share.json'
+    $cfgDst = Join-Path $gfeDir 'NVIDIA Share.json'
+    if ((Test-Path $cfgSrc) -and (Test-Path $cfgDst)) {
+        if ((Get-FileHash $cfgSrc -Algorithm MD5).Hash -ne (Get-FileHash $cfgDst -Algorithm MD5).Hash) {
+            Copy-Item $cfgSrc $cfgDst -Force
+            Write-Host '  [0f.1] Share.json → force-mirror ทับ (ต่างจาก build tree)'
+        } else { Write-Host '  [0f.1] Share.json ตรงกับ build tree แล้ว' }
+    } else { Write-Host '  [0f.1] ⚠ หา config ต้นทาง/ปลายทางไม่ครบ' }
+
     # 0g) runtime data dirs (§6 — สร้างล่วงหน้า idempotent ก่อน service start — ทุก plugin resolve path ตอน init ไม่ retry)
     Write-Host '=== [0g] runtime data dirs (§6) ==='
     $runtimeDirs = @(
@@ -226,6 +249,51 @@ if ($Mode -eq 'genuine') {
         if (-not (Test-Path $d)) { New-Item -ItemType Directory -Path $d -Force | Out-Null; Write-Host ('  สร้าง: ' + $d) }
     }
     Write-Host ('[0g] runtime dirs ok (' + $runtimeDirs.Count + ')')
+
+    # 0h) registered JS patches (§20.2 "genuine + registered patches") — re-apply ถ้า marker หาย (idempotent; กัน [0e] restore ของแท้ทับ / NVIDIA App ลบ tree)
+    Write-Host '=== [0h] registered JS patches (§20.2) ==='
+    $spJs = Join-Path $pf86 'NvNode\NvShadowPlayAPI.js'
+    if (-not (Test-Path $spJs)) { Fail ('[0h] ไม่พบ ' + $spJs) }
+    $spS = [string][char]0x00A7
+    $spMarker = "[NvCapture-interim $spS" + '20.2]'
+    $spJsText = [System.IO.File]::ReadAllText($spJs)
+    if ($spJsText.Contains($spMarker)) {
+        Write-Host '  [0h] patch อยู่แล้ว (marker เจอ) — ข้าม'
+    } else {
+        $a1 = '            api.CaptureState(doReply);'
+        $a2 = '            api.CaptureControlUnderPIDMode(doReply);'
+        if (-not $spJsText.Contains($a1) -or -not $spJsText.Contains($a2)) { Fail '[0h] anchor ไม่ครบ — NvShadowPlayAPI.js เปลี่ยนรูป ตรวจก่อน (ทะเบียน patch: PATH-MANIFEST §20.2)' }
+        $r1 = "            /* $spMarker capture boundary -> NvCapture.exe (/Duluka plane). INTERIM static reply - registered patch: PATH-MANIFEST $spS" + "20.2 (OWNER decision B) */`r`n            doReply(undefined, { state: 'Ready' });`r`n            // api.CaptureState(doReply);"
+        $r2 = "            /* $spMarker capture boundary - desktop truth: PID (co-proc) control not valid. Registered patch: PATH-MANIFEST $spS" + "20.2 */`r`n            doReply(undefined, { valid: false });`r`n            // api.CaptureControlUnderPIDMode(doReply);"
+        $spJsText = $spJsText.Replace($a1, $r1).Replace($a2, $r2)
+        [System.IO.File]::WriteAllText($spJs, $spJsText)
+        Write-Host '  [0h] re-applied registered patch (marker หาย = โดน restore ทับ)'
+    }
+
+    # 0i) PF container anchor restore (§20.5 OWNER อนุมัติ — container แท้ต้องอยู่ PF: ValidatePID ตรวจ exe path ที่ขั้น SetSP) — self-heal ทุกบูต + manifest แบบ [0e]
+    Write-Host '=== [0i] PF container anchor restore (NvContainer → PF) ==='
+    $contSrc = Join-Path $payload.FullName 'NvContainer'
+    if (-not (Test-Path $contSrc)) { Fail ('[0i] ไม่พบ Payload NvContainer: ' + $contSrc) }
+    $pfCont = Join-Path $pf64 'NvContainer'
+    Copy-Genuine-Tree $contSrc $pfCont
+    Remove-Extra-Tree $contSrc $pfCont
+    $contManifestPath = Join-Path $Log 'pf-container-manifest.txt'
+    $contEntries = @()
+    Get-ChildItem $pfCont -Recurse -File | ForEach-Object { $contEntries += ((Get-FileHash $_.FullName -Algorithm MD5).Hash + '  ' + $_.FullName) }
+    if (Test-Path $contManifestPath) {
+        $prevContCnt = @(Get-Content $contManifestPath).Count
+        if ($prevContCnt -ne $contEntries.Count) { Write-Host ('  ⚠ จำนวนไฟล์ PF container เปลี่ยน: ' + $prevContCnt + ' → ' + $contEntries.Count) }
+    }
+    $contEntries | Set-Content -Path $contManifestPath -Encoding UTF8
+    if (-not (Test-Path (Join-Path $pfCont 'nvcontainer.exe'))) { Fail '[0i] nvcontainer.exe ไม่อยู่ที่ PF หลัง restore' }
+    if (-not (Test-Path (Join-Path $pfCont 'NvContainerTelemetryApi.dll'))) { Fail '[0i] NvContainerTelemetryApi.dll ไม่อยู่ที่ PF หลัง restore' }
+    Write-Host ('[0i] PF container anchor: ' + $contEntries.Count + ' ไฟล์ · manifest → ' + $contManifestPath)
+
+    # 0j) registered binary patches (§20.8 — OWNER approved ValidatePID patch) — re-apply หลัง [0]/[0i] restore จาก Payload ทุกบูต (idempotent)
+    Write-Host '=== [0j] registered binary patches (§20.8) ==='
+    $vpPatch = Join-Path $B 'Runtime\apply-validatepid-patch.ps1'
+    if (Test-Path $vpPatch) { & $vpPatch } else { Write-Host '  [0j] ⚠ patcher ไม่พบ (skip): ' + $vpPatch }
+
 
     Write-Host ('[0] stage OK · container=' + $genuine)
     Write-Host ('[0]          · node=' + $nodeDst)
@@ -309,6 +377,33 @@ if ($Mode -eq 'genuine') {
         }
     }
     Write-Host '[1b] registry ok'
+}
+
+# ---------- [1d] container → PF flip (§20.5 OWNER อนุมัติ: ValidatePID ตรวจ exe path ที่ขั้น SetSP — container แท้ต้องมาจาก PF, node/Share/helper คง build) ----------
+if ($Mode -eq 'genuine') {
+    Write-Host '=== [1d] container PF flip (ImagePath + Watchdog) ==='
+    if (-not $isAdmin) { Fail '[1d] ต้องเขียน HKLM — รัน start-osc แบบ elevated (Run as Administrator)' }
+    $pfContBase = 'C:\Program Files\NVIDIA Corporation\NvContainer'
+    $buildContBase = 'C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\NvContainer\genuine'
+    $svcKey = 'HKLM:\SYSTEM\CurrentControlSet\Services\NvContainerLocalSystem'
+    $ipNow = (Get-ItemProperty $svcKey -ErrorAction SilentlyContinue).ImagePath
+    if ($ipNow -like ('*' + $buildContBase + '*')) {
+        Set-ItemProperty -Path $svcKey -Name ImagePath -Value $ipNow.Replace($buildContBase, $pfContBase)
+        Write-Host '  [1d] ImagePath → PF (flag/log path คงเดิมทั้งหมด)'
+    } elseif ($ipNow -like ('*' + $pfContBase + '*')) {
+        Write-Host '  [1d] ImagePath เป็น PF แล้ว — ข้าม'
+    } else { Fail ('[1d] ImagePath รูปแบบไม่รู้จัก — ตรวจก่อน: ' + $ipNow) }
+    Get-ChildItem 'HKLM:\SOFTWARE\NVIDIA Corporation\NvContainer\Watchdog' -ErrorAction SilentlyContinue | ForEach-Object {
+        $k = $_.PSPath; $kn = $_.PSChildName
+        foreach ($n in @('Folder','Container','Parameters')) {
+            $v = (Get-ItemProperty $k -ErrorAction SilentlyContinue).$n
+            if ($v -and $v.Contains($buildContBase)) {
+                Set-ItemProperty -Path $k -Name $n -Value $v.Replace($buildContBase, $pfContBase)
+                Write-Host ('  [1d] Watchdog\' + $kn + '\' + $n + ' → PF')
+            }
+        }
+    }
+    Write-Host '[1d] flip ok (container แท้จาก PF · node/Share/helper คง build ตาม §8/§17)'
 }
 
 # ---------- [1c] Share attach mode (ยืนรอ ก่อน container init — Light era: "Share มีชีวิตก่อน container init") ----------
@@ -441,6 +536,22 @@ if ($launched -and (Test-Path $ccLog)) {
         } catch { Write-Host ('[6] overlaytoggle err: ' + $_.Exception.Message) }
     }
 }
+
+# ---------- [6c] hotkey openshare = Alt+Z [18,90] (§20.12 — ค่าที่พิสูจน์แล้วว่าปลุกสาย Alt+Z ได้จริง;
+#            server เก็บแค่ memory จนกว่า persist ผ่านหน้า settings จะสำเร็จ → ต้องตั้งใหม่ทุกบูต; idempotent: GET ก่อน POST เมื่อต่างเท่านั้น) ----------
+Write-Host '=== [6c] hotkey openshare = Alt+Z [18,90] (idempotent) ==='
+try {
+    $hkCur = Invoke-RestMethod -Uri 'http://127.0.0.1:59001/ShadowPlay/v.1.0/Hotkey/openshare' -Method GET -TimeoutSec 8
+    Write-Host ('[6c] openshare ปัจจุบัน: ' + ($hkCur | ConvertTo-Json -Compress))
+    if (($hkCur.keys -join ',') -ne '18,90') {
+        $r3 = Invoke-WebRequest -Uri 'http://127.0.0.1:59001/ShadowPlay/v.1.0/Hotkey/openshare' -Method POST -Body '{"keys":[18,90]}' -ContentType 'application/json' -UseBasicParsing -TimeoutSec 8
+        Write-Host ('[6c] openshare SET [18,90] → ' + $r3.StatusCode)
+        $hkChk = Invoke-RestMethod -Uri 'http://127.0.0.1:59001/ShadowPlay/v.1.0/Hotkey/openshare' -Method GET -TimeoutSec 8
+        if (($hkChk.keys -join ',') -eq '18,90') { Write-Host '[6c] verify OK: openshare = Alt+Z ✓' } else { Write-Host ('[6c] ⚠ verify ไม่ผ่าน: ' + ($hkChk | ConvertTo-Json -Compress)) }
+    } else {
+        Write-Host '[6c] เป็น [18,90] อยู่แล้ว — ข้าม (server จำไว้จากรอบก่อน)'
+    }
+} catch { Write-Host ('[6c] ⚠ hotkey openshare SET ไม่สำเร็จ (server ยังไม่ enabled?): ' + $_.Exception.Message) }
 
 $containersFinal = @(Get-CimInstance Win32_Process -Filter "Name='nvcontainer.exe'" -ErrorAction SilentlyContinue)
 Write-Host '=== รายงานสรุป ==='

@@ -740,3 +740,16 @@ COverlayApi::SetInputRedirectionMode: mode[4] → COverlayApi::SetSP(25640,2)/(1
 - **Alt+Z อยู่แค่ memory ของ server** (ยังไม่ลง registry/Cfg2/Cfg3 — ต่างจาก hotkey อื่น) → container restart = กลับไป Alt+X; ทางแก้ = settings-sync จากหน้า (POST Hotkey จาก page) หรือ registered boot step (POST `{"keys":[18,90]}` หลัง enable)
 - node addon counter "start attempts" = 2/5 ใช้ไปของ session node ปัจจุบัน (restart node = รีเซ็ต — ไม่มีผลเว้นแต่ enable ต้องยิงซ้ำหลังแก้สาย)
 - การบูตครั้งหน้า: ลำดับเต็ม = start-osc โหมด genuine ([0f] hardlink + [3] node → auto-enable) → POST /Launch → POST Hotkey openshare [18,90] — เสนอใส่เป็น step ใน §21
+
+### §20.13 — ลำดับงาน persist Alt+Z + หมุดถัดไป (OWNER กำหนด 2026-10-05 — ปฏิบัติตามลำดับนี้)
+
+**ตัวขวาง persist (RE เพิ่มเติม):** server เก็บ hotkey เป็น value ตระกูล `<Name>HKey<N>` REG_BINARY ใน `HKCU\...\Global\ShadowPlay\NVSPCAPS` (ชื่อจาก binary: ManualHKey/DVRHKey/ScreenshotHKey/… และ **GFEOverlayHKeyV2** = ตัวเปิด overlay) — `GFEOverlayHKeyV2` **ไม่มีใน registry** → `GetHotkeyProperty: reg read failed, falling back to default` = [18,88] = Alt+X ต้นตอทั้งหมด (encoding VK ยืนยัน: `screenshot:[18,112]`=Alt+F1 default แท้ + `FSPresetHKey2=0x58`='X' ใน registry)
+
+**ลำดับที่ OWNER สั่ง (เรียงตามนี้):**
+1. **ทางหลัก = ผ่านหน้า settings ของ osc**: OWNER เปิด overlay → Hotkey settings → ตั้ง openshare = Alt+Z ผ่าน UI (server เขียน `<Name>HKey<N>` เองใน format มัน — แนวเดียวกับ accounts-store trick §20.1: ให้ NVIDIA เขียนเอง ไม่เดา mapping) → **verify: value ตระกูล GFEOverlayHKeyV2 โผล่ใน HKCU\...\NVSPCAPS + GET openshare ยัง [18,90] หลัง restart container** (⚠ ถ้าหน้าโชว์ Alt+Z อยู่แล้ว ต้อง re-set ให้ UI ยิง POST จริง — ค่าเท่าเดิมหน้าอาจไม่ยิง)
+2. **ทางสำรอง (เฉพาะ UI เขียนไม่ลง)**: เขียน value ตรง ๆ ตาม pattern — ต้องเทียบ format จาก hotkey ที่ persist แล้ว 117 ค่าก่อนเสมอ (FSPresetHKey2=0x58 เป็นหลักฐาน encoding) + ทดสอบกับ hotkey ตัวอื่นก่อน openshare เสมอ
+3. **ระหว่างนี้ = boot step [6c] ลงทะเบียนแล้ว** ใน start-osc.ps1: หลัง [6] re-arm + CreateSettings หมุด → **GET openshare → POST `{"keys":[18,90]}` เมื่อต่างเท่านั้น (idempotent) → GET verify** — Alt+Z รอดทุกบูตไม่ว่า persist จะสำเร็จเมื่อไหร่ (บล็อก overlaytoggle เดิมของรอบ §20.9 คงไว้ — ยังไม่ยืนยันชื่อ)
+4. **ExeLocation relative `..\..\` = known-alternative เท่านั้น ห้ามใช้จริง** (OWNER เห็นด้วยกับประเมิน: เปราะ + ยัง PF-anchored อยู่ดี — ทางแท้คือ [0f] hardlink) — จดไว้เผื่อวิกฤต
+5. **เรื่อง registry สรุปสำหรับอนาคต**: กลุ่ม provisioning (§3 payload) ต้องมีเหมือนเดิม · [1b]/[1d] เขียนทุกบูตตามสคริปต์ · ไม่มีการแก้มือนอกสคริปต์ — fix วันนี้ทั้งหมด = filesystem + process + HTTP ล้วน
+
+**หมุดถัดไป (OWNER กำหนดลำดับ):** persist เรียบร้อย → **reboot test 1 รอบ** (บูตเครื่องจริง → boot script → Alt+Z ต้องขึ้น) → **Phase 2** (NvPlugins supervisor ตามสเปก §21: modular/transparent/trustworthy + status command + self-heal + rollback) → **Phase 3** (NvCapture.exe — capture boundary ตาม §20)
