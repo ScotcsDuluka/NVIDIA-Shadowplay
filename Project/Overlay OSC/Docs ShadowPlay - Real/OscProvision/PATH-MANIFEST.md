@@ -753,3 +753,9 @@ COverlayApi::SetInputRedirectionMode: mode[4] → COverlayApi::SetSP(25640,2)/(1
 5. **เรื่อง registry สรุปสำหรับอนาคต**: กลุ่ม provisioning (§3 payload) ต้องมีเหมือนเดิม · [1b]/[1d] เขียนทุกบูตตามสคริปต์ · ไม่มีการแก้มือนอกสคริปต์ — fix วันนี้ทั้งหมด = filesystem + process + HTTP ล้วน
 
 **หมุดถัดไป (OWNER กำหนดลำดับ):** persist เรียบร้อย → **reboot test 1 รอบ** (บูตเครื่องจริง → boot script → Alt+Z ต้องขึ้น) → **Phase 2** (NvPlugins supervisor ตามสเปก §21: modular/transparent/trustworthy + status command + self-heal + rollback) → **Phase 3** (NvCapture.exe — capture boundary ตาม §20)
+
+**ผล (2026-10-05 ต่อจากลำดับข้างบน — ปิดข้อ 1 และปรับข้อ 3):**
+1. **✅ Persist ผ่านหน้า settings สำเร็จเต็มรูปแบบ (ทางหลักใช้ได้จริง — NVIDIA เขียนเอง):** OWNER ตั้งผ่าน UI → registry เพิ่ม 3 value (117→120): **`GFEOverlayHKeyV2Count=02000000` · `GFEOverlayHKeyV20=12000000`(Alt) · `GFEOverlayHKeyV21=58000000`('X')** — format ตรง pattern ที่ RE ไว้เป๊ะ · GET openshare = `[18,88]` · **ค่าสุดท้ายที่ OWNER เลือก = Alt+X** (persist เป็น combo-agnostic — จะเปลี่ยนเป็นอะไรก็ตั้งผ่าน UI ได้เหมือนกัน)
+2. **✅ Self-heal พิสูจน์แนบมาด้วย:** OWNER kill NVIDIA Share.exe → container respawn เอง (`COscProcMgr::OnEndProcess OSC Crashed ! → [try #1] Restarting OSC. → Time taken to launch OSC 109 msec` — pid ใหม่ 26112/27996) และ Alt+X ยังเรียก openshare ได้ทันที (hotkey อยู่กับ container+helper ไม่หายไปกับ Share)
+3. **⚠ [6c] แก้เป็น verify/log-only ทันที:** เดิม POST [18,90] ทุกบูต = **จะทับค่า Alt+X ที่ persist แล้วทุกครั้ง** — persist สำเร็จแล้วจึงเหลือหน้าที่ GET + log ค่าปัจจุบันเท่านั้น (หลัก transparent §21 — ห้ามสคริปต์ขัดค่าที่ OWNER ตั้งผ่าน UI)
+4. **หมายเหตุ:** fallback default ของ addon ([18,88]=Alt+X) บังเอิญตรงกับค่าที่ OWNER เลือก = ซ้อนกันสองชั้น (registry ผิดก็ยังได้ Alt+X) · หมุดถัดไปคงเดิม: **reboot test 1 รอบ** → Phase 2 → Phase 3

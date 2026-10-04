@@ -537,21 +537,13 @@ if ($launched -and (Test-Path $ccLog)) {
     }
 }
 
-# ---------- [6c] hotkey openshare = Alt+Z [18,90] (§20.12 — ค่าที่พิสูจน์แล้วว่าปลุกสาย Alt+Z ได้จริง;
-#            server เก็บแค่ memory จนกว่า persist ผ่านหน้า settings จะสำเร็จ → ต้องตั้งใหม่ทุกบูต; idempotent: GET ก่อน POST เมื่อต่างเท่านั้น) ----------
-Write-Host '=== [6c] hotkey openshare = Alt+Z [18,90] (idempotent) ==='
+# ---------- [6c] hotkey openshare — VERIFY ONLY (§20.13: persist ผ่านหน้า settings สำเร็จแล้ว —
+#            GFEOverlayHKeyV2 ลง HKCU โดย server เอง; ห้าม POST ทับค่าที่ OWNER ตั้งผ่าน UI เด็ดขาด — log อย่างเดียวตามหลัก transparent §21) ----------
+Write-Host '=== [6c] hotkey openshare verify (log-only — ค่าจริงอยู่ที่ registry) ==='
 try {
     $hkCur = Invoke-RestMethod -Uri 'http://127.0.0.1:59001/ShadowPlay/v.1.0/Hotkey/openshare' -Method GET -TimeoutSec 8
-    Write-Host ('[6c] openshare ปัจจุบัน: ' + ($hkCur | ConvertTo-Json -Compress))
-    if (($hkCur.keys -join ',') -ne '18,90') {
-        $r3 = Invoke-WebRequest -Uri 'http://127.0.0.1:59001/ShadowPlay/v.1.0/Hotkey/openshare' -Method POST -Body '{"keys":[18,90]}' -ContentType 'application/json' -UseBasicParsing -TimeoutSec 8
-        Write-Host ('[6c] openshare SET [18,90] → ' + $r3.StatusCode)
-        $hkChk = Invoke-RestMethod -Uri 'http://127.0.0.1:59001/ShadowPlay/v.1.0/Hotkey/openshare' -Method GET -TimeoutSec 8
-        if (($hkChk.keys -join ',') -eq '18,90') { Write-Host '[6c] verify OK: openshare = Alt+Z ✓' } else { Write-Host ('[6c] ⚠ verify ไม่ผ่าน: ' + ($hkChk | ConvertTo-Json -Compress)) }
-    } else {
-        Write-Host '[6c] เป็น [18,90] อยู่แล้ว — ข้าม (server จำไว้จากรอบก่อน)'
-    }
-} catch { Write-Host ('[6c] ⚠ hotkey openshare SET ไม่สำเร็จ (server ยังไม่ enabled?): ' + $_.Exception.Message) }
+    Write-Host ('[6c] openshare = ' + ($hkCur.keys -join ',') + ' (VK codes — ค่า persist จาก HKCU\...\ShadowPlay\NVSPCAPS\GFEOverlayHKeyV2)')
+} catch { Write-Host ('[6c] ⚠ อ่าน openshare ไม่สำเร็จ (server ยังไม่ enabled?): ' + $_.Exception.Message) }
 
 $containersFinal = @(Get-CimInstance Win32_Process -Filter "Name='nvcontainer.exe'" -ErrorAction SilentlyContinue)
 Write-Host '=== รายงานสรุป ==='
