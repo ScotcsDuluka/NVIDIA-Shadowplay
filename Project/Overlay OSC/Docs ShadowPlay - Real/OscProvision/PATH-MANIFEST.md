@@ -759,3 +759,25 @@ COverlayApi::SetInputRedirectionMode: mode[4] → COverlayApi::SetSP(25640,2)/(1
 2. **✅ Self-heal พิสูจน์แนบมาด้วย:** OWNER kill NVIDIA Share.exe → container respawn เอง (`COscProcMgr::OnEndProcess OSC Crashed ! → [try #1] Restarting OSC. → Time taken to launch OSC 109 msec` — pid ใหม่ 26112/27996) และ Alt+X ยังเรียก openshare ได้ทันที (hotkey อยู่กับ container+helper ไม่หายไปกับ Share)
 3. **⚠ [6c] แก้เป็น verify/log-only ทันที:** เดิม POST [18,90] ทุกบูต = **จะทับค่า Alt+X ที่ persist แล้วทุกครั้ง** — persist สำเร็จแล้วจึงเหลือหน้าที่ GET + log ค่าปัจจุบันเท่านั้น (หลัก transparent §21 — ห้ามสคริปต์ขัดค่าที่ OWNER ตั้งผ่าน UI)
 4. **หมายเหตุ:** fallback default ของ addon ([18,88]=Alt+X) บังเอิญตรงกับค่าที่ OWNER เลือก = ซ้อนกันสองชั้น (registry ผิดก็ยังได้ Alt+X) · หมุดถัดไปคงเดิม: **reboot test 1 รอบ** → Phase 2 → Phase 3
+
+### §20.14 — 🏆 REBOOT TEST ผ่าน — PHASE 1 ปิดทั้งโครง (2026-10-05 03:2x — OWNER ยืนยัน "ใช้ Alt X ได้เหมือนเดิม" — หลักฐาน: Logs\phase1-evidence\log-CaptureCore-20261005-0322-reboot-test-pass-phase1-closed.log)
+
+**สิ่งที่รอดจาก reboot โดยอัตโนมัติ (ไม่ต้องแตะ):** service NvContainerLocalSystem + containers ×3 จาก PF (watchdog ปลุกเอง) · **[0f] hardlink Share.exe ใน PF GFE dir** (filesystem-level) · **hotkey Alt+X ใน HKCU registry (GFEOverlayHKeyV2)** · build tree ทั้งหมด
+
+**สิ่งที่ boot script จัดการ (start-osc โหมด genuine — รันครั้งเดียวจบ ~75 วิ):**
+- [3] จับ node ผิดตัวแย่ง :59001 ตอนบูต (กับดัก §20.5 — shim ร้าวถูกปลุก) → kill → สตาร์ต node แท้ → 200 · [4] จับ helper ผิด path → kill → ตัวถูก · [5] kill zombie Share ×2 → spawn สด ×2 · **container spawn Share เอง `launch OSC 109 msec` สะอาด (pid 16756/6200)**
+- [6] เจอ guard ค้างข้ามบูต (fail-count=2 จากยุคก่อนแก้ — เคยบล็อก POST) → **แก้ logic ถาวร: GET /Launch ก่อน — ถ้า enable สำเร็จเองแล้ว (node auto-fire) = รีเซ็ต guard + ข้าม POST** · [6c] verify/log-only: อ่าน openshare = 18,88 จาก registry โดยไม่ยิงทับ ✓
+
+**ผลยืนยันปลายสาย (OWNER กดจริง):** Alt+X เปิด overlay ได้เหมือนเดิมทันทีหลังบูต — log ยืนยัน **42 × `CShadowPlayHotkeyReceiver::PluginCallback: Received message 7`** พร้อม cycle `SetInputRedirectionMode mode[3]/SetSP(pid,5)` = เปิด ↔ `mode[4]/SetSP(pid,2)` = ปิด · GET /Launch true · DesktopCapture/Reason 200 (m_pSettings ฟื้นหลังบูต)
+
+**สรุปสถานะปิด Phase 1 (สถาปัตยกรรม §20 ขั้น OSC แท้ 100% = ครบทุกชั้น ทน reboot):**
+| ชั้น | ตัวจริง | ที่มา |
+|---|---|---|
+| container ×3 | nvcontainer แท้ จาก PF | watchdog auto |
+| SP server / spawn Share | _nvspcaps64.dll แท้ (GetOSCPath หาเจอ) | [0f] hardlink |
+| node :59001 | node แท้ (build exe + PF(x86) script tree) | [3] script |
+| helper (WMHK) | nvsphelper64 แท้ (build) | [4] script |
+| hotkey Alt+X | registry GFEOverlayHKeyV2 (OWNER ตั้งผ่าน UI) | persist §20.13 |
+| overlay/settings | หน้า osc แท้ + server แท้ | enable §20.11 |
+
+**งานถัดไป (รอ OWNER เปิดรอบ):** Phase 2 = NvPlugins supervisor ตามสเปก §21 (modular/transparent/trustworthy — status command, self-heal, rollback; ผนวกบทเรียน [3]/[4] จับของร้าว + [6] guard รีเซ็ตเอง) → Phase 3 = NvCapture.exe (capture boundary ตาม §20)

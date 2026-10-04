@@ -500,7 +500,13 @@ $guardFile = Join-Path $Log 'launch-fail-count.txt'
 $failCount = 0
 if (Test-Path $guardFile) { [void][int]::TryParse((Get-Content $guardFile -ErrorAction SilentlyContinue), [ref]$failCount) }
 $launched = $false
-if ($failCount -ge 2) {
+# §20.13: ถ้า node auto-fire enable สำเร็จเองแล้ว (GET /Launch = true) = รีเซ็ต guard และข้าม POST — กัน fail-count ค้างข้ามบูตบล็อกในสภาพที่สายหายแล้ว
+$alreadyOn = $false
+try { $pre = Invoke-RestMethod -Uri $LaunchUrl -Method GET -TimeoutSec 8; $alreadyOn = [bool]$pre.launch } catch {}
+if ($alreadyOn) {
+    Write-Host '[6] enable สำเร็จเองก่อนหน้า (node auto-fire) — รีเซ็ต guard และข้าม POST'
+    Set-Content -Path $guardFile -Value '0' -Encoding UTF8
+} elseif ($failCount -ge 2) {
     Write-Host ('[6] GUARD: Launch fail มาแล้ว ' + $failCount + ' ครั้งติด — ไม่ยิงอีก (ตามคำสั่ง OWNER) — ตรวจ CaptureCore m_pSettings/CreateSettings ก่อนรันใหม่')
 } else {
     try {
