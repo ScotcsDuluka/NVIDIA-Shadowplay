@@ -799,3 +799,5 @@ COverlayApi::SetInputRedirectionMode: mode[4] → COverlayApi::SetSP(25640,2)/(1
 **สถานะ start-osc:** เลิกใช้ได้ (NvPlugins boot แทนที่ทุก step; สคริปต์คงอยู่เป็น reference) · **ข้อควรรู้:** รัน `NvPlugins.exe boot` ต้อง elevated (UAC) — แนะนำ shortcut "Run as administrator" หรือ Task Scheduler ตอน logon
 
 **หมุดถัดไป:** OWNER กด Alt+X ยืนยันบน supervisor รอบนี้ (ภาพเห็น = ปิดเกณฑ์รับ Phase 2) → Phase 3 = NvCapture.exe
+
+**ผลปิด (2026-10-05 — OWNER ยืนยัน "ติด"):** ✅ เกณฑ์รับ Phase 2 ครบทั้ง 4 ข้อ — supervisor บูตระบบแท้เต็มสายเอง + Alt+X ขึ้นจอจริงบนระบบที่ supervisor เลี้ยง · **PHASE 2 CLOSED** · เริ่ม Phase 3 = NvCapture.exe (capture boundary ตาม §20 — "Capture ใช้ไม่ได้" ที่ OWNER รายงานคือชิ้นนี้) เมื่อ OWNER เปิดรอบ
