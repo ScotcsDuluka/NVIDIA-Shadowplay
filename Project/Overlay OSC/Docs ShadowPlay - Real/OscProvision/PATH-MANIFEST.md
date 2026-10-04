@@ -694,3 +694,28 @@ CServerImpl::EnableShadowPlay: SetSP failed! 0x80004005
 **สถาปัตยกรรมเป้าหมายปลายทาง (ต่อ §20):** NvPlugins = supervisor (OscHotkey ชั้น hotkey + OpenOsc ชั้นสั่งเปิด) · containers จาก build (patched) · node แท้ครอง :59001 · Share จาก build tree · shim node = interim ตอบ Data จน node แท้/NvCapture รับงานครบ
 
 **สถานะ:** spec จดแล้ว — implementation = งานถัดไปหลังปิดรอบ CDP/§20.9 นี้
+
+### §20.11 — 🏆 RE สาย enable จบ + ENABLE ผ่านจริงบน topology แท้: "Share-detect" = GetOSCPath หา exe (แก้ no-patch ด้วย [0f] hardlink + node restart) (2026-10-05 00:1x — หลักฐาน: Logs\phase1-evidence\log-CaptureCore-20261005-0018-enable-pass-share-path-fixed.log)
+
+**1. RE เงื่อนไข "Share-detect" ของ EnableShadowPlay (capstone disassembly `_nvspcaps64.dll` Payload, อ่านอย่างเดียว — เครื่องมือ: Logs\phase1-evidence\re-tools\caps_osc_re.py):**
+- **ไม่มี "detect Share process" ตามที่คิดมาทั้งหมด** — `CServerImpl::EnableShadowPlay` (VA 0x180074CB0) ไล่: already-running guard → Initialize → PreEnableShadowPlay → EnableNvFBC → helper process → **`COscProcMgr::StartProcess` = สร้าง Share เอง** → `EnableShadowPlayInternal` → `SetSP(GetCurrentProcessId(), 5)` → running=1 — **ไม่มี attach-wait เลย** (Share บูต 20s เป็นพื้นหลัง ไม่บล็อก enable)
+- `COscProcMgr::GetOSCPath` (VA 0x1800785F0) สร้าง candidate 2 ตัว: **(ก)** relative `"NVIDIA Corporation\NVIDIA GeForce Experience\NVIDIA Share.exe"` · **(ข)** `HKLM\SOFTWARE\NVIDIA Corporation\Global\ShadowPlay\NVSPCAPS` value **`ExeLocation`** (ANSI read) · วนเช็คทั้ง 2 ผ่าน `CheckOscPath` (VA 0x180078330) = `SHGetFolderPathA(CSIDL 0x2A=PF(x86) → 0x26=PF)` + **strcat_s** ต่อ `"\"` + candidate → `GetFileAttributesA` (ต้องเป็นไฟล์) — **strcat_s แท้ (VA 0x18022189C) ไม่ใช่ PathAppend → ExeLocation แบบ absolute ใช้ไม่ได้** (จะกลายเป็น `C:\Program Files\C:\...`); หาไม่เจอ = log `"COscProcMgr::GetOSCPath: OSC exe not found in Program Files"` → StartProcess fail → `"failed to start Share Process!"` **0x80040233**
+- `COscProcMgr::StartProcess` (VA 0x1800790E0): `"Starting nvosc."` → CreateProcessA → Sleep(100ms) → GetExitCodeProcess — **STILL_ACTIVE(0x103) = ผ่าน**; exit 0 = `"OSC not started 0"` (transient ปกติ — ยุค §20.5 เจอบ่อย แล้ว attempt ถัดไป spawn ติดเอง; duration fail ~60-95ms, ผ่าน ~109-125ms)
+- **`GFExperience\FullPath` (ที่แก้ตาม §20.9) = ของฟังก์ชันอีกตระกูล (pool-B, free-fn) ที่ไม่ใช่ทางที่รัน** — โค้ดที่มีชีวิต (log prefix `COscProcMgr::` ตรง pool-A) อ่าน `NVSPCAPS\ExeLocation` เท่านั้น
+- บนเครื่อง ณ ก่อนแก้: ไม่มี Share.exe ทั้ง PF(x86)/PF(64) + ไม่มี ExeLocation → **26/26 enable attempts ทุกรอบ (รวมรอบ "ยิงใหม่หลัง Share attach แล้ว") ตายที่ GetOSCPath 1ms หลัง Starting nvosc** — อาการ "detect ไม่ใช่แค่ process-existence" แท้จริง = detect ไม่เคยดู Share เลย
+- ปม "5 attempts" ที่ commit §20.9 ตามหา = **counter ใน NvShadowPlayAPINode.node (native)**: "ShadowPlay start attempts exceeded, will not restart **this session**" — ต่อ-process node, หมดแล้วบล็อกทุก POST ต่อ (`Maximum ShadowPlay start attempts reached` 0x80078088) — **restart node = รีเซ็ต**
+
+**2. ทางแก้ (no-patch ล้วน — restore ของที่ลงทะเบียนไว้):**
+- **[0f] hardlink build Share tree → `C:\Program Files\NVIDIA Corporation\NVIDIA GeForce Experience\`** — รอบ manual ล่าสุดไม่ได้รัน [0f] (mode genuine เท่านั้น) เหลือไฟล์อื่นครบ 619 แต่ขาด Share.exe ตัวเดียว → hardlink เติม (3,347,496 bytes = genuine เป๊ะ, idempotent) + [0f.1] Share.json force-mirror ยืนยัน sync — candidate (ก) โดนทันที ไม่ต้องแตะ registry
+- **Restart node แท้** (kill NVIDIA Web Helper pid เก่า — counter หมด — แล้วสตาร์ต `build\NvNode\NVIDIA Web Helper.exe` ใหม่) → node auto-fire enable origin(4) หลัง join bus 9ms (พฤติกรรมเดิมเสมอ) = พิสูจน์คำพยากรณ์ §20.9 "genuine node จะพา enable กลับมาเอง" — จริง เมื่อ path ถูก
+- ป.ล. ครั้งแรก spawn ออกทันที (`OSC not started 0`) = transient ตามข้อ 1 — ยิง `POST /ShadowPlay/v.1.0/Launch {"launch":true}` (route ของ `api.ShadowPlayEnable`) ครั้งที่ 2 spawn ติด
+
+**3. ผลจริง (log archive ด้านบน — 05:00:16 ยุค log):** `Time taken to launch OSC 109 msec` (ไม่มี OSC not started) → **`CServerIpc::SetSP : IN(12272, 5)` ไม่มี ValidatePID fail** (container PF + plugin genuine) → `EnableShadowPlay: out hr[0]` → **SHARE:25640 attach + `COverlayApi::CreateOverlay: hr[0] 1680×1050`** · verify: GET /Launch `{"launch":true}` · DesktopCapture/Support/Reason **200 {"support":true}** (กำแพง m_pSettings หาย) · AudioSettings 200 · InstantReplay/Record/Broadcast-Status 200 ครบ · Share ×2 รันจาก GFE dir (25640 main + 19300 CEF child) · หน้า osc ขึ้นจาก `GFE\osc\index.html` ผ่าน CDP :9222 · hotkey chain พร้อม (node `Hotkey:Node` + nvsphelper64 13504 `Hotkey:HotkeyPlugin`)
+- kill ของเก่า: Share stray ×2 (972, 22864 จาก build tree — เหลือจาก topology Custom) ก่อนทดสอบ
+- node counter ใช้ไป 2/5 ของ session นี้ (auto-fire fail 1 + POST ผ่าน 1)
+
+**4. ค้าง/หมายเหตุ:**
+- **Alt+Z จริง = รอ OWNER กด** (ฉีดคีย์ไม่ผ่านตามเดิม) — ท่อพร้อมครบ: enable ผ่าน + settings ไหล + overlay ถูกสร้าง + hotkey chain armed
+- สาย genuine WMHK→MessageBus→node (§20.6 เคยสรุปว่า "ไม่เคยถึงหน้า") มีโอกาสทำงานได้แล้วในสถานะนี้ — ให้ผลการกดจริงเป็นตัวตัดสิน; ถ้ายังไม่ถึงหน้า = กลับไป NvPlugins OscHotkey ตาม §20.8 (ยังไม่ต้อง — ทดสอบก่อน)
+- start-osc โหมด genuine มี [0f] อยู่แล้ว = future-boot ปลอดภัย; รอบ manual ต้องจำ: **Share.exe ต้องมีใน PF GFE dir เสมอ** (เกณฑ์ใหม่เสนอใส่ status command ของ §21)
+- ความเข้าใจเก่าที่ RE หักล้าง: "FullPath registry = ตัวควบคุม" (จริงคือ dead-family) · "detect ใช้ client-registration" (ไม่เกี่ยว — ไม่มี code ตรวจ RegisterClient ในสาย enable) · "Share ต้อง attach ก่อน enable" (ไม่จำเป็น — container spawn เองและไม่รอ)
