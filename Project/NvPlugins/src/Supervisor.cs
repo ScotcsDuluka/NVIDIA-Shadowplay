@@ -50,6 +50,7 @@ namespace NvPlugins
         public static readonly string PfContainerPlugin = PfContainer + @"\plugins\LocalSystem\ShadowPlay\_nvspserviceplugin64.dll";
         public static readonly string PayloadPlugin = Payload + @"\NvContainer\plugins\LocalSystem\ShadowPlay\_nvspserviceplugin64.dll";
         public static readonly string Pf86Node = Pf86 + @"\NvNode";
+        public static readonly string CaptureEngineExe = Build + @"\NvContainer\CaptureEngine\NvCapture.exe";
         public static readonly string GuardFile = BuildLogs + @"\launch-fail-count.txt";
         public static readonly string Journal = BuildLogs + @"\supervisor-journal.log";
         public static readonly string LaunchUrl = @"http://127.0.0.1:59001/ShadowPlay/v.1.0/Launch";
@@ -58,6 +59,7 @@ namespace NvPlugins
 
         static Action<string> _log = _ => { };
         static StepResult _cur;
+        static bool _jsPatched;   // [0h] เพิ่งแทรก middleware → [3] ต้อง restart node ให้โหลดใหม่
 
         static void L(string m) { _log(m); if (_cur != null) _cur.Actions.Add(m); }
         static void J(string action, string revert)
@@ -182,22 +184,96 @@ namespace NvPlugins
                 }
             },
             new Step {
-                Name = "[0h] registered JS patch (ACTIVE — §20.2 capture boundary)",
-                Rollback = "comment กลับ = ลบบล็อก marker แล้ว uncomment call เดิม (ทะเบียน: PATH-MANIFEST §20.2)",
-                Verify = _ => File.ReadAllText(Pf86Node + @"\NvShadowPlayAPI.js").Contains(PatchMarker)
-                    ? null : "marker หาย (โดน restore ทับ) — NvShadowPlayAPI.js ที่ node แท้โหลด",
+                Name = "[0h] registered JS boundary patch (ACTIVE — §20.2+§21.2 capture boundary → NvCapture.exe)",
+                Rollback = "ลบบล็อก [NvCapture-boundary §21.2] และ [NvCapture-interim §20.2] แล้ว uncomment call เดิม (ทะเบียน: PATH-MANIFEST §20.2/§21.2)",
+                Verify = _ => File.ReadAllText(Pf86Node + @"\NvShadowPlayAPI.js").Contains("[NvCapture-boundary \u00A721.2]")
+                    ? null : "boundary middleware หาย (โดน restore ทับ) — NvShadowPlayAPI.js ที่ node แท้โหลด",
                 Fix = (d, log) => {
                     var p = Pf86Node + @"\NvShadowPlayAPI.js";
                     var t = File.ReadAllText(p);
-                    var a1 = "            api.CaptureState(doReply);";
-                    var a2 = "            api.CaptureControlUnderPIDMode(doReply);";
-                    if (!t.Contains(a1) || !t.Contains(a2)) throw new Exception("[0h] anchor ไม่ครบ — NvShadowPlayAPI.js เปลี่ยนรูป ตรวจก่อน (ทะเบียน: PATH-MANIFEST §20.2)");
-                    var s = "\u00A7";
-                    var r1 = "            /* " + PatchMarker + " capture boundary -> NvCapture.exe (/Duluka plane). INTERIM static reply - registered patch: PATH-MANIFEST " + s + "20.2 (OWNER decision B) */\r\n            doReply(undefined, { state: 'Ready' });\r\n            // api.CaptureState(doReply);";
-                    var r2 = "            /* " + PatchMarker + " capture boundary - desktop truth: PID (co-proc) control not valid. Registered patch: PATH-MANIFEST " + s + "20.2 */\r\n            doReply(undefined, { valid: false });\r\n            // api.CaptureControlUnderPIDMode(doReply);";
-                    File.WriteAllText(p, t.Replace(a1, r1).Replace(a2, r2));
-                    J("patch [0h] re-applied → " + p, "comment บล็อก marker แล้ว uncomment api.CaptureState/api.CaptureControlUnderPIDMode เดิม");
-                    log("[0h] re-applied registered patch (marker หาย = โดน restore ทับ)");
+                    // 1) [0h] static patch ถ้ายังไม่มี (คงไว้เป็น fail-safe ชั้นสอง — middleware จะแย่งหน้าอยู่ดี)
+                    if (!t.Contains(PatchMarker))
+                    {
+                        var a1 = "            api.CaptureState(doReply);";
+                        var a2 = "            api.CaptureControlUnderPIDMode(doReply);";
+                        if (!t.Contains(a1) || !t.Contains(a2)) throw new Exception("[0h] anchor ไม่ครบ — NvShadowPlayAPI.js เปลี่ยนรูป ตรวจก่อน (ทะเบียน: PATH-MANIFEST §20.2)");
+                        var s = "\u00A7";
+                        var r1 = "            /* " + PatchMarker + " capture boundary -> NvCapture.exe (/Duluka plane). INTERIM static reply - registered patch: PATH-MANIFEST " + s + "20.2 (OWNER decision B) */\r\n            doReply(undefined, { state: 'Ready' });\r\n            // api.CaptureState(doReply);";
+                        var r2 = "            /* " + PatchMarker + " capture boundary - desktop truth: PID (co-proc) control not valid. Registered patch: PATH-MANIFEST " + s + "20.2 */\r\n            doReply(undefined, { valid: false });\r\n            // api.CaptureControlUnderPIDMode(doReply);";
+                        t = t.Replace(a1, r1).Replace(a2, r2);
+                        log("[0h] re-applied §20.2 static patch (ชั้น fail-safe)");
+                    }
+                    // 2) [NvCapture-boundary §21.2] middleware — แทรกก่อน route ทั้งหมด (express match ตามลำดับ = override)
+                    var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
+                    if (!t.Contains(anchor)) throw new Exception("[0h] ไม่พบ anchor RegisterExpressEndpoints — JS เปลี่ยนรูป ตรวจก่อน");
+                    var marker = "[NvCapture-boundary \u00A721.2]";
+                    if (!t.Contains(marker))
+                    {
+                        var insert = anchor + "\r\n    // ===== " + marker + " Phase 3 capture boundary: capture-scope routes → NvCapture.exe 127.0.0.1:59077 =====\r\n" +
+"    // กฎเหล็ก: หน้าต้องได้ 200 ทุกคำถาม — engine down = ตอบ static shape จริง ห้าม 500 · non-capture = genuine ทั้งหมด\r\n" +
+"    (function () {\r\n" +
+"        try {\r\n" +
+"            var httpMod = require('http');\r\n" +
+"            function ncReq(m, p2, body, cb) {\r\n" +
+"                try {\r\n" +
+"                    var rq = httpMod.request({ host: '127.0.0.1', port: 59077, path: p2, method: m, timeout: 1500 }, function (rs) {\r\n" +
+"                        var d2 = ''; rs.on('data', function (c) { d2 += c; }); rs.on('end', function () { try { cb(null, JSON.parse(d2)); } catch (e) { cb(null, {}); } });\r\n" +
+"                    });\r\n" +
+"                    rq.on('timeout', function () { rq.destroy(); cb(new Error('timeout')); });\r\n" +
+"                    rq.on('error', function (e) { cb(e); });\r\n" +
+"                    if (body) { var bs = JSON.stringify(body); rq.setHeader('content-type', 'application/json'); rq.setHeader('content-length', Buffer.byteLength(bs)); rq.write(bs); }\r\n" +
+"                    rq.end();\r\n" +
+"                } catch (e2) { cb(e2); }\r\n" +
+"            }\r\n" +
+"            function reply(res, obj) { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); } catch (e) { try { res.end(); } catch (e2) {} } }\r\n" +
+"            function readBody(req, cb) { var d = ''; req.on('data', function (c) { d += c; }); req.on('end', function () { try { cb(JSON.parse(d || '{}')); } catch (e) { cb({}); } }); }\r\n" +
+"            var SCOPE = [\r\n" +
+"                '/ShadowPlay/v.1.0/Record/Enable', '/ShadowPlay/v.1.0/Record/Running',\r\n" +
+"                '/ShadowPlay/v.1.0/Record/Settings', '/ShadowPlay/v.1.0/Capture/State',\r\n" +
+"                '/ShadowPlay/v.1.0/Broadcast/Support', '/ShadowPlay/v.1.0/InstantReplay/Enable'\r\n" +
+"            ];\r\n" +
+"            app.use(function (req, res, next) {\r\n" +
+"                var u = (req.url || '').split('?')[0];\r\n" +
+"                if (SCOPE.indexOf(u) < 0) return next();\r\n" +
+"                if (u === '/ShadowPlay/v.1.0/Capture/State') {\r\n" +
+"                    return ncReq('GET', '/state', null, function (e, st) { reply(res, { state: 'Ready' }); });\r\n" +
+"                }\r\n" +
+"                if (u === '/ShadowPlay/v.1.0/Record/Enable') {\r\n" +
+"                    if (req.method === 'POST') return readBody(req, function (b) {\r\n" +
+"                        var on = b && b.status === true;\r\n" +
+"                        ncReq('POST', on ? '/record/start' : '/record/stop', {}, function (e, r) {\r\n" +
+"                            try { _logger.info('[NvCapture-boundary] Enable ' + on + ' -> ' + JSON.stringify(r)); } catch (e2) {}\r\n" +
+"                            try { res.writeHead(200); res.end(); } catch (e2) {}\r\n" +
+"                        });\r\n" +
+"                    });\r\n" +
+"                    return ncReq('GET', '/state', null, function (e, st) { reply(res, { status: !!(st && st.enabled) }); });\r\n" +
+"                }\r\n" +
+"                if (u === '/ShadowPlay/v.1.0/Record/Running') {\r\n" +
+"                    return ncReq('GET', '/state', null, function (e, st) { reply(res, { running: !!(st && st.recording) }); });\r\n" +
+"                }\r\n" +
+"                if (u === '/ShadowPlay/v.1.0/Record/Settings') {\r\n" +
+"                    if (req.method === 'POST') return readBody(req, function (b) {\r\n" +
+"                        ncReq('POST', '/settings', b, function (e, r) { reply(res, r || {}); });\r\n" +
+"                    });\r\n" +
+"                    return ncReq('GET', '/settings', null, function (e, r) { reply(res, r || { quality: 'Custom', resolution: 'In-game', framerate: 60, bitrateBps: 50000000 }); });\r\n" +
+"                }\r\n" +
+"                if (u === '/ShadowPlay/v.1.0/Broadcast/Support') { return reply(res, { support: false }); }\r\n" +
+"                if (u === '/ShadowPlay/v.1.0/InstantReplay/Enable') {\r\n" +
+"                    if (req.method === 'POST') { try { res.writeHead(200); res.end(); } catch (e) {} return; }\r\n" +
+"                    return reply(res, { status: false });\r\n" +
+"                }\r\n" +
+"                return next();\r\n" +
+"            });\r\n" +
+"        } catch (eBoundary) {}\r\n" +
+"    })();\r\n";
+                        t = t.Replace(anchor, insert);
+                        File.WriteAllText(p, t);
+                        _jsPatched = true;
+                        J("[0h→§21.2] boundary middleware inserted → " + p, "ลบบล็อก [NvCapture-boundary §21.2] จาก NvShadowPlayAPI.js (node restart หลังแก้)");
+                        log("[0h] boundary middleware v2 inserted (record scope → NvCapture.exe :59077) — node จะถูก restart ที่ [3]");
+                        return;
+                    }
+                    log("[0h] boundary middleware อยู่แล้ว");
                 }
             },
             new Step {
@@ -355,12 +431,21 @@ namespace NvPlugins
                 Name = "[3] node แท้ :59001 (ล่า node ร้าว + open-by-name MMF)",
                 Rollback = "kill node ที่เรา spawn + start ใหม่ได้ทุกเมื่อ (exe = build\\NvNode)",
                 Verify = _ => {
+                    if (_jsPatched) return "JS boundary เพิ่งเปลี่ยน — node ต้อง restart เพื่อโหลด middleware";
                     if (U.NodeHttp() != 200) return ":59001 ไม่ตอบ 200";
                     var (rogue, unknown) = NodeHosts();
                     if (rogue.Count > 0) return "node ร้าว: " + string.Join(", ", rogue.Select(r => "PID " + r.Key + " " + r.Value.exe));
                     return unknown > 0 ? "OK — แต่มี node host path อ่านไม่ได้ " + unknown + " ตัว (ยืนยันชัด = รัน elevated)" : null;
                 },
                 Fix = (d, log) => {
+                    if (_jsPatched) {
+                        foreach (var (pid, path) in ProcList("NVIDIA Web Helper"))
+                            if (path.Equals(NodeExe, StringComparison.OrdinalIgnoreCase)) {
+                                try { Process.GetProcessById(pid).Kill(); log("[KILL] node PID " + pid + " (restart เพื่อโหลด boundary middleware)"); } catch { }
+                            }
+                        Thread.Sleep(2500);
+                        _jsPatched = false;
+                    }
                     var (rogue, _) = NodeHosts();
                     foreach (var r in rogue) {
                         try { Process.GetProcessById((int)r.Key).Kill(); log("[KILL] node ร้าว PID " + r.Key + " ← " + r.Value.exe); }
@@ -458,6 +543,28 @@ namespace NvPlugins
                     return s != null ? null : "อ่าน openshare ไม่ได้ (node/enabled ยังไม่พร้อม?)";
                 },
                 Fix = null   // log-only — ค่าจริงมาจาก registry ที่ server อ่านตอน init
+            },
+            new Step {
+                Name = "[7] NvCapture.exe capture engine :59077 (เจ้าของการอัด — §21.2)",
+                Rollback = "kill process ที่เรา spawn — engine ไม่เขียนอะไรนอกจาก config/ไฟล์อัดของตัวเอง",
+                Fatal = false,   // engine ล่ม = boundary ตอบ fail-soft (200) — หน้ายังไม่ jam
+                Verify = _ => {
+                    var exe = CaptureEngineExe;
+                    if (!File.Exists(exe)) return "ไม่มี engine build: " + exe;
+                    foreach (var (pid, path) in ProcList("NvCapture"))
+                        if (path.Equals(exe, StringComparison.OrdinalIgnoreCase) && HttpGetJson(59077, "/health") != null)
+                            return null;
+                    return "engine ไม่ได้รัน หรือ /health ไม่ตอบ (127.0.0.1:59077)";
+                },
+                Fix = (d, log) => {
+                    foreach (var (pid, path) in ProcList("NvCapture"))
+                        if (path.Length > 0 && !path.Equals(CaptureEngineExe, StringComparison.OrdinalIgnoreCase)) {
+                            try { Process.GetProcessById(pid).Kill(); log("[KILL] NvCapture ผิด path PID " + pid); } catch { }
+                        }
+                    var dir = Path.GetDirectoryName(CaptureEngineExe);
+                    Process.Start(new ProcessStartInfo(CaptureEngineExe) { WorkingDirectory = dir, UseShellExecute = true });
+                    for (int i = 0; i < 20 && HttpGetJson(59077, "/health") == null; i++) Thread.Sleep(1000);
+                }
             }
         };
 
@@ -690,6 +797,18 @@ namespace NvPlugins
             }
             catch (System.Net.WebException we) when (we.Response is System.Net.HttpWebResponse)
             { return ""; }   // got an HTTP error reply = server is alive
+            catch { return null; }
+        }
+
+        static string HttpGetJson(int port, string path)   // null = ไม่ตอบ; "" = ตอบแต่ parse ไม่ได้
+        {
+            try
+            {
+                var req = (System.Net.HttpWebRequest)System.Net.WebRequest.Create($"http://127.0.0.1:{port}{path}");
+                req.Method = "GET"; req.Timeout = 2000; req.Proxy = null;
+                using var rsp = (System.Net.HttpWebResponse)req.GetResponse();
+                return new System.IO.StreamReader(rsp.GetResponseStream()).ReadToEnd();
+            }
             catch { return null; }
         }
 
