@@ -630,3 +630,30 @@ CServerImpl::EnableShadowPlay: SetSP failed! 0x80004005
 **ข้อสรุปสถาปัตยกรรม (ต่อยอด §20 + Phase 2):** หัวใจที่หายของสายแท้ = **ตัวจับ Alt+Z + สั่งเปิดแบบตรง (OpenShare fire)** — หน้าต่าง/พื้นผิววาด (Overlay window + DT) ของ Share แท้ใช้ได้อยู่แล้ว เมื่อหน้า "เปิด" ถูกต้อง · **NvPlugins เป็น supervisor** ตามแผน Phase 2: OscHotkey = ชั้น hotkey, OpenOsc = ชั่นสั่งเปิด, node ฝั่งไหนตอบ Data ค่อยรวมตาม §20 (OSC แท้ 100% — shim node เป็น interim ตอบ Data)
 
 **สถานะเครื่องหลังทดสอบ:** ทิ้ง topology ที่ติดไว้ตามที่ OWNER ใช้งานอยู่ (ไม่ kill อะไร) · archive: poll logs run1-run5 + dulukaport.out อยู่ที่ตำแหน่งเดิม · ไฟล์ Intel harvest ยังรอผลเสริม (ไม่บล็อกแล้ว — ทางตายเดินได้จริงแล้ว)
+
+### §20.9 — Registered BINARY patch: ValidatePID whitelist (OWNER อนุมัติ ยกเลิกมติเดิม — 2026-10-04 ค่ำ)
+
+**ไฟล์เป้าหมาย (2 สำเนา, Payload ห้ามแตะ):** `build\NvContainer\genuine\plugins\LocalSystem\ShadowPlay\_nvspserviceplugin64.dll` (1,957,416 B) + `PF\NvContainer\plugins\LocalSystem\ShadowPlay\_nvspserviceplugin64.dll` (run location)
+
+**ผล RE (ก่อน patch — หลักฐานจาก strings + PE xref scan):**
+- `ShadowPlayController::ValidatePID` ตรวจ **path ของ CALLER ของ SetSP = process container SPUser เอง** (log พิมพ์ caller exe path ตอน fail) — ไม่ใช่ Share/helper
+- โครงสร้าง: build candidate path array (2 รายการ = PF x64/x86) จาก literal `NVIDIA Corporation` (UTF-16 @file 0x168020, VA 0x180168C20, xref LEA @0x33541) + SHGetKnownFolderPath + `%s\%s` → วนเทียบ (compare helper call) → `test eax,eax; jns` (0x3357F) → compose expected → compare รอบสุดท้าย → `test rax,rax; jne` (0x33600) = verdict → ไม่ผ่าน = log `Unknown executable path %S` (ANSI @0x168081)
+- whitelist = **branch compare บน composed path ที่ anchor ด้วย KnownFolder (Program Files)** — string-patch เดี่ยวไม่พอ (build path ไม่มี "C:\Program Files" prefix) → **branch patch 2 bytes**
+
+**Patch (2 bytes — ทั้งสองอยู่บนเส้นทางรันปกติของกรณี PF ผ่าน จึง pointer-safe):**
+| offset (file) | เดิม | ใหม่ | ความหมาย |
+|---|---|---|---|
+| 0x3357F | 79 (jns +2E) | EB (jmp) | บังคับเข้าสาย compose/success เสมอ (ไม่สนผล candidate match) |
+| 0x33600 | 75 (jne +2E) | EB (jmp) | verdict = success เสมอ |
+
+- md5 หลัง patch (build copy): `D1DAC81FEEF2D9649E698591DABFC21C`
+- patcher: `build\NVIDIA ShadowPlay\Runtime\apply-validatepid-patch.ps1` (idempotent — locate ด้วย unique byte-pattern `4C 8D 4C 24 30 48 03 C8 45 33 C0 33 D2 E8` + `48 85 C0 75 2E` + distance assert; เจอของแปลก = FAIL ไม่เขียน)
+- re-apply ทุกบูต: start-osc step **[0j]** (เพราะ [0] stage + [0i] mirror จะ restore จาก Payload ทับทุกครั้ง)
+- revert: copy `_nvspserviceplugin64.dll` จาก `Payload\NvContainer\plugins\LocalSystem\ShadowPlay\` ทับ (แล้ว restart service)
+
+**ผลตรวจหลัง patch + flip container กลับ build:**
+- ✓ container รันจาก build path (`build\NvContainer\genuine\nvcontainer.exe` — service/SPUser/User ครบ)
+- ✓ **ValidatePID fail = 0** ตั้งแต่ patch (ไม่มี "Unknown executable path" อีก)
+- ✓ Launch 200 / MainView 200 / DesktopCapture 200 (ผ่าน topology Custom ที่คุณใช้ — shim node :59001)
+- ⏳ "SetSP ผ่าน end-to-end" ยังพิสูจน์ไม่จบ: auto-enable trigger (rundll32 origin(7)) ใช้ retry 5 ครั้งหมดตั้งแต่ 19:06 (ตอน FullPath ยังชี้ path ตาย — แก้เป็น `build\...\Overlay OSC\NVIDIA Share\NVIDIA Share.exe` แล้ว) และไม่ยอม respawn หลัง service restart หลายรอบ = ปม trigger แยกต่างหาก (ไม่ใช่ patch) — จะปิดพร้อมงานรวมเส้นทางเดียว Phase 2 (การกลับมาของ genuine node :59001 จะพา enable กลับมาเอง)
+- แยกชัดตามคำสั่ง OWNER: patch นี้ = ปลด container anchor เท่านั้น — ปม route ค้างของหน้า (Alt+Z → CDP) ยังเป็นงานต่างหาก
