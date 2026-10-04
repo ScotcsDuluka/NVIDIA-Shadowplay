@@ -112,6 +112,8 @@ namespace NvPlugins
         static extern IntPtr CreateEventW(IntPtr attrs, bool manual, bool init, string name);
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         static extern IntPtr CreateFileMappingW(IntPtr hFile, IntPtr attrs, uint prot, uint maxHi, uint maxLo, string name);
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        static extern IntPtr OpenFileMappingW(uint access, bool inherit, string name);
         [DllImport("kernel32.dll", SetLastError = true)]
         static extern IntPtr MapViewOfFile(IntPtr h, uint access, uint hi, uint lo, uint n);
         [DllImport("user32.dll", SetLastError = true)]
@@ -144,17 +146,27 @@ namespace NvPlugins
             if (_running) { log("hotkey host รันอยู่แล้ว"); return; }
             _log = log;
             CreateEventW(IntPtr.Zero, false, false, EVENT_NAME);
-            var map = CreateFileMappingW(new IntPtr(-1), IntPtr.Zero, PAGE_READWRITE, 0, 4096, MAP_NAME);
+            // §20.10/§21: mapping นี้เป็นของ node แท้ (ClaimSingleInstance) — open-by-name ก่อนเสมอ
+            // ถ้ามีเจ้าของอยู่ = ไม่เขียนทับ (เขียนทับ = node แท้ตาย "file already exists in this session")
+            var map = OpenFileMappingW(FILE_MAP_ALL, false, MAP_NAME);
             if (map != IntPtr.Zero)
             {
-                var view = MapViewOfFile(map, FILE_MAP_ALL, 0, 0, 4096);
-                if (view != IntPtr.Zero)
+                log("pairing MMF มีเจ้าของอยู่แล้ว (genuine node host) — open-by-name: ไม่เขียนทับ");
+            }
+            else
+            {
+                map = CreateFileMappingW(new IntPtr(-1), IntPtr.Zero, PAGE_READWRITE, 0, 4096, MAP_NAME);
+                if (map != IntPtr.Zero)
                 {
-                    var buf = new byte[4096];
-                    var j = System.Text.Encoding.ASCII.GetBytes(NODE_JSON);
-                    Array.Copy(j, buf, j.Length);
-                    Marshal.Copy(buf, 0, view, 4096);
-                    log("pairing MMF เขียนแล้ว (port 59001 + secret)");
+                    var view = MapViewOfFile(map, FILE_MAP_ALL, 0, 0, 4096);
+                    if (view != IntPtr.Zero)
+                    {
+                        var buf = new byte[4096];
+                        var j = System.Text.Encoding.ASCII.GetBytes(NODE_JSON);
+                        Array.Copy(j, buf, j.Length);
+                        Marshal.Copy(buf, 0, view, 4096);
+                        log("pairing MMF เขียนแล้ว (port 59001 + secret)");
+                    }
                 }
             }
             _running = true;

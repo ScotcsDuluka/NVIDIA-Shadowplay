@@ -13,7 +13,7 @@ namespace NvPlugins
         public const string BUILD   = ROOT + @"\build\NVIDIA ShadowPlay";
         public const string PF      = @"C:\Program Files\NVIDIA Corporation";
         public const string GFE     = PF + @"\NVIDIA GeForce Experience";
-        public const string PAYLOAD = ROOT + @"\Project\OscProvision\Payload";
+        public const string PAYLOAD = ROOT + @"\Project\Overlay OSC\Docs ShadowPlay - Real\OscProvision\Payload";
         public const string CCLOG   = @"C:\ProgramData\NVIDIA Corporation\ShadowPlay\CaptureCore.log";
         public const string SVC     = @"HKLM\SYSTEM\CurrentControlSet\Services\NvContainerLocalSystem";
         public const string WD      = @"HKLM\SOFTWARE\NVIDIA Corporation\NvContainer\Watchdog";

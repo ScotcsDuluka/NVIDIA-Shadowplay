@@ -166,9 +166,10 @@ namespace NvPlugins
             void Log(string m) => Invoke(() => oscLogBox.AppendText("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + m + Environment.NewLine));
             try
             {
-                await System.Threading.Tasks.Task.Run(() => OscModes.BootGenuine(Log));
-                oscStatusLabel.ForeColor = System.Drawing.Color.FromArgb(80, 200, 120);
-                oscStatusLabel.Text = "mode: GENUINE NVIDIA — press Alt+Z or OPEN OSC";
+                var rc = await System.Threading.Tasks.Task.Run(() => Supervisor.Boot(Log));
+                oscStatusLabel.ForeColor = rc == 0 ? System.Drawing.Color.FromArgb(80, 200, 120) : System.Drawing.Color.FromArgb(255, 82, 82);
+                oscStatusLabel.Text = rc == 0 ? "mode: GENUINE NVIDIA — press Alt+X or OPEN OSC"
+                                              : "boot ไม่ผ่านครบ — ดู log ด้านบน (verify fail = หยุด ไม่เดา)";
             }
             catch (Exception ex) { Log("ERROR: " + ex.Message); oscStatusLabel.Text = "mode: GENUINE boot failed — see log"; }
             await RunCheckAsync();

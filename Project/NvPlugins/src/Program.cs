@@ -44,6 +44,27 @@ namespace NvPlugins
                 return 0;
             }
 
+            if (arg == "bootgenuine")
+            {
+                if (!U.IsAdmin()) { Console.WriteLine("[!] bootgenuine ต้อง admin (แตะ service / Program Files)"); return 3; }
+                Console.WriteLine("=== BOOT GENUINE (NvPlugins Supervisor — §21) ===");
+                var rc = Supervisor.Boot(m => Console.WriteLine("[boot] " + m));
+                Console.WriteLine(rc == 0 ? "=== genuine mode ready — Alt+X เปิด OSC ===" : "=== boot ไม่ผ่านครบ — ดูรายงานด้านบน ===");
+                return rc;
+            }
+
+            if (arg == "boot")   // alias หลักของ Phase 2
+            {
+                if (!U.IsAdmin()) { Console.WriteLine("[!] boot ต้อง admin (แตะ service / Program Files / kill process)"); return 3; }
+                var rc = Supervisor.Boot(m => Console.WriteLine(m));
+                return rc;
+            }
+
+            if (arg == "status") // §21 transparent — verify-only ทุก step ไม่แตะอะไร
+            {
+                return Supervisor.Status(m => Console.WriteLine(m));
+            }
+
             if (arg == "check" || arg == "fix")
             {
                 if (!U.IsAdmin()) { Console.WriteLine("[!] ไม่ใช่ admin — ตรวจได้บางหมวด แต่ FIX ต้อง admin"); }
