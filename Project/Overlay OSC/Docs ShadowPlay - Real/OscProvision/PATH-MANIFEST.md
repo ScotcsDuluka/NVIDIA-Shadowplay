@@ -572,3 +572,20 @@ CServerImpl::EnableShadowPlay: SetSP failed! 0x80004005
 - Cfg2/Cfg3 ยังไม่ถูกเขียน (reg query ไม่เจอ) — hotkey ผู้ใช้ยังว่าง (`keys: []`); node ใช้ default (openshare [18,88]) — การ SET hotkey จริงจากหน้า = งานถัดไปหลัง OWNER ยืนยัน Alt+Z
 - [0h] patch (Capture/State boundary) คงอยู่ตามคำสั่ง OWNER — ไม่เกี่ยวกับ flip (ขอบเขต capture ของ NvCapture.exe ตาม §20)
 - **กับดักหลังไฟดับ/reboot เย็น (4 ต.ค. พิสูจน์จริง)**: ต้นไม้ shim เก่า (`build\...\Overlay OSC\NvNode\node.exe`) อาจถูกปลุกตอนบูตและจับ :59001 ก่อน node แท้ (เห็น bare `node.exe` PID 5344 จาก shim tree LISTENING :59001 + Web Helper จาก path เก่า) — **start-osc [3] จัดการเอง** (เห็น path ผิด → kill → สตาร์ต node แท้) — recovery หลังไฟดับ = รัน start-osc รอบเดียวจบ · ยืนยันหลังฟื้น: Launch 200×3 · Capture/State 200 · MainView 200 · SetCaptureSessionParam ไม่มี error (กำแพงไม่กลับมา)
+
+### §20.6 — Alt+Z: ห่วงโซ่ถึง MainView 200 ครบ แต่ชั้นนำเสนอ (presentation layer) ยังไม่วาดลงจอ (2026-10-04 หลังเที่ยง — OWNER กดจริง + ยืนยัน "ไม่เห็น")
+
+**ผลการกดจริงของ OWNER (16:49:31):**
+- hotkey → osc spawn ใหม่ → หน้าบูตสะอาดครบ: `POST /Launch 200×3 → Capture/State 200 → POST /OSC/MainView 200` (node log "OSC Main View info: {...}" = หน้าได้ข้อมูลครบ)
+- toggle เปิด/ปิด: "should close osc" ตรงจังหวะกดซ้ำ (16:49:01/11/26 ปิด · 16:49:31 เปิดรอบใหม่ · 16:52:32 ปิด)
+- node receiver armed (`JOIN Hotkey:Node` ตอน node boot — ไม่ต้อง re-arm เพิ่ม)
+- **แต่ OWNER ยืนยัน: ไม่เห็น overlay บนจอ** — และการฉีดคีย์ของ session (keybd_event) ได้แค่ปฏิกิริยาบางส่วน (Launch 200 ไม่มี MainView) + A/B pixel diff = ไม่มีแผงโผล่ (ฉีดไม่เทียบเท่ากดจริง)
+
+**ชั้นที่หาย = ชั้น 4 ของ §10 (native presentation):** overlay object ถูกสร้างแล้ว (`COverlayApi::CreateOverlay: hr[0] usingGPUOverlay[0]` 1680×1050) แต่ไม่มี ShowOverlay/presentation log เลย — ตรงกับที่ §13 จดค้างไว้เอง: "nvspcap64 render in-game integration — ขั้นถัดไป" · ยุค §8-13 ที่ overlay ขึ้นจอ ตัววาดคือสาย shim (NvOverlay/WindowState — "presentation ทำงานเอง DT/offscreen layer") ซึ่งไม่ได้รันในสายแท้ปัจจุบัน
+
+**ตัวเลือกที่มีใน build (ของเรา — เข้า §20 "render เป็นของเรา"):**
+- `NvOverlay\Cef\` — OSC overlay CEF host เต็มชุด (NVIDIA Share.exe + **OSC.nvi + OSCExt.dll** + cef runtime) — ไม่มี process รันอยู่
+- `Overlay OSC\NVIDIA OSC Native\` — native presenter ต้นไม้ §17 — ไม่มี process รันอยู่
+- (หมายเหตุ: GFE-dir Share.json = คอนฟิกยุค §17 (`nv-node-app` ชี้ Overlay OSC\NvNode shim launcher — ต้นตอ shim node จับ :59001 หลังไฟดับ) + `nv-gpu-accel=false` — ตั้งใจตาม §12 anti-spiral; §13 เคยเห็น overlay ด้วย flag เดียวกัน จึงไม่ใช่ตัวปิดกั้นการมองเห็น)
+
+**งานถัดไป (รอ OWNER เลือกทาง):** ต่อชั้นนำเสนอ — (ก) รัน/ต่อ presenter ของเรา (NvOverlay\Cef หรือ NVIDIA OSC Native) ให้รับ toggle จากหน้าแล้ววาด topmost — ตรงสถาปัตยกรรม §20 (render = NvCapture.exe ของเรา) · (ข) ต่อ render attach แท้ของ nvspcap64 (§13 ค้าง) — เสี่ยง spiral §12 ต้องระวัง
