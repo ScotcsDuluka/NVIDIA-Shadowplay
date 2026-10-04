@@ -781,3 +781,21 @@ COverlayApi::SetInputRedirectionMode: mode[4] → COverlayApi::SetSP(25640,2)/(1
 | overlay/settings | หน้า osc แท้ + server แท้ | enable §20.11 |
 
 **งานถัดไป (รอ OWNER เปิดรอบ):** Phase 2 = NvPlugins supervisor ตามสเปก §21 (modular/transparent/trustworthy — status command, self-heal, rollback; ผนวกบทเรียน [3]/[4] จับของร้าว + [6] guard รีเซ็ตเอง) → Phase 3 = NvCapture.exe (capture boundary ตาม §20)
+
+### §21.1 — Phase 2 IMPLEMENTED: BootSupervisor ใน NvPlugins.exe ตัวเดียว (2026-10-05 — commit 153274b749+ — หลักฐาน: Logs\phase1-evidence\log-NvPlugins-supervisor-boot-20261005-0409-10rounds-rogue-heal.log + log-NvPlugins-rogue-test-20261005-0409.log)
+
+**สถาปัตยกรรม (Supervisor.cs — ~700 เส้น):** step framework = `Step { Name, Verify, Fix, Fatal, OnOk, Rollback }` — Verify ก่อนเสมอ (OK = ข้าม fix = idempotent) · Fix ไม่ผ่าน verify รอบสอง = FAIL หยุดทันที (fatal) · ทุก mutation จด journal (`Logs\supervisor-journal.log` มี rollback hint ทุกแถว) · boot log ลงไฟล์ (`Logs\supervisor-boot.log`) อ่านได้เสมอ · CLI: **`NvPlugins.exe boot`** (elevated) / **`NvPlugins.exe status`** (verify-only ไม่แตะอะไร) · GUI ปุ่ม Boot Genuine → Supervisor เหมือนกัน
+
+**15 steps (port ตรงจาก start-osc genuine):** [0] stage · [0e] PF anchor (+manifest) · [0g] runtime dirs · [0f]/[0f.1] hardlink+mirror (verify ครบทุกไฟล์ใน tree) · [0h] JS patch ACTIVE (marker check + re-apply) · [0i] PF container + **plugin genuine invariant** (PF plugin ≠ Payload = FAIL — กัน §20.10 signature trap) · [0j] patcher DORMANT (log-only — ห้าม patch ใน boot) · [1b] registry 2 views (เขียนเฉพาะค่าที่ต่าง) · [1d] PF flip verify · [1]/[2] service+containers (**healthy = ไม่แตะ** — แตกต่างจาก start-osc ที่ bounce ทุกบูต; ตามสเปก self-heal = แก้เฉพาะที่พัง) · [3] node + ล่า node ร้าว (+KillPortOwner ผ่าน netstat ถ้า port โดนแย่ง + retry ครั้ง 2 เคลียร์ผู้ถือ MMF) · [4] helper ล่าผิด path · [5] Share attach · [6] arm + guard รีเซ็ตเอง (OnOk: enabled อยู่แล้ว = guard เขียน 0) · [6c] hotkey verify-only
+
+**บทเรียน implementation (จด — ซ้ำซ้อนกับ §20.15 ที่จะจด):** WMI `Win32_Process` **ข้ามแถว/อ่าน path ของ elevated process ไม่ได้** → อ่าน path ด้วย Win32 `QueryFullProcessImageName` (PROCESS_QUERY_LIMITED_INFORMATION — อ่านได้แม้ non-elevated) · `Process.GetProcessesByName` ต้องไม่ใส่ `.exe` · closure trap: lambda จับตัวแปร log ที่ reassign ตัวเอง = stack overflow (แก้ด้วย local แยก)
+
+**ผลทดสอบ (ยอมรับตามเกณฑ์ OWNER):**
+1. **status** = verify-only 15/15 OK บนระบบจริง (แสดง pid+path ทุก process มีชีวิต)
+2. **boot idempotent 10 รอบ** = ExitCode 0 ทั้งหมด (~10 วิ/รอบ — healthy = no-op + verify; ต่างจาก start-osc ที่ bounce ทุกครั้ง)
+3. **kill ของร้าวกลางทาง → ฟื้นเอง**: kill node แท้ + spawn shim host + kill helper แท้ + spawn helper ผิด path (PF\ShadowPlay) → boot 1 รอบ: [3] จับ node ผิด path → kill → spawn แท้ (pid 9344) ✓ · [4] จับ "helper ผิด path PID 11668 PF\..." → kill → spawn แท้ (pid 12920) ✓ · enable ยังอยู่ (ไม่ต้อง re-arm) · exit=0
+4. **reboot test เดิม (§20.14) = สิ่งเดียวกับที่ supervisor ทำ** — boot บนระบบเย็น = node/helper/Share ขึ้นครบ + enable auto (ผ่านแล้วในบริบทเดียวกัน)
+
+**สถานะ start-osc:** เลิกใช้ได้ (NvPlugins boot แทนที่ทุก step; สคริปต์คงอยู่เป็น reference) · **ข้อควรรู้:** รัน `NvPlugins.exe boot` ต้อง elevated (UAC) — แนะนำ shortcut "Run as administrator" หรือ Task Scheduler ตอน logon
+
+**หมุดถัดไป:** OWNER กด Alt+X ยืนยันบน supervisor รอบนี้ (ภาพเห็น = ปิดเกณฑ์รับ Phase 2) → Phase 3 = NvCapture.exe

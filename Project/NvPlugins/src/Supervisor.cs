@@ -28,6 +28,7 @@ namespace NvPlugins
         public string Rollback = "ไม่มีการเปลี่ยนแปลงถาวร (verify-only)";
         public Func<string, string> Verify;          // return null = OK, else รายละเอียดความไม่พร้อม
         public Action<string, Action<string>> Fix;   // (detail, log) — idempotent, log ทุก action; null = verify-only step
+        public Action OnOk = null;                   // ทำงานเมื่อ verify ผ่าน (เช่น รีเซ็ต guard) — ยัง idempotent
     }
 
     public static class Supervisor
@@ -323,21 +324,7 @@ namespace NvPlugins
                 }
             },
             new Step {
-                Name = "[1] restart service (สถานะสะอาดทุกบูต — A1 order)",
-                Rollback = "start service กลับ (sc start NvContainerLocalSystem)",
-                Verify = _ => null,   // mutation step — verify จริงอยู่ที่ [2]
-                Fix = (d, log) => {
-                    CheckPlugin.Cmd("sc.exe stop NvContainerLocalSystem", 8000);
-                    Thread.Sleep(5000);
-                    foreach (var kv in U.ProcMap())
-                        if (kv.Value.exe.EndsWith("nvcontainer.exe", StringComparison.OrdinalIgnoreCase)) {
-                            try { Process.GetProcessById((int)kv.Key).Kill(); log("[KILL] nvcontainer PID " + kv.Key); } catch { }
-                        }
-                    Thread.Sleep(1500);
-                }
-            },
-            new Step {
-                Name = "[2] service up + containers ×3 จาก PF",
+                Name = "[1]/[2] service + containers ×3 จาก PF (healthy = ไม่แตะ)",
                 Rollback = "sc start NvContainerLocalSystem (watchdog ปลุกลูกเอง)",
                 Verify = _ => {
                     var st = ServiceState();
@@ -348,12 +335,14 @@ namespace NvPlugins
                     return null;
                 },
                 Fix = (d, log) => {
-                    CheckPlugin.Cmd("sc.exe start NvContainerLocalSystem", 8000);
-                    Thread.Sleep(14000);
                     if (ServiceState() != "Running") {
-                        log("[2] รอบแรกไม่ขึ้น — start รอบสอง (pattern ปกติของ container แท้)");
                         CheckPlugin.Cmd("sc.exe start NvContainerLocalSystem", 8000);
                         Thread.Sleep(14000);
+                        if (ServiceState() != "Running") {
+                            log("[2] รอบแรกไม่ขึ้น — start รอบสอง (pattern ปกติของ container แท้)");
+                            CheckPlugin.Cmd("sc.exe start NvContainerLocalSystem", 8000);
+                            Thread.Sleep(14000);
+                        }
                     }
                     for (int i = 0; i < 8; i++) {
                         var (spuser, user, pf) = ContainerCounts();
@@ -443,6 +432,7 @@ namespace NvPlugins
                 Name = "[6] arm enable + guard รีเซ็ตเอง (m_pSettings gate)",
                 Rollback = "POST /Launch {\"launch\":false} — guard file ลบได้",
                 Verify = _ => LaunchState() ? null : "GET /Launch = false (server ยังไม่ enable)",
+                OnOk = () => { try { if (File.ReadAllText(GuardFile).Trim() != "0") File.WriteAllText(GuardFile, "0"); } catch { try { File.WriteAllText(GuardFile, "0"); } catch { } } },
                 Fix = (d, log) => {
                     var failCount = 0;
                     try { int.TryParse(File.ReadAllText(GuardFile).Trim(), out failCount); } catch { }
@@ -472,9 +462,22 @@ namespace NvPlugins
         };
 
         // ================= BOOT / STATUS =================
+        static void LogFile(string m)
+        {
+            try
+            {
+                Directory.CreateDirectory(BuildLogs);
+                File.AppendAllText(BuildLogs + @"\supervisor-boot.log", $"[{DateTime.Now:HH:mm:ss}] {m}\r\n");
+            }
+            catch { }
+        }
+
         public static int Boot(Action<string> log)
         {
-            _log = log;
+            var console = log;                       // กัน closure self-capture — lambda ต้องจับ original เสมอ
+            _log = m => { console(m); LogFile(m); };
+            log = _log;
+            LogFile($"\n===== BOOT start {DateTime.Now:yyyy-MM-dd HH:mm:ss} =====");
             var results = new List<StepResult>();
             foreach (var step in Steps())
             {
@@ -486,6 +489,7 @@ namespace NvPlugins
                     if (v == null)
                     {
                         _cur.Status = St.OK; _cur.Detail = "พร้อมอยู่แล้ว";
+                        step.OnOk?.Invoke();
                         log("  ✓ OK (idempotent — ข้าม fix)");
                     }
                     else
@@ -526,7 +530,10 @@ namespace NvPlugins
 
         public static int Status(Action<string> log)
         {
-            _log = log;
+            var console = log;
+            _log = m => { console(m); LogFile(m); };
+            log = _log;
+            LogFile($"\n===== STATUS {DateTime.Now:yyyy-MM-dd HH:mm:ss} =====");
             var results = new List<StepResult>();
             foreach (var step in Steps())
             {
