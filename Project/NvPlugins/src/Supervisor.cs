@@ -189,7 +189,7 @@ namespace NvPlugins
                 Verify = _ => {
                     var jst = File.ReadAllText(Pf86Node + @"\NvShadowPlayAPI.js");
                     if (!jst.Contains("[NvCapture-boundary \u00A721.2]")) return "boundary middleware หาย (โดน restore ทับ) — NvShadowPlayAPI.js ที่ node แท้โหลด";
-                    if (!jst.Contains("boundaryV3")) return "boundary middleware เป็น v2 — ต้องอัปเดต v3 (button-audit shapes)";
+                    if (!jst.Contains("boundaryV4")) return "boundary middleware เก่า (ต้อง v4: fake-record UI mode)";
                     return null;
                 },
                 Fix = (d, log) => {
@@ -211,7 +211,16 @@ namespace NvPlugins
                     var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
                     if (!t.Contains(anchor)) throw new Exception("[0h] ไม่พบ anchor RegisterExpressEndpoints — JS เปลี่ยนรูป ตรวจก่อน");
                     var marker = "[NvCapture-boundary \u00A721.2]";
-                    var hasV3 = t.Contains("boundaryV3");
+                    var hasV4 = t.Contains("boundaryV4");
+                    if (t.Contains(marker) && !hasV4)
+                    {
+                        // บทเรียน v2→v3: ห้าม substring-replace ในไฟล์เดิม — restore genuine แล้วแทรกสด
+                        File.Copy(Payload + @"\NvNode\NvShadowPlayAPI.js", p, true);
+                        t = File.ReadAllText(p);
+                        var anchorCount = t.Split(new[] { anchor }, StringSplitOptions.None).Length - 1;
+                        if (anchorCount != 1) throw new Exception("[0h] genuine JS anchor count = " + anchorCount + " (ต้องเป็น 1) — Payload JS ผิดปกติ");
+                        log("[0h] restore genuine JS จาก Payload (version bump — แทรกสด)");
+                    }
                     if (!t.Contains(marker))
                     {
                         var insert = BuildBoundaryJs();
@@ -220,25 +229,10 @@ namespace NvPlugins
                         File.WriteAllText(p, t);
                         _jsPatched = true;
                         J("[0h→§21.2] boundary middleware inserted → " + p, "ลบบล็อก [NvCapture-boundary §21.2] จาก NvShadowPlayAPI.js (node restart หลังแก้)");
-                        log("[0h] boundary middleware inserted (record scope → NvCapture.exe :59077) — node จะถูก restart ที่ [3]");
+                        log("[0h] boundary middleware v4 (fake-record UI) inserted — node จะถูก restart ที่ [3]");
                         return;
                     }
-                    if (!hasV3)
-                    {
-                        // อัปเดตบล็อกเดิม → v3: ตัด start-mark ถึงจบ IIFE แล้วใส่บล็อกใหม่ (button-audit shapes)
-                        int stI = t.IndexOf("    // ===== [NvCapture-boundary");
-                        int evm = t.IndexOf("        } catch (eBoundary) {}", stI);
-                        int enI = t.IndexOf("    })();", evm);
-                        if (stI < 0 || evm < 0 || enI < 0) throw new Exception("[0h] หาขอบเขตบล็อก boundary เดิมไม่เจอ — ตรวจ JS ก่อน");
-                        var newBlock = BuildBoundaryJs();
-                        t = t.Substring(0, stI) + newBlock + t.Substring(enI + "    })();".Length);
-                        File.WriteAllText(p, t);
-                        _jsPatched = true;
-                        J("[0h] boundary block → v3 (button-audit shapes)", "restore จาก Payload\\NvNode แล้วรัน boot ใหม่");
-                        log("[0h] boundary middleware → v3 (IR Save/BufferLength/Screenshot) — node จะถูก restart ที่ [3]");
-                        return;
-                    }
-                    log("[0h] boundary middleware v3 อยู่แล้ว");
+                    log("[0h] boundary middleware v4 อยู่แล้ว");
                 }
             },
             new Step {
@@ -563,7 +557,7 @@ namespace NvPlugins
         private static string BuildBoundaryJs()
         {
             var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
-            return anchor + "\r\n    // ===== [NvCapture-boundary §21.2] Phase 3 capture boundary v3 (button-audit shapes): capture-scope routes → NvCapture.exe 127.0.0.1:59077 ===== boundaryV3\r\n" +
+            return anchor + "\r\n    // ===== [NvCapture-boundary §21.2] Phase 3 capture boundary v3 (button-audit shapes): capture-scope routes → NvCapture.exe 127.0.0.1:59077 ===== boundaryV4\r\n" +
 "    // กฎเหล็ก: หน้าต้องได้ 200 ทุกคำถาม — engine down = ตอบ static shape จริง ห้าม 500 · non-capture = genuine ทั้งหมด\r\n" +
 "    (function () {\r\n" +
 "        try {\r\n" +
@@ -588,6 +582,7 @@ namespace NvPlugins
                 "                '/ShadowPlay/v.1.0/InstantReplay/Save', '/ShadowPlay/v.1.0/InstantReplay/BufferLength',\r\n" +
                 "                '/ShadowPlay/v.1.0/Screenshot/Support', '/ShadowPlay/v.1.0/Screenshot/Capture'\r\n" +
             "            ];\r\n" +
+                "            var fakeRec = false;   // v4: UI หลอก — สถานะอัดจำในตัว middleware ไม่มี engine\r\n" +
 "            app.use(function (req, res, next) {\r\n" +
 "                var u = (req.url || '').split('?')[0];\r\n" +
 "                if (SCOPE.indexOf(u) < 0) return next();\r\n" +
@@ -596,22 +591,21 @@ namespace NvPlugins
 "                }\r\n" +
 "                if (u === '/ShadowPlay/v.1.0/Record/Enable') {\r\n" +
 "                    if (req.method === 'POST') return readBody(req, function (b) {\r\n" +
-"                        var on = b && b.status === true;\r\n" +
-"                        ncReq('POST', on ? '/record/start' : '/record/stop', {}, function (e, r) {\r\n" +
-"                            try { _logger.info('[NvCapture-boundary] Enable ' + on + ' -> ' + JSON.stringify(r)); } catch (e2) {}\r\n" +
-"                            try { res.writeHead(200); res.end(); } catch (e2) {}\r\n" +
-"                        });\r\n" +
+"                        fakeRec = !!(b && b.status === true);\r\n" +
+"                        try { _logger.info('[NvCapture-boundary v4] fake-record: ' + fakeRec); } catch (e2) {}\r\n" +
+"                        try { res.writeHead(200); res.end(); } catch (e2) {}\r\n" +
 "                    });\r\n" +
-"                    return ncReq('GET', '/state', null, function (e, st) { reply(res, { status: !!(st && st.enabled) }); });\r\n" +
+"                    return reply(res, { status: fakeRec });\r\n" +
 "                }\r\n" +
 "                if (u === '/ShadowPlay/v.1.0/Record/Running') {\r\n" +
-"                    return ncReq('GET', '/state', null, function (e, st) { reply(res, { running: !!(st && st.recording) }); });\r\n" +
+"                    return reply(res, { running: fakeRec });\r\n" +
 "                }\r\n" +
 "                if (u === '/ShadowPlay/v.1.0/Record/Settings') {\r\n" +
 "                    if (req.method === 'POST') return readBody(req, function (b) {\r\n" +
-"                        ncReq('POST', '/settings', b, function (e, r) { reply(res, r || {}); });\r\n" +
+"                        try { _logger.info('[NvCapture-boundary v4] settings (UI-only): ' + JSON.stringify(b)); } catch (e2) {}\r\n" +
+"                        try { res.writeHead(200); res.end(); } catch (e2) {}\r\n" +
 "                    });\r\n" +
-"                    return ncReq('GET', '/settings', null, function (e, r) { reply(res, r || { quality: 'Custom', resolution: 'In-game', framerate: 60, bitrateBps: 50000000 }); });\r\n" +
+"                    return reply(res, { quality: 'VeryGood', resolution: 'In-game', framerate: 60, bitrateBps: 50000000 });\r\n" +
 "                }\r\n" +
 "                if (u === '/ShadowPlay/v.1.0/Broadcast/Support') { return reply(res, { support: false }); }\r\n" +
                 "                if (u === '/ShadowPlay/v.1.0/InstantReplay/Enable') {\r\n" +
