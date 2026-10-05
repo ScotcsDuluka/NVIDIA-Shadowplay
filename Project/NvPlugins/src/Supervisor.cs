@@ -189,7 +189,7 @@ namespace NvPlugins
                 Verify = _ => {
                     var jst = File.ReadAllText(Pf86Node + @"\NvShadowPlayAPI.js");
                     if (!jst.Contains("[NvCapture-boundary \u00A721.2]")) return "boundary middleware หาย (โดน restore ทับ) — NvShadowPlayAPI.js ที่ node แท้โหลด";
-                    if (!jst.Contains("boundaryV5")) return "boundary middleware เก่า (ต้อง v5: + live notification)";
+                    if (!jst.Contains("boundaryV6")) return "boundary middleware เก่า (ต้อง v6: fake IR)";
                     return null;
                 },
                 Fix = (d, log) => {
@@ -211,7 +211,7 @@ namespace NvPlugins
                     var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
                     if (!t.Contains(anchor)) throw new Exception("[0h] ไม่พบ anchor RegisterExpressEndpoints — JS เปลี่ยนรูป ตรวจก่อน");
                     var marker = "[NvCapture-boundary \u00A721.2]";
-                    var hasV5 = t.Contains("boundaryV5");
+                    var hasV5 = t.Contains("boundaryV6");
                     if (t.Contains(marker) && !hasV5)
                     {
                         // บทเรียน v2→v3: ห้าม substring-replace ในไฟล์เดิม — restore genuine แล้วแทรกสด
@@ -561,7 +561,7 @@ namespace NvPlugins
         private static string BuildBoundaryJs()
         {
             var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
-            return anchor + "\r\n    // ===== [NvCapture-boundary §21.2] Phase 3 capture boundary v3 (button-audit shapes): capture-scope routes → NvCapture.exe 127.0.0.1:59077 ===== boundaryV5\r\n" +
+            return anchor + "\r\n    // ===== [NvCapture-boundary §21.2] Phase 3 capture boundary v3 (button-audit shapes): capture-scope routes → NvCapture.exe 127.0.0.1:59077 ===== boundaryV6\r\n" +
 "    // กฎเหล็ก: หน้าต้องได้ 200 ทุกคำถาม — engine down = ตอบ static shape จริง ห้าม 500 · non-capture = genuine ทั้งหมด\r\n" +
 "    (function () {\r\n" +
 "        try {\r\n" +
@@ -584,9 +584,11 @@ namespace NvPlugins
                 "                '/ShadowPlay/v.1.0/Record/Settings', '/ShadowPlay/v.1.0/Capture/State',\r\n" +
                 "                '/ShadowPlay/v.1.0/Broadcast/Support', '/ShadowPlay/v.1.0/InstantReplay/Enable',\r\n" +
                 "                '/ShadowPlay/v.1.0/InstantReplay/Save', '/ShadowPlay/v.1.0/InstantReplay/BufferLength',\r\n" +
+                "                '/ShadowPlay/v.1.0/InstantReplay/Running',\r\n" +
                 "                '/ShadowPlay/v.1.0/Screenshot/Support', '/ShadowPlay/v.1.0/Screenshot/Capture'\r\n" +
             "            ];\r\n" +
-                "            var fakeRec = false;   // v4: UI หลอก — สถานะอัดจำในตัว middleware ไม่มี engine\r\n" +
+                "            var fakeIr = true;   // IR หลอกว่าเปิด — ปุ่ม Replay กดได้\r\n" +
+            "            var fakeRec = false;   // v4: UI หลอก — สถานะอัดจำในตัว middleware ไม่มี engine\r\n" +
 "            app.use(function (req, res, next) {\r\n" +
 "                var u = (req.url || '').split('?')[0];\r\n" +
 "                if (SCOPE.indexOf(u) < 0) return next();\r\n" +
@@ -615,10 +617,14 @@ namespace NvPlugins
 "                if (u === '/ShadowPlay/v.1.0/Broadcast/Support') { return reply(res, { support: false }); }\r\n" +
                 "                if (u === '/ShadowPlay/v.1.0/InstantReplay/Enable') {\r\n" +
                 "                    if (req.method === 'POST') { try { res.writeHead(200); res.end(); } catch (e) {} return; }\r\n" +
-                "                    return reply(res, { status: false });\r\n" +
+                "                    return reply(res, { status: fakeIr });\r\n" +
                 "                }\r\n" +
-                "                if (u === '/ShadowPlay/v.1.0/InstantReplay/Save') { return reply(res, { status: false }); }\r\n" +
-                "                if (u === '/ShadowPlay/v.1.0/InstantReplay/BufferLength') { return reply(res, { lengthSeconds: 0 }); }\r\n" +
+                "                if (u === '/ShadowPlay/v.1.0/InstantReplay/Running') { return reply(res, { running: fakeIr }); }\r\n" +
+                "                if (u === '/ShadowPlay/v.1.0/InstantReplay/Save') {\r\n" +
+                "                    try { io.emit('/ShadowPlay/v.1.0/InstantReplay/Save', { status: true }); } catch (e4) {}\r\n" +
+                "                    return reply(res, { status: true });\r\n" +
+                "                }\r\n" +
+                "                if (u === '/ShadowPlay/v.1.0/InstantReplay/BufferLength') { return reply(res, { lengthSeconds: 15 }); }\r\n" +
                 "                if (u === '/ShadowPlay/v.1.0/Screenshot/Support') { return reply(res, { support: false }); }\r\n" +
                 "                if (u === '/ShadowPlay/v.1.0/Screenshot/Capture') { try { res.writeHead(200); res.end(); } catch (e) {} return; }\r\n" +
                 "                return next();\r\n" +
