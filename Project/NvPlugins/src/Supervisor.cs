@@ -189,7 +189,7 @@ namespace NvPlugins
                 Verify = _ => {
                     var jst = File.ReadAllText(Pf86Node + @"\NvShadowPlayAPI.js");
                     if (!jst.Contains("[NvCapture-boundary \u00A721.2]")) return "boundary middleware หาย (โดน restore ทับ) — NvShadowPlayAPI.js ที่ node แท้โหลด";
-                    if (!jst.Contains("boundaryV4")) return "boundary middleware เก่า (ต้อง v4: fake-record UI mode)";
+                    if (!jst.Contains("boundaryV5")) return "boundary middleware เก่า (ต้อง v5: + live notification)";
                     return null;
                 },
                 Fix = (d, log) => {
@@ -211,8 +211,8 @@ namespace NvPlugins
                     var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
                     if (!t.Contains(anchor)) throw new Exception("[0h] ไม่พบ anchor RegisterExpressEndpoints — JS เปลี่ยนรูป ตรวจก่อน");
                     var marker = "[NvCapture-boundary \u00A721.2]";
-                    var hasV4 = t.Contains("boundaryV4");
-                    if (t.Contains(marker) && !hasV4)
+                    var hasV5 = t.Contains("boundaryV5");
+                    if (t.Contains(marker) && !hasV5)
                     {
                         // บทเรียน v2→v3: ห้าม substring-replace ในไฟล์เดิม — restore genuine แล้วแทรกสด
                         File.Copy(Payload + @"\NvNode\NvShadowPlayAPI.js", p, true);
@@ -232,7 +232,7 @@ namespace NvPlugins
                         log("[0h] boundary middleware v4 (fake-record UI) inserted — node จะถูก restart ที่ [3]");
                         return;
                     }
-                    log("[0h] boundary middleware v4 อยู่แล้ว");
+                    log("[0h] boundary middleware v5 อยู่แล้ว");
                 }
             },
             new Step {
@@ -412,6 +412,10 @@ namespace NvPlugins
                         try { Process.GetProcessById((int)r.Key).Kill(); log("[KILL] node ร้าว PID " + r.Key + " ← " + r.Value.exe); }
                         catch (Exception ex) { log("[3] kill ร้าวไม่สำเร็จ PID " + r.Key + ": " + ex.Message); }
                     }
+                    // §21.3 harden: zombie host ครึ่งบูต (node hosts 2 ตัวต่อสู้กันเอง) — kill ทั้งหมดแล้วเริ่มสด
+                    foreach (var (pid2, path2) in ProcList("NVIDIA Web Helper")) {
+                        try { Process.GetProcessById(pid2).Kill(); log("[KILL] node host PID " + pid2 + " (fresh start)"); } catch { }
+                    }
                     Thread.Sleep(2000);
                     if (U.NodeHttp() == 200) { log("[3] :59001 ยังตอบจากตัวอื่น — หาเจ้าของ port จาก netstat"); KillPortOwner(59001, log); Thread.Sleep(1500); }
                     if (U.NodeHttp() != 200) {
@@ -557,7 +561,7 @@ namespace NvPlugins
         private static string BuildBoundaryJs()
         {
             var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
-            return anchor + "\r\n    // ===== [NvCapture-boundary §21.2] Phase 3 capture boundary v3 (button-audit shapes): capture-scope routes → NvCapture.exe 127.0.0.1:59077 ===== boundaryV4\r\n" +
+            return anchor + "\r\n    // ===== [NvCapture-boundary §21.2] Phase 3 capture boundary v3 (button-audit shapes): capture-scope routes → NvCapture.exe 127.0.0.1:59077 ===== boundaryV5\r\n" +
 "    // กฎเหล็ก: หน้าต้องได้ 200 ทุกคำถาม — engine down = ตอบ static shape จริง ห้าม 500 · non-capture = genuine ทั้งหมด\r\n" +
 "    (function () {\r\n" +
 "        try {\r\n" +
@@ -592,7 +596,8 @@ namespace NvPlugins
 "                if (u === '/ShadowPlay/v.1.0/Record/Enable') {\r\n" +
 "                    if (req.method === 'POST') return readBody(req, function (b) {\r\n" +
 "                        fakeRec = !!(b && b.status === true);\r\n" +
-"                        try { _logger.info('[NvCapture-boundary v4] fake-record: ' + fakeRec); } catch (e2) {}\r\n" +
+"                        try { io.emit('/ShadowPlay/v.1.0/Record/Enable', { status: fakeRec }); } catch (e3) {}\r\n" +
+"                        try { _logger.info('[NvCapture-boundary v5] fake-record: ' + fakeRec + ' (notification emitted)' ); } catch (e2) {}\r\n" +
 "                        try { res.writeHead(200); res.end(); } catch (e2) {}\r\n" +
 "                    });\r\n" +
 "                    return reply(res, { status: fakeRec });\r\n" +
