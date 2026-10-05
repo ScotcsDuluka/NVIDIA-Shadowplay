@@ -403,6 +403,7 @@ namespace NvPlugins
                     return unknown > 0 ? "OK — แต่มี node host path อ่านไม่ได้ " + unknown + " ตัว (ยืนยันชัด = รัน elevated)" : null;
                 },
                 Fix = (d, log) => {
+                    var nodeRestarted = false;
                     if (_jsPatched) {
                         foreach (var (pid, path) in ProcList("NVIDIA Web Helper"))
                             if (path.Equals(NodeExe, StringComparison.OrdinalIgnoreCase)) {
@@ -410,6 +411,7 @@ namespace NvPlugins
                             }
                         Thread.Sleep(2500);
                         _jsPatched = false;
+                        nodeRestarted = true;
                     }
                     var (rogue, _) = NodeHosts();
                     foreach (var r in rogue) {
@@ -430,6 +432,14 @@ namespace NvPlugins
                             Process.Start(new ProcessStartInfo(NodeExe) { WorkingDirectory = NodeWd, UseShellExecute = true });
                             for (int i = 0; i < 20 && U.NodeHttp() != 200; i++) Thread.Sleep(1000);
                         }
+                    }
+                    // §21.3: node restart ⇒ หน้า osc ต้อง boot ใหม่ (init chain ผูกกับ node instance —
+                    // ไม่งั้น socket reconnect แต่ toggle ตายเงียบ) — [5] จะ spawn ใหม่ให้
+                    if (nodeRestarted && U.NodeHttp() == 200) {
+                        foreach (var p in Process.GetProcessesByName("NVIDIA Share")) {
+                            try { log("[KILL] Share PID " + p.Id + " (หน้าต้อง boot ใหม่กับ node ตัวใหม่)"); p.Kill(); } catch { }
+                        }
+                        Thread.Sleep(2000);
                     }
                 }
             },
