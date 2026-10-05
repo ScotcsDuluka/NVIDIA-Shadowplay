@@ -186,8 +186,12 @@ namespace NvPlugins
             new Step {
                 Name = "[0h] registered JS boundary patch (ACTIVE — §20.2+§21.2 capture boundary → NvCapture.exe)",
                 Rollback = "ลบบล็อก [NvCapture-boundary §21.2] และ [NvCapture-interim §20.2] แล้ว uncomment call เดิม (ทะเบียน: PATH-MANIFEST §20.2/§21.2)",
-                Verify = _ => File.ReadAllText(Pf86Node + @"\NvShadowPlayAPI.js").Contains("[NvCapture-boundary \u00A721.2]")
-                    ? null : "boundary middleware หาย (โดน restore ทับ) — NvShadowPlayAPI.js ที่ node แท้โหลด",
+                Verify = _ => {
+                    var jst = File.ReadAllText(Pf86Node + @"\NvShadowPlayAPI.js");
+                    if (!jst.Contains("[NvCapture-boundary \u00A721.2]")) return "boundary middleware หาย (โดน restore ทับ) — NvShadowPlayAPI.js ที่ node แท้โหลด";
+                    if (!jst.Contains("boundaryV3")) return "boundary middleware เป็น v2 — ต้องอัปเดต v3 (button-audit shapes)";
+                    return null;
+                },
                 Fix = (d, log) => {
                     var p = Pf86Node + @"\NvShadowPlayAPI.js";
                     var t = File.ReadAllText(p);
@@ -207,73 +211,34 @@ namespace NvPlugins
                     var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
                     if (!t.Contains(anchor)) throw new Exception("[0h] ไม่พบ anchor RegisterExpressEndpoints — JS เปลี่ยนรูป ตรวจก่อน");
                     var marker = "[NvCapture-boundary \u00A721.2]";
+                    var hasV3 = t.Contains("boundaryV3");
                     if (!t.Contains(marker))
                     {
-                        var insert = anchor + "\r\n    // ===== " + marker + " Phase 3 capture boundary: capture-scope routes → NvCapture.exe 127.0.0.1:59077 =====\r\n" +
-"    // กฎเหล็ก: หน้าต้องได้ 200 ทุกคำถาม — engine down = ตอบ static shape จริง ห้าม 500 · non-capture = genuine ทั้งหมด\r\n" +
-"    (function () {\r\n" +
-"        try {\r\n" +
-"            var httpMod = require('http');\r\n" +
-"            function ncReq(m, p2, body, cb) {\r\n" +
-"                try {\r\n" +
-"                    var rq = httpMod.request({ host: '127.0.0.1', port: 59077, path: p2, method: m, timeout: 1500 }, function (rs) {\r\n" +
-"                        var d2 = ''; rs.on('data', function (c) { d2 += c; }); rs.on('end', function () { try { cb(null, JSON.parse(d2)); } catch (e) { cb(null, {}); } });\r\n" +
-"                    });\r\n" +
-"                    rq.on('timeout', function () { rq.destroy(); cb(new Error('timeout')); });\r\n" +
-"                    rq.on('error', function (e) { cb(e); });\r\n" +
-"                    if (body) { var bs = JSON.stringify(body); rq.setHeader('content-type', 'application/json'); rq.setHeader('content-length', Buffer.byteLength(bs)); rq.write(bs); }\r\n" +
-"                    rq.end();\r\n" +
-"                } catch (e2) { cb(e2); }\r\n" +
-"            }\r\n" +
-"            function reply(res, obj) { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); } catch (e) { try { res.end(); } catch (e2) {} } }\r\n" +
-"            function readBody(req, cb) { var d = ''; req.on('data', function (c) { d += c; }); req.on('end', function () { try { cb(JSON.parse(d || '{}')); } catch (e) { cb({}); } }); }\r\n" +
-"            var SCOPE = [\r\n" +
-"                '/ShadowPlay/v.1.0/Record/Enable', '/ShadowPlay/v.1.0/Record/Running',\r\n" +
-"                '/ShadowPlay/v.1.0/Record/Settings', '/ShadowPlay/v.1.0/Capture/State',\r\n" +
-"                '/ShadowPlay/v.1.0/Broadcast/Support', '/ShadowPlay/v.1.0/InstantReplay/Enable'\r\n" +
-"            ];\r\n" +
-"            app.use(function (req, res, next) {\r\n" +
-"                var u = (req.url || '').split('?')[0];\r\n" +
-"                if (SCOPE.indexOf(u) < 0) return next();\r\n" +
-"                if (u === '/ShadowPlay/v.1.0/Capture/State') {\r\n" +
-"                    return ncReq('GET', '/state', null, function (e, st) { reply(res, { state: 'Ready' }); });\r\n" +
-"                }\r\n" +
-"                if (u === '/ShadowPlay/v.1.0/Record/Enable') {\r\n" +
-"                    if (req.method === 'POST') return readBody(req, function (b) {\r\n" +
-"                        var on = b && b.status === true;\r\n" +
-"                        ncReq('POST', on ? '/record/start' : '/record/stop', {}, function (e, r) {\r\n" +
-"                            try { _logger.info('[NvCapture-boundary] Enable ' + on + ' -> ' + JSON.stringify(r)); } catch (e2) {}\r\n" +
-"                            try { res.writeHead(200); res.end(); } catch (e2) {}\r\n" +
-"                        });\r\n" +
-"                    });\r\n" +
-"                    return ncReq('GET', '/state', null, function (e, st) { reply(res, { status: !!(st && st.enabled) }); });\r\n" +
-"                }\r\n" +
-"                if (u === '/ShadowPlay/v.1.0/Record/Running') {\r\n" +
-"                    return ncReq('GET', '/state', null, function (e, st) { reply(res, { running: !!(st && st.recording) }); });\r\n" +
-"                }\r\n" +
-"                if (u === '/ShadowPlay/v.1.0/Record/Settings') {\r\n" +
-"                    if (req.method === 'POST') return readBody(req, function (b) {\r\n" +
-"                        ncReq('POST', '/settings', b, function (e, r) { reply(res, r || {}); });\r\n" +
-"                    });\r\n" +
-"                    return ncReq('GET', '/settings', null, function (e, r) { reply(res, r || { quality: 'Custom', resolution: 'In-game', framerate: 60, bitrateBps: 50000000 }); });\r\n" +
-"                }\r\n" +
-"                if (u === '/ShadowPlay/v.1.0/Broadcast/Support') { return reply(res, { support: false }); }\r\n" +
-"                if (u === '/ShadowPlay/v.1.0/InstantReplay/Enable') {\r\n" +
-"                    if (req.method === 'POST') { try { res.writeHead(200); res.end(); } catch (e) {} return; }\r\n" +
-"                    return reply(res, { status: false });\r\n" +
-"                }\r\n" +
-"                return next();\r\n" +
-"            });\r\n" +
-"        } catch (eBoundary) {}\r\n" +
-"    })();\r\n";
+                        var insert = BuildBoundaryJs();
+
                         t = t.Replace(anchor, insert);
                         File.WriteAllText(p, t);
                         _jsPatched = true;
                         J("[0h→§21.2] boundary middleware inserted → " + p, "ลบบล็อก [NvCapture-boundary §21.2] จาก NvShadowPlayAPI.js (node restart หลังแก้)");
-                        log("[0h] boundary middleware v2 inserted (record scope → NvCapture.exe :59077) — node จะถูก restart ที่ [3]");
+                        log("[0h] boundary middleware inserted (record scope → NvCapture.exe :59077) — node จะถูก restart ที่ [3]");
                         return;
                     }
-                    log("[0h] boundary middleware อยู่แล้ว");
+                    if (!hasV3)
+                    {
+                        // อัปเดตบล็อกเดิม → v3: ตัด start-mark ถึงจบ IIFE แล้วใส่บล็อกใหม่ (button-audit shapes)
+                        int stI = t.IndexOf("    // ===== [NvCapture-boundary");
+                        int evm = t.IndexOf("        } catch (eBoundary) {}", stI);
+                        int enI = t.IndexOf("    })();", evm);
+                        if (stI < 0 || evm < 0 || enI < 0) throw new Exception("[0h] หาขอบเขตบล็อก boundary เดิมไม่เจอ — ตรวจ JS ก่อน");
+                        var newBlock = BuildBoundaryJs();
+                        t = t.Substring(0, stI) + newBlock + t.Substring(enI + "    })();".Length);
+                        File.WriteAllText(p, t);
+                        _jsPatched = true;
+                        J("[0h] boundary block → v3 (button-audit shapes)", "restore จาก Payload\\NvNode แล้วรัน boot ใหม่");
+                        log("[0h] boundary middleware → v3 (IR Save/BufferLength/Screenshot) — node จะถูก restart ที่ [3]");
+                        return;
+                    }
+                    log("[0h] boundary middleware v3 อยู่แล้ว");
                 }
             },
             new Step {
@@ -582,6 +547,76 @@ namespace NvPlugins
                 }
             }
         };
+
+
+        // boundary middleware JS (v3) — แทรกก่อน route ทั้งหมด; replace ได้ตาม version
+        private static string BuildBoundaryJs()
+        {
+            var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
+            return anchor + "\r\n    // ===== [NvCapture-boundary §21.2] Phase 3 capture boundary v3 (button-audit shapes): capture-scope routes → NvCapture.exe 127.0.0.1:59077 ===== boundaryV3\r\n" +
+"    // กฎเหล็ก: หน้าต้องได้ 200 ทุกคำถาม — engine down = ตอบ static shape จริง ห้าม 500 · non-capture = genuine ทั้งหมด\r\n" +
+"    (function () {\r\n" +
+"        try {\r\n" +
+"            var httpMod = require('http');\r\n" +
+"            function ncReq(m, p2, body, cb) {\r\n" +
+"                try {\r\n" +
+"                    var rq = httpMod.request({ host: '127.0.0.1', port: 59077, path: p2, method: m, timeout: 1500 }, function (rs) {\r\n" +
+"                        var d2 = ''; rs.on('data', function (c) { d2 += c; }); rs.on('end', function () { try { cb(null, JSON.parse(d2)); } catch (e) { cb(null, {}); } });\r\n" +
+"                    });\r\n" +
+"                    rq.on('timeout', function () { rq.destroy(); cb(new Error('timeout')); });\r\n" +
+"                    rq.on('error', function (e) { cb(e); });\r\n" +
+"                    if (body) { var bs = JSON.stringify(body); rq.setHeader('content-type', 'application/json'); rq.setHeader('content-length', Buffer.byteLength(bs)); rq.write(bs); }\r\n" +
+"                    rq.end();\r\n" +
+"                } catch (e2) { cb(e2); }\r\n" +
+"            }\r\n" +
+"            function reply(res, obj) { try { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(obj)); } catch (e) { try { res.end(); } catch (e2) {} } }\r\n" +
+"            function readBody(req, cb) { var d = ''; req.on('data', function (c) { d += c; }); req.on('end', function () { try { cb(JSON.parse(d || '{}')); } catch (e) { cb({}); } }); }\r\n" +
+"            var SCOPE = [\r\n" +
+                "                '/ShadowPlay/v.1.0/Record/Enable', '/ShadowPlay/v.1.0/Record/Running',\r\n" +
+                "                '/ShadowPlay/v.1.0/Record/Settings', '/ShadowPlay/v.1.0/Capture/State',\r\n" +
+                "                '/ShadowPlay/v.1.0/Broadcast/Support', '/ShadowPlay/v.1.0/InstantReplay/Enable',\r\n" +
+                "                '/ShadowPlay/v.1.0/InstantReplay/Save', '/ShadowPlay/v.1.0/InstantReplay/BufferLength',\r\n" +
+                "                '/ShadowPlay/v.1.0/Screenshot/Support', '/ShadowPlay/v.1.0/Screenshot/Capture'\r\n" +
+            "            ];\r\n" +
+"            app.use(function (req, res, next) {\r\n" +
+"                var u = (req.url || '').split('?')[0];\r\n" +
+"                if (SCOPE.indexOf(u) < 0) return next();\r\n" +
+"                if (u === '/ShadowPlay/v.1.0/Capture/State') {\r\n" +
+"                    return ncReq('GET', '/state', null, function (e, st) { reply(res, { state: 'Ready' }); });\r\n" +
+"                }\r\n" +
+"                if (u === '/ShadowPlay/v.1.0/Record/Enable') {\r\n" +
+"                    if (req.method === 'POST') return readBody(req, function (b) {\r\n" +
+"                        var on = b && b.status === true;\r\n" +
+"                        ncReq('POST', on ? '/record/start' : '/record/stop', {}, function (e, r) {\r\n" +
+"                            try { _logger.info('[NvCapture-boundary] Enable ' + on + ' -> ' + JSON.stringify(r)); } catch (e2) {}\r\n" +
+"                            try { res.writeHead(200); res.end(); } catch (e2) {}\r\n" +
+"                        });\r\n" +
+"                    });\r\n" +
+"                    return ncReq('GET', '/state', null, function (e, st) { reply(res, { status: !!(st && st.enabled) }); });\r\n" +
+"                }\r\n" +
+"                if (u === '/ShadowPlay/v.1.0/Record/Running') {\r\n" +
+"                    return ncReq('GET', '/state', null, function (e, st) { reply(res, { running: !!(st && st.recording) }); });\r\n" +
+"                }\r\n" +
+"                if (u === '/ShadowPlay/v.1.0/Record/Settings') {\r\n" +
+"                    if (req.method === 'POST') return readBody(req, function (b) {\r\n" +
+"                        ncReq('POST', '/settings', b, function (e, r) { reply(res, r || {}); });\r\n" +
+"                    });\r\n" +
+"                    return ncReq('GET', '/settings', null, function (e, r) { reply(res, r || { quality: 'Custom', resolution: 'In-game', framerate: 60, bitrateBps: 50000000 }); });\r\n" +
+"                }\r\n" +
+"                if (u === '/ShadowPlay/v.1.0/Broadcast/Support') { return reply(res, { support: false }); }\r\n" +
+                "                if (u === '/ShadowPlay/v.1.0/InstantReplay/Enable') {\r\n" +
+                "                    if (req.method === 'POST') { try { res.writeHead(200); res.end(); } catch (e) {} return; }\r\n" +
+                "                    return reply(res, { status: false });\r\n" +
+                "                }\r\n" +
+                "                if (u === '/ShadowPlay/v.1.0/InstantReplay/Save') { return reply(res, { status: false }); }\r\n" +
+                "                if (u === '/ShadowPlay/v.1.0/InstantReplay/BufferLength') { return reply(res, { lengthSeconds: 0 }); }\r\n" +
+                "                if (u === '/ShadowPlay/v.1.0/Screenshot/Support') { return reply(res, { support: false }); }\r\n" +
+                "                if (u === '/ShadowPlay/v.1.0/Screenshot/Capture') { try { res.writeHead(200); res.end(); } catch (e) {} return; }\r\n" +
+                "                return next();\r\n" +
+"            });\r\n" +
+"        } catch (eBoundary) {}\r\n" +
+"    })();\r\n";
+        }
 
         // ================= BOOT / STATUS =================
         static void LogFile(string m)
