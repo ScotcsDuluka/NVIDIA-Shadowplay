@@ -190,7 +190,7 @@ namespace NvPlugins
                 Verify = _ => {
                     var jst = File.ReadAllText(Pf86Node + @"\NvShadowPlayAPI.js");
                     if (!jst.Contains("[NvCapture-boundary \u00A721.2]")) return "boundary middleware หาย (โดน restore ทับ) — NvShadowPlayAPI.js ที่ node แท้โหลด";
-                    if (!jst.Contains("boundaryV6")) return "boundary middleware เก่า (ต้อง v6: fake IR)";
+                    if (!jst.Contains("boundaryV7")) return "boundary middleware เก่า (ต้อง v7: hotkey debounce)";
                     return null;
                 },
                 Fix = (d, log) => {
@@ -212,7 +212,7 @@ namespace NvPlugins
                     var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
                     if (!t.Contains(anchor)) throw new Exception("[0h] ไม่พบ anchor RegisterExpressEndpoints — JS เปลี่ยนรูป ตรวจก่อน");
                     var marker = "[NvCapture-boundary \u00A721.2]";
-                    var hasV5 = t.Contains("boundaryV6");
+                    var hasV5 = t.Contains("boundaryV7");
                     if (t.Contains(marker) && !hasV5)
                     {
                         // บทเรียน v2→v3: ห้าม substring-replace ในไฟล์เดิม — restore genuine แล้วแทรกสด
@@ -569,7 +569,7 @@ namespace NvPlugins
         private static string BuildBoundaryJs()
         {
             var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
-            return anchor + "\r\n    // ===== [NvCapture-boundary §21.2] Phase 3 capture boundary v3 (button-audit shapes): capture-scope routes → NvCapture.exe 127.0.0.1:59077 ===== boundaryV6\r\n" +
+            return anchor + "\r\n    // ===== [NvCapture-boundary §21.2] Phase 3 capture boundary v3 (button-audit shapes): capture-scope routes → NvCapture.exe 127.0.0.1:59077 ===== boundaryV7\r\n" +
 "    // กฎเหล็ก: หน้าต้องได้ 200 ทุกคำถาม — engine down = ตอบ static shape จริง ห้าม 500 · non-capture = genuine ทั้งหมด\r\n" +
 "    (function () {\r\n" +
 "        try {\r\n" +
@@ -636,7 +636,17 @@ namespace NvPlugins
                 "                if (u === '/ShadowPlay/v.1.0/Screenshot/Support') { return reply(res, { support: false }); }\r\n" +
                 "                if (u === '/ShadowPlay/v.1.0/Screenshot/Capture') { try { res.writeHead(200); res.end(); } catch (e) {} return; }\r\n" +
                 "                return next();\r\n" +
-"            });\r\n" +
+            "            });\r\n" +
+            "            // v7: debounce hotkey — key-repeat/กดค้างทำ toggle คู่ (เปิดแล้วปิดทันที) → นับครั้งเดียว\r\n" +
+            "            try {\r\n" +
+            "                var origHotkeyCb = HotkeyCallback;\r\n" +
+            "                HotkeyCallback = function (hd) {\r\n" +
+            "                    var now = Date.now();\r\n" +
+            "                    if (now - (HotkeyCallback._last || 0) < 800) { try { _logger.info('[NvCapture-boundary v7] hotkey debounced'); } catch (eD) {} return; }\r\n" +
+            "                    HotkeyCallback._last = now;\r\n" +
+            "                    origHotkeyCb(hd);\r\n" +
+            "                };\r\n" +
+            "            } catch (eDb) {}\r\n" +
 "        } catch (eBoundary) {}\r\n" +
 "    })();\r\n";
         }
