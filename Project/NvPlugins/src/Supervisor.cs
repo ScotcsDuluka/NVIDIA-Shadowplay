@@ -46,6 +46,7 @@ namespace NvPlugins
         public static readonly string Pf64 = P.PF;                       // C:\Program Files\NVIDIA Corporation
         public static readonly string Pf86 = @"C:\Program Files (x86)\NVIDIA Corporation";
         public static readonly string GfeDir = P.GFE;                    // PF\NVIDIA GeForce Experience
+        public static readonly string ShareGfeExe = GfeDir + @"\NVIDIA Share.exe";   // ValidatePID whitelist — spawn จาก path นี้เท่านั้น (§20.4/§21.3)
         public static readonly string PfContainer = Pf64 + @"\NvContainer";
         public static readonly string PfContainerPlugin = PfContainer + @"\plugins\LocalSystem\ShadowPlay\_nvspserviceplugin64.dll";
         public static readonly string PayloadPlugin = Payload + @"\NvContainer\plugins\LocalSystem\ShadowPlay\_nvspserviceplugin64.dll";
@@ -473,16 +474,23 @@ namespace NvPlugins
                 Name = "[5] Share (attach — container จะ spawn คู่ของตัวเองตอน enable เสมอ)",
                 Rollback = "kill + spawn ใหม่ (exe = build Overlay OSC\\NVIDIA Share)",
                 Fatal = false,   // ตาม RE §20.11 — enable spawn Share เอง; ตัวนี้แค่ให้พร้อมเร็วขึ้น
-                Verify = _ => Process.GetProcessesByName("NVIDIA Share").Length > 0
-                    ? null : "ไม่มี Share มีชีวิต",
+                Verify = _ => {
+                    var gfe = false; var wrong = new List<string>();
+                    foreach (var (pid, path) in ProcList("NVIDIA Share")) {
+                        if (path.Equals(ShareGfeExe, StringComparison.OrdinalIgnoreCase)) gfe = true;
+                        else if (path.Length > 0) wrong.Add("PID " + pid + " " + path);
+                    }
+                    if (wrong.Count > 0) return "Share ผิด path (ValidatePID จะปฏิเสธ): " + string.Join(", ", wrong);
+                    return gfe ? null : "ไม่มี Share จาก GFE dir";
+                },
                 Fix = (d, log) => {
                     foreach (var p in Process.GetProcessesByName("NVIDIA Share")) {
-                        var exe = ""; try { exe = p.MainModule?.FileName ?? ""; } catch { }
-                        log("[5] kill Share PID " + p.Id + " " + exe);
+                        log("[5] kill Share PID " + p.Id);
                         try { p.Kill(); } catch { }
                     }
                     Thread.Sleep(3000);
-                    Process.Start(new ProcessStartInfo(ShareExe) { WorkingDirectory = ShareWd, UseShellExecute = true, WindowStyle = ProcessWindowStyle.Hidden });
+                    // spawn จาก GFE dir เท่านั้น — path ต้องอยู่ whitelist ของ ValidatePID ถึง toggle/SetSP จะผ่าน (§21.3)
+                    Process.Start(new ProcessStartInfo(ShareGfeExe) { WorkingDirectory = GfeDir, UseShellExecute = true, WindowStyle = ProcessWindowStyle.Hidden });
                     Thread.Sleep(8000);
                 }
             },
