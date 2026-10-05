@@ -516,6 +516,39 @@ namespace NvPlugins
                 }
             },
             new Step {
+                Name = "[6d] Share dedupe (1 main จาก GFE path — 2 ตัว = แย่ง overlay กัน)",
+                Rollback = "kill หลัง spawn ใหม่ได้ทุกเมื่อ", 
+                Fatal = false,
+                Verify = _ => {
+                    var mains = new List<string>(); var wrong = new List<string>();
+                    var mainPids = ShareMainPids();
+                    foreach (var (pid, path) in ProcList("NVIDIA Share")) {
+                        if (path.Length == 0 || !mainPids.Contains(pid)) continue;   // child CEF ชื่อ exe เดียวกัน — ข้าม
+                        if (path.Equals(ShareGfeExe, StringComparison.OrdinalIgnoreCase)) mains.Add(path);
+                        else wrong.Add("PID " + pid + " " + path);
+                    }
+                    if (wrong.Count > 0) return "Share ผิด path: " + string.Join(", ", wrong);
+                    if (mains.Count > 1) return "Share main " + mains.Count + " ตัว — ต้องเหลือ 1";
+                    if (mains.Count == 0) return null;   // ยังไม่มี Share = ให้ [5]/enable spawn ต่อ
+                    return null;
+                },
+                Fix = (d, log) => {
+                    var mains = new List<int>();
+                    var mainPids = ShareMainPids();
+                    foreach (var (pid, path) in ProcList("NVIDIA Share")) {
+                        if (!mainPids.Contains(pid)) continue;   // child CEF ข้าม
+                        if (path.Equals(ShareGfeExe, StringComparison.OrdinalIgnoreCase)) mains.Add(pid);
+                        else { try { Process.GetProcessById(pid).Kill(); log("[6d] kill Share ผิด path PID " + pid); } catch { } }
+                    }
+                    while (mains.Count > 1) {
+                        var pid = mains[mains.Count - 1];
+                        try { Process.GetProcessById(pid).Kill(); log("[6d] dedupe: kill เกี่ส Share PID " + pid); } catch { }
+                        mains.RemoveAt(mains.Count - 1);
+                    }
+                }
+            },
+
+            new Step {
                 Name = "[6c] hotkey openshare verify-only (ค่าจริงอยู่ที่ registry GFEOverlayHKeyV2)",
                 Rollback = "verify-only — ห้าม POST ทับค่าที่ OWNER ตั้งผ่าน UI เด็ดขาด (§20.13)",
                 Fatal = false,
@@ -654,6 +687,30 @@ namespace NvPlugins
             "            } catch (eDb) {}\r\n" +
 "        } catch (eBoundary) {}\r\n" +
 "    })();\r\n";
+        }
+
+        // main Share = ตัวที่ถือ socket :59001 (child CEF ชื่อ exe เดียวกัน — ห้ามนับ)
+        static System.Collections.Generic.HashSet<int> ShareMainPids()
+        {
+            var sharePids = new System.Collections.Generic.HashSet<int>();
+            foreach (var (pid, path) in ProcList("NVIDIA Share"))
+                if (path.EndsWith("NVIDIA Share.exe", StringComparison.OrdinalIgnoreCase)) sharePids.Add(pid);
+            var socketPids = new System.Collections.Generic.HashSet<int>();
+            try
+            {
+                var psi = new ProcessStartInfo("netstat.exe", "-ano -p tcp")
+                { UseShellExecute = false, RedirectStandardOutput = true, CreateNoWindow = true };
+                using var p = Process.Start(psi);
+                var outp = p.StandardOutput.ReadToEnd(); p.WaitForExit(3000);
+                foreach (var line in outp.Split('\n'))
+                {
+                    var parts = line.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length >= 5 && parts[2].EndsWith(":59001") && parts[3] == "ESTABLISHED"
+                        && int.TryParse(parts[4], out var pid) && sharePids.Contains(pid)) socketPids.Add(pid);
+                }
+            }
+            catch { }
+            return socketPids;
         }
 
         // ================= BOOT / STATUS =================
