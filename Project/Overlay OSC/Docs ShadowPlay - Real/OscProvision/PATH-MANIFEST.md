@@ -752,6 +752,8 @@ COverlayApi::SetInputRedirectionMode: mode[4] → COverlayApi::SetSP(25640,2)/(1
 4. **ExeLocation relative `..\..\` = known-alternative เท่านั้น ห้ามใช้จริง** (OWNER เห็นด้วยกับประเมิน: เปราะ + ยัง PF-anchored อยู่ดี — ทางแท้คือ [0f] hardlink) — จดไว้เผื่อวิกฤต
 5. **เรื่อง registry สรุปสำหรับอนาคต**: กลุ่ม provisioning (§3 payload) ต้องมีเหมือนเดิม · [1b]/[1d] เขียนทุกบูตตามสคริปต์ · ไม่มีการแก้มือนอกสคริปต์ — fix วันนี้ทั้งหมด = filesystem + process + HTTP ล้วน
 
+**สถานะ hotkey ล่าสุด (2026-10-06 18:4x):** OWNER เลือก Alt+X — ROOT ที่ Alt+Z กดไม่ได้ = **Alt+Z ถูก process อื่นจับ global hotkey ไว้ก่อน** (probe RegisterHotKey: Alt+Z fail err=ถูกจับ · Alt+F1 fail = ของ NVIDIA screenshot helper จับปกติ · Alt+X ว่าง) — helper ล้มเหลวเงียบ ๆ ตอน arm และไม่ retry; config/registry/persist ถูกต้องทั้งหมด ([18,90] Alt+Z ค้างใน GFEOverlayHKeyV2 ตอนนี้ถูกแทน) — แก้: POST /Hotkey/openshare {keys:[18,88]} (Alt+X) -> GET [18,88] + registry V21=0x58 persist + probe Alt+X "ถูกจับอยู่" = helper re-arm สำเร็จ — **Alt+X พร้อมใช้** (ห้ามสลับกลับ Alt+Z จนกว่าจะปล่อย key ในแอปที่จับอยู่ + ตั้ง hotkey ใน overlay UI อีกครั้งเพื่อ push HotKeyChanged)
+
 **หมุดถัดไป (OWNER กำหนดลำดับ):** persist เรียบร้อย → **reboot test 1 รอบ** (บูตเครื่องจริง → boot script → Alt+Z ต้องขึ้น) → **Phase 2** (NvPlugins supervisor ตามสเปก §21: modular/transparent/trustworthy + status command + self-heal + rollback) → **Phase 3** (NvCapture.exe — capture boundary ตาม §20)
 
 **ผล (2026-10-05 ต่อจากลำดับข้างบน — ปิดข้อ 1 และปรับข้อ 3):**
