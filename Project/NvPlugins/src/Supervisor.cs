@@ -190,7 +190,7 @@ namespace NvPlugins
                 Verify = _ => {
                     var jst = File.ReadAllText(Pf86Node + @"\NvShadowPlayAPI.js");
                     if (!jst.Contains("[NvCapture-boundary \u00A721.2]")) return "boundary middleware หาย (โดน restore ทับ) — NvShadowPlayAPI.js ที่ node แท้โหลด";
-                    if (!jst.Contains("boundaryV9")) return "boundary middleware เก่า (ต้อง v10: debounce 150ms)";
+                    if (!jst.Contains("boundaryV11")) return "boundary middleware เก่า (ต้อง v11: debounce 10ms)";
                     return null;
                 },
                 Fix = (d, log) => {
@@ -212,7 +212,7 @@ namespace NvPlugins
                     var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
                     if (!t.Contains(anchor)) throw new Exception("[0h] ไม่พบ anchor RegisterExpressEndpoints — JS เปลี่ยนรูป ตรวจก่อน");
                     var marker = "[NvCapture-boundary \u00A721.2]";
-                    var hasV5 = t.Contains("boundaryV9");
+                    var hasV5 = t.Contains("boundaryV11");
                     if (t.Contains(marker) && !hasV5)
                     {
                         // บทเรียน v2→v3: ห้าม substring-replace ในไฟล์เดิม — restore genuine แล้วแทรกสด
@@ -602,7 +602,7 @@ namespace NvPlugins
         private static string BuildBoundaryJs()
         {
             var anchor = "function RegisterExpressEndpoints(app, io, logger) {";
-            return anchor + "\r\n    // ===== [NvCapture-boundary §21.2] Phase 3 capture boundary v3 (button-audit shapes): capture-scope routes → NvCapture.exe 127.0.0.1:59077 ===== boundaryV9\r\n" +
+            return anchor + "\r\n    // ===== [NvCapture-boundary §21.2] Phase 3 capture boundary v3 (button-audit shapes): capture-scope routes → NvCapture.exe 127.0.0.1:59077 ===== boundaryV11\r\n" +
 "    // กฎเหล็ก: หน้าต้องได้ 200 ทุกคำถาม — engine down = ตอบ static shape จริง ห้าม 500 · non-capture = genuine ทั้งหมด\r\n" +
 "    (function () {\r\n" +
 "        try {\r\n" +
@@ -680,7 +680,7 @@ namespace NvPlugins
             "                var origHotkeyCb = HotkeyCallback;\r\n" +
             "                HotkeyCallback = function (hd) {\r\n" +
             "                    var now = Date.now();\r\n" +
-            "                    if (now - (HotkeyCallback._last || 0) < 150) { try { _logger.info('[NvCapture-boundary v9] hotkey debounced'); } catch (eD) {} return; }\r\n" +
+            "                    if (now - (HotkeyCallback._last || 0) < 10) { try { _logger.info('[NvCapture-boundary v9] hotkey debounced'); } catch (eD) {} return; }\r\n" +
             "                    HotkeyCallback._last = now;\r\n" +
             "                    origHotkeyCb(hd);\r\n" +
             "                };\r\n" +
