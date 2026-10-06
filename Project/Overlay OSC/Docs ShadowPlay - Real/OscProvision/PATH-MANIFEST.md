@@ -803,3 +803,14 @@ COverlayApi::SetInputRedirectionMode: mode[4] → COverlayApi::SetSP(25640,2)/(1
 **หมุดถัดไป:** OWNER กด Alt+X ยืนยันบน supervisor รอบนี้ (ภาพเห็น = ปิดเกณฑ์รับ Phase 2) → Phase 3 = NvCapture.exe
 
 **ผลปิด (2026-10-05 — OWNER ยืนยัน "ติด"):** ✅ เกณฑ์รับ Phase 2 ครบทั้ง 4 ข้อ — supervisor บูตระบบแท้เต็มสายเอง + Alt+X ขึ้นจอจริงบนระบบที่ supervisor เลี้ยง · **PHASE 2 CLOSED** · เริ่ม Phase 3 = NvCapture.exe (capture boundary ตาม §20 — "Capture ใช้ไม่ได้" ที่ OWNER รายงานคือชิ้นนี้) เมื่อ OWNER เปิดรอบ
+
+### §21.4 — HANDOFF (2026-10-06 ~19:2x — OWNER สั่งพักก่อน context เต็ม)
+
+**สถานะเครื่องตอนนี้:** รีบูตเช้าวันนี้ 15:35 → boot เขียวครบ (nvosc 6 ชั้น) → **แต่ Share ตายซ้ำ**: container 12220 spawn 19984 ได้ (attach/overlay ✓) แล้ว `COscProcMgr::Run: Exiting Thread` (9 วิหลัง spawn) → server rollback → `launch:false` · Share 0 process · OpenOsc → E_INVALIDARG · hotkey = **Alt+X** [18,88] (registry persist + helper armed — Alt+Z ถูก process อื่นจับ, probe ยืนยัน)
+
+**กู้คืน (ลำดับเดิมที่พิสูจน์แล้ว):** `NvPlugins.exe boot` (elevated) → ถ้า Share ตายซ้ำหลัง enable = **ปมจริงที่ต้องไล่ต่อ**: ทำไม container OscProcMgr ยอมแพ้ (Run Exiting Thread) — เป็นบ่อยวันนี้ (try#0,#1,#5 crash-loop)
+
+**ของที่สร้างไว้ครบ ใช้ได้เลย:** fake UI v11 (Record/IR toggle+live notification, debounce 10ms ตามสั่ง) · nv-gpu-accel=true (registered deviation — revert = 1 บรรทัดใน build Share.json) · nvosc_container.exe dashboard (WinForms: L0-L5 + RECORD/IR tile + ปุ่ม boot) · `Project/NvOscContainer/osc_hack.py` (CDP hack: state/tree/eval/shot/click/console/watch — ยังไม่ได้ทดสอบกับหน้าสด)
+
+**ทิศทางที่ OWNER พึ่งตัดสิน:** ถอด osc ออกจาก Share.exe → port หน้าเอง (WebView2 spike = ทางที่แนะนำ; สเปก scale ตรงยืนยันแล้ว: zoom = log(min(W/1920,H/1080))/log(1.2) = -0.732395 ที่ 1680×1050, factor 0.875; หน้ากัน cefQuery หายไว้แล้ว — "No cefQuery." + ยิงแค่ 5 คำสั่ง) — แต่ host เรายังมั่ว = พักไว้ก่อน
+
