@@ -190,7 +190,7 @@ namespace NvPlugins
                 Verify = _ => {
                     var jst = File.ReadAllText(Pf86Node + @"\NvShadowPlayAPI.js");
                     if (!jst.Contains("[NvCapture-boundary \u00A721.2]")) return "boundary middleware หาย (โดน restore ทับ) — NvShadowPlayAPI.js ที่ node แท้โหลด";
-                    if (!jst.Contains("boundaryV9")) return "boundary middleware เก่า (ต้อง v9: IR live notification)";
+                    if (!jst.Contains("boundaryV9")) return "boundary middleware เก่า (ต้อง v10: debounce 150ms)";
                     return null;
                 },
                 Fix = (d, log) => {
@@ -680,7 +680,7 @@ namespace NvPlugins
             "                var origHotkeyCb = HotkeyCallback;\r\n" +
             "                HotkeyCallback = function (hd) {\r\n" +
             "                    var now = Date.now();\r\n" +
-            "                    if (now - (HotkeyCallback._last || 0) < 800) { try { _logger.info('[NvCapture-boundary v9] hotkey debounced'); } catch (eD) {} return; }\r\n" +
+            "                    if (now - (HotkeyCallback._last || 0) < 150) { try { _logger.info('[NvCapture-boundary v9] hotkey debounced'); } catch (eD) {} return; }\r\n" +
             "                    HotkeyCallback._last = now;\r\n" +
             "                    origHotkeyCb(hd);\r\n" +
             "                };\r\n" +
