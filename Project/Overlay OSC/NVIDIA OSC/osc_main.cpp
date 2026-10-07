@@ -879,10 +879,12 @@ static void HandleOscQuery(const std::string& req, bool persistent,
         // ★ แบบแท้: Share.exe ส่ง node config ให้หน้าผ่าน NODE_INFO (route resolve "base"
         //   รอ localNodeInfo() ก่อนวาดเมนู — ขาด = หน้าค้าง #/base + socket ไปต่อ default
         //   :59001 ของแท้) — ของเรา: config จริงของ backend เรา (พอร์ตเดียว :59011)
+        //   ★ jarvis.server ต้องเป็น URL จริง (ค่าแท้จาก piplConfig.json) — ใส่ "" แล้ว
+        //     getClientTelemetryConsent สร้าง URL undefined → openOSC ตาย indexOf (09:3x)
         reply("{\"port\":59011,\"disableSecurity\":true,"
               "\"securityCookie\":\"\","
               "\"gfwsl\":{\"server\":\"https://gfwsl.geforce.com/\"},"
-              "\"jarvis\":{\"server\":\"\"},"
+              "\"jarvis\":{\"server\":\"https://accounts.nvgs.nvidia.com\"},"
               "\"gxtarget\":{\"server\":\"gx-target-experiments-frontend-api.gx.nvidia.com\","
               "\"cvEndpoint\":\"cloudvariables\",\"version\":\"v3\",\"clientId\":\"135333107684344109\"}}");
         return;
