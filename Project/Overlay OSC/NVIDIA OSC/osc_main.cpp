@@ -403,6 +403,7 @@ fail:
 static std::vector<RECT> g_ui_rects;         // พิกัดจอ (scale แล้ว)
 static double g_css_scale = 1.0;             // css px → จอ px (zoom แท้ fit)
 static bool g_ui_open = false;
+static std::atomic<bool> g_route_clickthrough{ true };
 static bool g_applied_clickthrough = false;
 static bool g_input_mode_initialized = false;
 static HWND g_prev_fore = nullptr;           // หน้าต่างที่ถือโฟกัสก่อนเปิด OSC (คืนตอนปิด)
@@ -669,6 +670,7 @@ static void GpuUploadComposite(const void* bgra, int w, int h) {
 
 // ★ สั่ง visibility จากเธรดอื่น (CEF/HTTP) ผ่าน message — หน้าต่างเป็นของเธรด CEF UI
 static const UINT WM_OSC_VIS = WM_APP + 2;
+static const UINT WM_OSC_ROUTE = WM_APP + 3;
 
 static int NotificationSafeOverlayWidth(int monitor_width) {
     // A monitor-sized top-level HWND puts Windows in QUNS_BUSY and suppresses notifications.
@@ -694,28 +696,27 @@ static void SetClickThrough(bool on) {
         SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)) {
         Log("[window] SWP_FRAMECHANGED FAILED err=" + std::to_string(GetLastError()));
     }
-    Log(std::string("[win] OpenShare-selected input styles ") +
+    Log(std::string("[win] URL-route-selected input styles ") +
         (on ? "enabled (layered alpha hit-testing active)" : "disabled (interactive)"));
 }
 
 static void ApplyOpenShareInputMode() {
-    const bool clickthrough = !g_ui_open;
-    if (g_input_mode_initialized && g_applied_clickthrough == clickthrough) return;
+    const bool clickthrough = g_route_clickthrough;
+    const bool changed = !g_input_mode_initialized || g_applied_clickthrough != clickthrough;
     g_input_mode_initialized = true;
     g_applied_clickthrough = clickthrough;
-    SetClickThrough(clickthrough);
+    if (changed) SetClickThrough(clickthrough);
     if (!g_clickthrough_hwnd) return;
 
     if (clickthrough) {
-        // A DComp HWND still wins cross-process hit-testing despite HTTRANSPARENT.
-        // The CEF browser stays alive; expose only the zero-alpha layered proxy here.
-        SetWindowPos(g_clickthrough_hwnd, HWND_TOPMOST, 0, 0,
-            NotificationSafeOverlayWidth(GetSystemMetrics(SM_CXSCREEN)),
-            GetSystemMetrics(SM_CYSCREEN), SWP_NOACTIVATE | SWP_SHOWWINDOW);
-        ShowWindow(g_hwnd, SW_HIDE);
+        if (!IsWindowVisible(g_clickthrough_hwnd))
+            SetWindowPos(g_clickthrough_hwnd, HWND_TOPMOST, 0, 0,
+                NotificationSafeOverlayWidth(GetSystemMetrics(SM_CXSCREEN)),
+                GetSystemMetrics(SM_CYSCREEN), SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        if (IsWindowVisible(g_hwnd)) ShowWindow(g_hwnd, SW_HIDE);
     } else {
-        ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
-        ShowWindow(g_clickthrough_hwnd, SW_HIDE);
+        if (!IsWindowVisible(g_hwnd)) ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
+        if (IsWindowVisible(g_clickthrough_hwnd)) ShowWindow(g_clickthrough_hwnd, SW_HIDE);
     }
 }
 
@@ -1242,7 +1243,14 @@ public:
     void OnAddressChange(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame> frame,
         const CefString& url) override {
         if (!frame || !frame->IsMain()) return;
-        Log("[route] " + url.ToString() + " (OpenShare state owns input mode)");
+        std::string current_url = url.ToString();
+        size_t hash = current_url.find('#');
+        const bool clickthrough = hash != std::string::npos &&
+            current_url.substr(hash) == "#/base";
+        if (g_hwnd) PostMessageW(g_hwnd, WM_OSC_ROUTE, clickthrough ? 1 : 0, 0);
+        Log("[route] " + current_url + (clickthrough
+            ? " (exact #/base = click-through)"
+            : " (route != #/base = interactive)"));
     }
 
     void OnLoadingStateChange(CefRefPtr<CefBrowser> browser, bool isLoading, bool, bool) override {
@@ -1271,10 +1279,14 @@ public:
             }
             // ★ mods: ฉีด CSS ทุกไฟล์ใน osc/mods/*.css (สเปก OWNER 02:4x)
             //   node ให้ list ที่ /mods/list (เรียงตามชื่อ) — แก้ไฟล์แล้วแค่ reload
-            //   หน้า ไม่ต้อง build host ใหม่ · ลิงก์โหลดทีหลัง CSS หน้า = ชนะ specificity
+            //   ★ scoping (03:2x): body[data-nv-route="preferences"] ติดตาม hash ตลอด
+            //     → mod จำกัดขอบเขตด้วย attribute นี้ ไม่โดนทุกหน้า
             {
                 browser->GetMainFrame()->ExecuteJavaScript(
                     "(function(){"
+                    "function rt(){var h=(location.hash||'#/base').split('/');"
+                    "document.body.setAttribute('data-nv-route', h[2]||'base');}"
+                    "rt();addEventListener('hashchange',rt);"
                     "function inj(u){var l=document.createElement('link');"
                     "l.rel='stylesheet';l.href=u;document.head.appendChild(l);}"
                     "fetch('/mods/list').then(function(r){return r.json();})"
@@ -1478,8 +1490,7 @@ static CefMouseEvent MkMouse(LPARAM l) {
     return e;
 }
 
-// ★ low-level mouse hook: OSC เปิด = modal (จับคลิกทั้งจอ → ส่ง CEF — ไม่ตกลงเกม)
-//   OSC ปิด = hook ไม่ทำอะไร (หน้าต่างถือ WS_EX_TRANSPARENT จาก SetClickThrough อยู่แล้ว)
+// The exact #/base route passes input through; all other routes capture input.
 static CefMouseEvent MkMousePt(POINT s) {
     CefMouseEvent e{};
     if (g_disp_w > 0) {
@@ -1497,7 +1508,7 @@ static bool ScreenInUiRects(POINT s) {
     // ★ แบบของแท้: OSC เปิด = modal — จับเมาส์ทั้งจอส่งเข้า CEF
     //   (คลิกนอกปุ่ม = เพจปิด overlay เอง / คลิกปุ่ม = action)
     //   ยุคก่อน hook อยู่บนเธรด UI ที่ตันเลยเคอร์เซอร์แข็ง — ตอนนี้ hook เธรดเฉพาะแล้ว
-    if (!g_ui_open) return false;
+    if (g_route_clickthrough) return false;
     (void)s;
     return true;
 }
@@ -1609,7 +1620,7 @@ static void BindDcompTarget() {
 }
 
 static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
-    if (g_browser && g_ui_open) {
+    if (g_browser && !g_route_clickthrough) {
         auto host = g_browser->GetHost();
         switch (msg) {
         case WM_MOUSEMOVE: {
@@ -1648,6 +1659,16 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         }
     }
     switch (msg) {
+    case WM_OSC_ROUTE: {
+        const bool clickthrough = w != 0;
+        if (g_route_clickthrough != clickthrough) {
+            g_route_clickthrough = clickthrough;
+            Log(std::string("[route] input mode -> ") +
+                (clickthrough ? "click-through (#/base)" : "interactive"));
+        }
+        ApplyOpenShareInputMode();
+        return 0;
+    }
     case WM_OSC_VIS: {
         // ★ [P1#1 Copilot] UI thread เป็นเจ้าของ g_ui_open ผู้เดียว — HTTP/หน้า/ผู้ตาย
         //   ส่ง "intent" มาเท่านั้น: w=0 close · w=1 open · w=2 toggle
@@ -1662,7 +1683,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         }
         g_ui_open = ns;
         if (ns) {
-            if (!SetFullOverlayRegion())
+            if (!g_route_clickthrough && !SetFullOverlayRegion())
                 Log("[window] OSC opened but full hit-test region could not be restored");
             // OSC ขึ้นจอหลักเสมอ (primary) + ขยายเต็ม
             POINT zero{ 0, 0 };
@@ -1675,14 +1696,18 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                     mi.rcMonitor.bottom - mi.rcMonitor.top,
                     SWP_NOACTIVATE);
             }
-            if (!was) g_prev_fore = GetForegroundWindow();
+            if (!was && !g_route_clickthrough) g_prev_fore = GetForegroundWindow();
             ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
             ApplyOpenShareInputMode();
-            SetTimer(g_hwnd, 2, 500, nullptr);
-            SetForegroundWindow(g_hwnd);
-            if (g_browser) g_browser->GetHost()->SetFocus(true);
-            HWND child = FindWindowExW(g_hwnd, nullptr, L"Chrome_WidgetWin_1", nullptr);
-            SetFocus(child ? child : g_hwnd);
+            if (!g_route_clickthrough) {
+                SetTimer(g_hwnd, 2, 500, nullptr);
+                SetForegroundWindow(g_hwnd);
+                if (g_browser) g_browser->GetHost()->SetFocus(true);
+                HWND child = FindWindowExW(g_hwnd, nullptr, L"Chrome_WidgetWin_1", nullptr);
+                SetFocus(child ? child : g_hwnd);
+            } else {
+                KillTimer(g_hwnd, 2);
+            }
             // ★ [P1#2 Copilot] OSR เท่านั้น — windowed ห้ามแตะ DComp · bind ครั้งเดียว
             //   (target เก็บใน g_dcomp_target ตลอดอายุ) — เปิดซ้ำแค่ Commit ให้ DWM รับซ้ำ
             if (!g_cfg.windowed && g_dcomp_dev) {
@@ -1705,8 +1730,8 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         return 0;
     }
     case WM_NCHITTEST: {
-        // OpenShare is authoritative; page route changes never alter hit-testing.
-        if (g_gpu_ok) return g_ui_open ? HTCLIENT : HTTRANSPARENT;
+        // The exact #/base URL is the sole input-mode authority.
+        if (g_gpu_ok) return g_route_clickthrough ? HTTRANSPARENT : HTCLIENT;
         break;   // CPU/layered path: alpha hit-test ของระบบทำให้อยู่แล้ว
     }
     case WM_TIMER: {
@@ -1715,7 +1740,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         if (w == 2 && g_browser) {
             // CEF's internal scheduler handles OSR frames. This timer only keeps the
             // open overlay above games without polling at the monitor refresh rate.
-            if (g_ui_open) {
+            if (!g_route_clickthrough) {
                 SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             }

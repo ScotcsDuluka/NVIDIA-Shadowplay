@@ -1,0 +1,21 @@
+/* preferences mod (สเปก OWNER 03:0x) — มีผลเฉพาะ #/base/preferences
+   1) ลบ breadcrumb
+   2) central-div: padding 80 (ซ้าย/ขวา/ล่าง)
+   3) central-div: ยึดเต็มทุกด้าน ยกเว้นขวาเว้น 400px */
+
+/* 1) ลบ breadcrumb — เฉพาะ preferences */
+body[data-nv-route="preferences"] .osc-bread-crumb {
+    display: none !important;
+}
+
+/* 2)+3) central-div — ยึดเต็ม + padding + เว้นขวา 400px (เฉพาะ preferences) */
+body[data-nv-route="preferences"] .osc-central-div.layout-column {
+    position: absolute !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 400px !important;
+    padding-left: 80px !important;
+    padding-right: 80px !important;
+    padding-bottom: 80px !important;
+}
