@@ -167,7 +167,10 @@ app.get('/mods/list', function (req, res) {
     var dir = require('path').join(__dirname, 'osc', 'mods');
     require('fs').readdir(dir, function (err, files) {
         if (err) { res.json([]); return; }
-        res.json(files.filter(function (f) { return f.toLowerCase().endsWith('.css'); }).sort());
+        res.json(files.filter(function (f) {
+            var l = f.toLowerCase();
+            return l.endsWith('.css') || l.endsWith('.js');
+        }).sort());
     });
 });
 

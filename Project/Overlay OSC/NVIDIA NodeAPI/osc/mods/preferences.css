@@ -1,21 +1,45 @@
-/* preferences mod (สเปก OWNER 03:0x) — มีผลเฉพาะ #/base/preferences
-   1) ลบ breadcrumb
-   2) central-div: padding 80 (ซ้าย/ขวา/ล่าง)
-   3) central-div: ยึดเต็มทุกด้าน ยกเว้นขวาเว้น 400px */
-
-/* 1) ลบ breadcrumb — เฉพาะ preferences */
-body[data-nv-route="preferences"] .osc-bread-crumb {
+body[data-nv-route="preferences"] .osc-bread-crumb ,
+body[data-nv-route^="preferences-"] .osc-bread-crumb {
     display: none !important;
 }
 
-/* 2)+3) central-div — ยึดเต็ม + padding + เว้นขวา 400px (เฉพาะ preferences) */
-body[data-nv-route="preferences"] .osc-central-div.layout-column {
+body[data-nv-route="preferences"] .preferences-root-panel ,
+body[data-nv-route^="preferences-"] .preferences-root-panel {
+    max-height: none  !important;
+    min-height: none !important;
+}
+
+body[data-nv-route="preferences"] .preferences-item-container ,
+body[data-nv-route^="preferences-"] .preferences-item-container {
+    max-height: 100% !important;
+    min-height: none !important;
+max-width: 380px;
+}
+
+body[data-nv-route="preferences"] .osc-content.layout-row ,
+body[data-nv-route^="preferences-"] .osc-content.layout-row {
     position: absolute !important;
     top: 0 !important;
     bottom: 0 !important;
     left: 0 !important;
-    right: 400px !important;
     padding-left: 80px !important;
     padding-right: 80px !important;
     padding-bottom: 80px !important;
+    
+}
+
+/* height-chain: ทำให้ max-height:100% ของ item-container อ้างความสูง root-panel ได้จริง */
+body[data-nv-route="preferences"] .osc-central-div ,
+body[data-nv-route^="preferences-"] .osc-central-div {
+    height: 100% !important;
+    max-height: none !important;
+    min-height: none !important;
+    max-width: 350px;
+}
+
+body[data-nv-route="preferences"] .preferences-root-panel ,
+body[data-nv-route^="preferences-"] .preferences-root-panel {
+    height: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
 }

@@ -677,13 +677,19 @@ static int NotificationSafeOverlayWidth(int monitor_width) {
     return monitor_width > 1 ? monitor_width - 1 : monitor_width;
 }
 
-// WS_EX_TRANSPARENT/HTTRANSPARENT alone cannot skip this top-level DComp HWND across
-// processes. Keep its region intact: SetWindowRgn(empty) also clips the visible surface.
+// A DComp HWND needs WS_EX_LAYERED as well as WS_EX_TRANSPARENT for cross-process
+// hit-test pass-through. Keep its region intact: SetWindowRgn also clips visible pixels.
 static void SetClickThrough(bool on) {
     if (!g_hwnd) return;
     LONG_PTR ex = GetWindowLongPtrW(g_hwnd, GWL_EXSTYLE);
-    LONG_PTR want = on ? (ex | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE)
-                       : (ex & ~(WS_EX_TRANSPARENT | WS_EX_NOACTIVATE));
+    LONG_PTR want = ex;
+    if (on) {
+        want |= WS_EX_TRANSPARENT | WS_EX_NOACTIVATE;
+        if (g_gpu_ok) want |= WS_EX_LAYERED;
+    } else {
+        want &= ~(WS_EX_TRANSPARENT | WS_EX_NOACTIVATE);
+        if (g_gpu_ok) want &= ~WS_EX_LAYERED;
+    }
     if (want == ex) return;
     SetLastError(ERROR_SUCCESS);
     LONG_PTR previous = SetWindowLongPtrW(g_hwnd, GWL_EXSTYLE, want);
@@ -697,7 +703,7 @@ static void SetClickThrough(bool on) {
         Log("[window] SWP_FRAMECHANGED FAILED err=" + std::to_string(GetLastError()));
     }
     Log(std::string("[win] URL-route-selected input styles ") +
-        (on ? "enabled (layered alpha hit-testing active)" : "disabled (interactive)"));
+        (on ? "enabled (layered cross-process click-through)" : "disabled (interactive)"));
 }
 
 static void ApplyOpenShareInputMode() {
@@ -706,8 +712,8 @@ static void ApplyOpenShareInputMode() {
     g_input_mode_initialized = true;
     g_applied_clickthrough = clickthrough;
     if (changed) SetClickThrough(clickthrough);
-    // Keep the CEF host visible in both routes: the layered click-through proxy
-    // is intentionally blank, so swapping to it would hide notifications too.
+    // Keep the CEF host visible in both routes. In GPU mode its layered style
+    // provides click-through without replacing the DComp surface with a blank proxy.
     if (!IsWindowVisible(g_hwnd)) ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
     if (g_clickthrough_hwnd && IsWindowVisible(g_clickthrough_hwnd))
         ShowWindow(g_clickthrough_hwnd, SW_HIDE);
@@ -1287,13 +1293,20 @@ public:
                     "rt();addEventListener('hashchange',rt);"
                     // ★ real-time: sync ทุก 2 วิ — เพิ่มไฟล์ใหม่ = ฉีดเลย,
                     //   แก้ไฟล์ = cache-bust reload ลิงก์ (CSS วาดใหม่ทันที ไม่ต้อง Alt+G)
-                    "function inj(u){var l=document.createElement('link');"
+                    "function inj(u){"
+                    "if(u.endsWith('.js')){var sc=document.createElement('script');"
+                    "sc.src=u;sc.dataset.nvmod=u;document.head.appendChild(sc);return;}"
+                    "var l=document.createElement('link');"
                     "l.rel='stylesheet';l.href=u;l.dataset.nvmod=u;document.head.appendChild(l);}"
-                    "function bust(l){l.href=l.dataset.nvmod+'?t='+Date.now();}"
+                    "function bust(m){if(m.tagName==='SCRIPT'){"
+                    // js mod: reload = ถอดแล้วสร้างใหม่ (script ไม่ re-execute เอง)
+                    "var s2=document.createElement('script');s2.src=m.dataset.nvmod+'?t='+Date.now();"
+                    "s2.dataset.nvmod=m.dataset.nvmod;m.parentNode.replaceChild(s2,m);return;}"
+                    "m.href=m.dataset.nvmod+'?t='+Date.now();}"
                     "function sync(){fetch('/mods/list?t='+Date.now())"
                     ".then(function(r){return r.json();})"
                     ".then(function(fs){var have={};"
-                    "document.querySelectorAll('link[data-nvmod]').forEach(function(l){have[l.dataset.nvmod]=1;});"
+                    "document.querySelectorAll('[data-nvmod]').forEach(function(l){have[l.dataset.nvmod]=1;});"
                     "fs.forEach(function(f){var u='/mods/'+f;"
                     "if(!have[u])inj(u);});"
                     "document.querySelectorAll('link[data-nvmod]').forEach(bust);})"
@@ -2165,7 +2178,7 @@ public:
         // ★ บทเรียน 03:57 — DComp กับ LAYERED ขัดกัน (DWM ใช้เลเยอร์ GDI ทับ visual)
         //   และ LAYERED ก็ทำให้ DComp มองไม่เห็น → โมเดลใหม่ไม่พึ่งการซ่อนหน้าต่างแล้ว
         //   Click-through/input mode follows the main-frame URL, not the open/closed command.
-        // GPU display uses DComp; the layered proxy handles click-through while it is closed.
+        // GPU display uses DComp; the main HWND becomes layered only on #/base.
         if (g_cfg.windowed) {
             // ★ [P1#2 Copilot] windowed mode = CEF render เองใน child — ห้าม init
             //   D3D11/DComp เลย (CreateTargetForHwnd topmost วางทับ child + swapchain
@@ -2191,7 +2204,7 @@ public:
                 Log("[gpu] hybrid init failed → layered CPU fallback");
             } else {
                 ShowWindow(g_hwnd, SW_HIDE);
-                Log("[gpu] hybrid ready: DComp while open, layered click-through proxy while closed");
+                Log("[gpu] hybrid ready: DComp surface with route-driven layered pass-through");
             }
         }
         if (!g_clickthrough_hwnd) {
