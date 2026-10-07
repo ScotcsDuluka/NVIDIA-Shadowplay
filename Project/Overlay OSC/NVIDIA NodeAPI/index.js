@@ -162,6 +162,15 @@ logger.info('fast-boot ready');
 
 logger.info('Loading ExpressJS dependency...');
 var app = require('./node_modules/express/index.js')();
+// ★ mods: รายชื่อ CSS mod ใน osc/mods — host ฉีดเข้าหน้าทุกครั้งที่โหลด
+app.get('/mods/list', function (req, res) {
+    var dir = require('path').join(__dirname, 'osc', 'mods');
+    require('fs').readdir(dir, function (err, files) {
+        if (err) { res.json([]); return; }
+        res.json(files.filter(function (f) { return f.toLowerCase().endsWith('.css'); }).sort());
+    });
+});
+
 // OUR LANE: serve osc page ของเราก่อน route อื่น (same origin = หมดปัญหา CORS/port)
 // ★ 2026-10-08 OWNER: osc ย้ายมาอยู่ใต้ backend (แบบแท้ — node เป็นเจ้าของหน้า)
 app.use(require('express').static(require('path').join(__dirname, 'osc')));

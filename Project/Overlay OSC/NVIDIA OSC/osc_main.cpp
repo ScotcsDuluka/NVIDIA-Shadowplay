@@ -7,10 +7,9 @@
 //   CEF OnPaint (BGRA) → premultiply → UpdateLayeredWindow (WS_EX_LAYERED)
 //   = Layered Window + AlphaBlend + GDI แบบเดียวกับ offscreen_window.cpp ของ NVIDIA
 //
-// ★ โมเดล visibility (2026-10-07 ตามสั่ง OWNER): หน้าต่างโปร่งใส Topmost เต็มจอ
-//   ค้างบนจอตลอดชีวิต — ไม่มีการปิดหรือซ่อน · index.html โหลดค้างตั้งแต่บูต
-//   ปิด = WS_EX_TRANSPARENT+NOACTIVATE (คลิกทะลุ/ไม่แย่งโฟกัส — สถานะจาก openshare
-//   ผ่านหน้า: node :59011 → หน้า → QUERY_WIN_CLOSE_OSC) · เปิด = interactive
+// ★ หน้าต่าง/หน้า CEF ค้างตลอดอายุโปรเซสและ HWND topmost เสมอ.
+//   Keep the full window region in both states so DComp content remains visible.
+//   Closed-state cross-process click-through requires a per-pixel layered surface.
 #ifndef NOMINMAX
 #define NOMINMAX            // ก่อนทุก header — CEF ดึง windows.h เข้ามาเอง
 #endif
@@ -30,6 +29,7 @@
 #include <windowsx.h>      // GET_X_LPARAM / GET_Y_LPARAM
 #include <string>
 #include <atomic>
+#include <algorithm>
 #include <shlwapi.h>
 #include <cmath>
 #include <vector>
@@ -68,7 +68,7 @@ struct OscConfig {
     std::wstring subprocess_path = L"C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Overlay OSC\\NVIDIA OSC\\NVIDIA OSC.exe";
     int debug_port = 59099;
     bool windowed = true;          // ★ สเปก OWNER (10:5x): ให้ CEF จัดการ render เอง (GPU native)
-    int max_fps = 240;             // ★ สเปก OWNER: FPS ไม่จำกัด (cap ที่ 240 ตามจอที่รองรับ)
+    int max_fps = 60;              // CEF 73 OSR maximum
     bool show_fps = true;          // ★ FPS meter บน overlay (นับเฟรมที่แสดงจริง)
     bool gdi_compositor = false;   // true = UpdateLayeredWindow (แสดงผลชัวร์) แทน DComp
 };
@@ -139,7 +139,8 @@ static void LoadConfig() {
     g_cfg.debug_port = (int)CfgNum(json, "debugPort", 59099);
     g_cfg.gdi_compositor = CfgStr(json, "compositor") == L"gdi";
     g_cfg.windowed = CfgNum(json, "windowed", 1) != 0;
-    g_cfg.max_fps = (int)CfgNum(json, "maxFps", 240);
+    g_cfg.max_fps = (int)CfgNum(json, "maxFps", 60);
+    if (g_cfg.max_fps < 1 || g_cfg.max_fps > 60) g_cfg.max_fps = 60;
     g_cfg.show_fps = CfgNum(json, "showFps", 1) != 0;
 }
 
@@ -198,8 +199,10 @@ static LONG WINAPI CrashVecHandler(EXCEPTION_POINTERS* ep) {
 
 // ================= state =================
 static HWND g_hwnd = nullptr;
+static HWND g_clickthrough_hwnd = nullptr;
 static CefRefPtr<CefBrowser> g_browser;
 static std::string g_page_url;          // URL หน้า OSC — กู้คืนเมื่อ renderer ตายกลางทาง
+static int g_pending_page_action = -1;   // external show/hide received before browser creation
 static std::atomic<bool> g_visible{ false };
 static bool g_close_registered = false;
 static CefRefPtr<CefMessageRouterBrowserSide::Callback> g_close_callback;
@@ -210,6 +213,7 @@ static double g_render_dsf = 1.0;          // device scale factor = fit ขอ�
 // ================= compositor: UpdateLayeredWindow per-pixel alpha =================
 static HDC g_hdc_mem = nullptr;
 static HBITMAP g_hbm = nullptr, g_hbm_old = nullptr;
+static unsigned char* g_bgra_bits = nullptr;
 static int g_bmp_w = 0, g_bmp_h = 0;
 
 static void EnsureShownOnce();  // (นิยามอยู่หลัง show/hide เดิม) เปิดหน้าต่างครั้งเดียวหลัง composite แรก
@@ -239,15 +243,6 @@ static IDXGIDevice2* g_dxgi_dev2 = nullptr;
 static bool g_dcomp_bound = false;
 static ID3D11Texture2D* g_own_rt = nullptr;   // RT ของเรา (back buffer ของ swapchain เครื่องนี้ bind=0 วาดไม่ได้)
 static int g_own_w = 0, g_own_h = 0;
-
-// ★ ล็อก begin frame ตาม Hz จอจริง (สเปก OWNER: ตาม Hz จอ แบบล็อค)
-static int QueryRefreshHz() {
-    DEVMODEW dm{}; dm.dmSize = sizeof(dm);
-    if (EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &dm) && dm.dmDisplayFrequency >= 30)
-        return (int)dm.dmDisplayFrequency;
-    return 60;
-}
-static int g_refresh_hz = 60;
 
 // วาดลง RT ของเราเสมอ แล้ว copy ลง back buffer — บังคับทุกเส้นทางผ่านนี้
 static bool EnsureOwnRT(int w, int h) {
@@ -294,8 +289,9 @@ static const char* kQuadVS =
     "struct VSOut { float4 pos : SV_Position; float2 uv : TEXCOORD; };"
     "VSOut VS(uint id : SV_VertexID) {"
     "  VSOut o;"
-    "  o.uv = float2((id << 1) & 2, id & 2);"
-    "  o.pos = float4(o.uv.x * 2 - 1, 1 - o.uv.y * 2, 0, 1);"
+    "  float2 p = float2((id << 1) & 2, id & 2);"
+    "  o.uv = float2(p.x, 1 - p.y);"
+    "  o.pos = float4(p.x * 2 - 1, 1 - p.y * 2, 0, 1);"
     "  return o; }";
 static const char* kPremulPS =
     "Texture2D tex : register(t0); SamplerState samp : register(s0);"
@@ -407,6 +403,8 @@ fail:
 static std::vector<RECT> g_ui_rects;         // พิกัดจอ (scale แล้ว)
 static double g_css_scale = 1.0;             // css px → จอ px (zoom แท้ fit)
 static bool g_ui_open = false;
+static bool g_applied_clickthrough = false;
+static bool g_input_mode_initialized = false;
 static HWND g_prev_fore = nullptr;           // หน้าต่างที่ถือโฟกัสก่อนเปิด OSC (คืนตอนปิด)
 
 // วาด shared texture ของ CEF ลง swapchain (เรียกจาก OnAcceleratedPaint — เธรด UI ของ CEF)
@@ -519,9 +517,9 @@ static void GpuComposite(uint64_t shared_handle, int w, int h) {
         // ★ GPU path หลัก: copy shared texture (premultiplied แล้ว) ตรงเข้า
         //   own RT → back buffer — pure GPU copy (shader path พิสูจน์แล้ววะโปร่ง 09:24)
         char dc[4] = { 0 };
-        bool want_direct = true;
+        bool want_direct = GetEnvironmentVariableA("OSC_DIRECTCOPY", dc, 4) > 0 && dc[0] == '1';
         if (GetEnvironmentVariableA("OSC_SHADERDRAW", dc, 4) > 0 && dc[0] == '1')
-            want_direct = false;   // วินิจฉัยย้อนกลับ: OSC_SHADERDRAW=1 ใช้ shader
+            want_direct = false;   // legacy diagnostic switch
         if (want_direct) {
             ID3D11Texture2D* t2 = nullptr;
             if (SUCCEEDED(tex->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&t2)) && t2) {
@@ -665,47 +663,79 @@ static void GpuUploadComposite(const void* bgra, int w, int h) {
     srv->Release();
 }
 
-// ═══ click-through ตาม display rects (QUERY_OSC_SET_DISPLAY_RECTS ของแท้) ═══
+// ═══ display rects from QUERY_OSC_SET_DISPLAY_RECTS (page UI hit-test bounds) ═══
 // หน้าบอก host ว่า UI อยู่ตรงไหน (พิกัด CSS) → host เก็บเป็น rect จอ
-// นอก rect = HTTRANSPARENT (คลิกทะลุ) — แบบนี้ไม่ต้องพึ่ง alpha hit-test ของ layered
+// Cross-process pass-through still requires a layered per-pixel-alpha surface.
 
 // ★ สั่ง visibility จากเธรดอื่น (CEF/HTTP) ผ่าน message — หน้าต่างเป็นของเธรด CEF UI
 static const UINT WM_OSC_VIS = WM_APP + 2;
 
-// ★ สเปกใหม่ (ตามสั่ง 2026-10-07): หน้าต่างค้างบนจอตลอดชีวิต — ไม่ปิด ไม่ซ่อน
-//   ปิด = WS_EX_TRANSPARENT (คลิกทะลุข้ามโปรเซสทั้งจอ) + WS_EX_NOACTIVATE (ไม่แย่งโฟกัส)
-//   เปิด = ถอดทั้งคู่ — คลิก UI / รับโฟกัส / พิมพ์ keyboard ได้
-//   สถานะเป็นของหน้า (openshare → node :59011 → หน้า → QUERY_WIN_OPEN/CLOSE_OSC)
-static void SetClickThrough(bool on) {
-    if (!g_hwnd) return;
-    LONG ex = GetWindowLongW(g_hwnd, GWL_EXSTYLE);
-    LONG want = on ? (ex | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE)
-                   : (ex & ~(WS_EX_TRANSPARENT | WS_EX_NOACTIVATE));
-    if (want == ex) return;
-    SetWindowLongW(g_hwnd, GWL_EXSTYLE, want);
-    Log(std::string("[win] click-through ") +
-        (on ? "ON (OSC closed — ทะลุทั้งจอ + ไม่มีโฟกัส)" : "OFF (OSC open — interactive)"));
+static int NotificationSafeOverlayWidth(int monitor_width) {
+    // A monitor-sized top-level HWND puts Windows in QUNS_BUSY and suppresses notifications.
+    return monitor_width > 1 ? monitor_width - 1 : monitor_width;
 }
 
-static bool SetOverlayRegion(bool interactive) {
+// WS_EX_TRANSPARENT/HTTRANSPARENT alone cannot skip this top-level DComp HWND across
+// processes. Keep its region intact: SetWindowRgn(empty) also clips the visible surface.
+static void SetClickThrough(bool on) {
+    if (!g_hwnd) return;
+    LONG_PTR ex = GetWindowLongPtrW(g_hwnd, GWL_EXSTYLE);
+    LONG_PTR want = on ? (ex | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE)
+                       : (ex & ~(WS_EX_TRANSPARENT | WS_EX_NOACTIVATE));
+    if (want == ex) return;
+    SetLastError(ERROR_SUCCESS);
+    LONG_PTR previous = SetWindowLongPtrW(g_hwnd, GWL_EXSTYLE, want);
+    DWORD error = GetLastError();
+    if (previous == 0 && error != ERROR_SUCCESS) {
+        Log("[window] SetWindowLongPtr(GWL_EXSTYLE) FAILED err=" + std::to_string(error));
+        return;
+    }
+    if (!SetWindowPos(g_hwnd, nullptr, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED)) {
+        Log("[window] SWP_FRAMECHANGED FAILED err=" + std::to_string(GetLastError()));
+    }
+    Log(std::string("[win] OpenShare-selected input styles ") +
+        (on ? "enabled (layered alpha hit-testing active)" : "disabled (interactive)"));
+}
+
+static void ApplyOpenShareInputMode() {
+    const bool clickthrough = !g_ui_open;
+    if (g_input_mode_initialized && g_applied_clickthrough == clickthrough) return;
+    g_input_mode_initialized = true;
+    g_applied_clickthrough = clickthrough;
+    SetClickThrough(clickthrough);
+    if (!g_clickthrough_hwnd) return;
+
+    if (clickthrough) {
+        // A DComp HWND still wins cross-process hit-testing despite HTTRANSPARENT.
+        // The CEF browser stays alive; expose only the zero-alpha layered proxy here.
+        SetWindowPos(g_clickthrough_hwnd, HWND_TOPMOST, 0, 0,
+            NotificationSafeOverlayWidth(GetSystemMetrics(SM_CXSCREEN)),
+            GetSystemMetrics(SM_CYSCREEN), SWP_NOACTIVATE | SWP_SHOWWINDOW);
+        ShowWindow(g_hwnd, SW_HIDE);
+    } else {
+        ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
+        ShowWindow(g_clickthrough_hwnd, SW_HIDE);
+    }
+}
+
+static bool SetFullOverlayRegion() {
     if (!g_hwnd) return false;
-    if (interactive) {
-        if (SetWindowRgn(g_hwnd, nullptr, TRUE)) return true;
-        Log("[window] failed to restore fullscreen window region err=" +
+    RECT bounds{};
+    if (!GetWindowRect(g_hwnd, &bounds)) {
+        Log("[window] GetWindowRect for hit-test region FAILED err=" +
             std::to_string(GetLastError()));
         return false;
     }
-
-    HRGN empty = CreateRectRgn(0, 0, 0, 0);
-    if (!empty) {
-        Log("[window] CreateRectRgn failed err=" + std::to_string(GetLastError()));
+    HRGN full = CreateRectRgn(0, 0, bounds.right - bounds.left, bounds.bottom - bounds.top);
+    if (!full) {
+        Log("[window] CreateRectRgn(full) FAILED err=" + std::to_string(GetLastError()));
         return false;
     }
-    if (SetWindowRgn(g_hwnd, empty, TRUE)) return true;
+    if (SetWindowRgn(g_hwnd, full, TRUE)) return true;
     DWORD error = GetLastError();
-    DeleteObject(empty);
-    Log("[window] failed to make closed overlay region empty err=" +
-        std::to_string(error));
+    DeleteObject(full);
+    Log("[window] restore fullscreen hit-test region FAILED err=" + std::to_string(error));
     return false;
 }
 
@@ -774,13 +804,12 @@ static void ApplyGenuineZoom(bool force_log = false) {
 }
 
 // buffer premultiplied ถาวร — เฟรมที่แล้วค้างไว้ อัปเดตเฉพาะ dirty rects ของเฟรมนี้
-static std::vector<unsigned char> g_dst;
-
 // ⚠ เคารพขอบเขต x ให้เป๊ะ: บัฟเฟอร์ของ CEF ใช้ได้เฉพาะใน dirty rect —
 // อ่านเกินออกไป = ดึงพิกเซลเก่ามาทับ = UI สองสถานะซ้อนกัน (บทเรียน 06:2x)
-static void PremultRect(const unsigned char* src, int w, int x0, int x1, int y0, int y1) {
+static void PremultRect(const unsigned char* src, unsigned char* dst, int w,
+    int x0, int x1, int y0, int y1) {
     for (int y = y0; y < y1; y++) {
-        unsigned char* d = g_dst.data() + ((size_t)w * y + x0) * 4;
+        unsigned char* d = dst + ((size_t)w * y + x0) * 4;
         const unsigned char* s = src + ((size_t)w * y + x0) * 4;
         for (int i = 0; i < x1 - x0; i++) {
             unsigned char a = s[i * 4 + 3];
@@ -805,30 +834,55 @@ static void CompositeFrame(const void* bgra, int w, int h, const std::vector<Cef
             SelectObject(g_hdc_mem, g_hbm_old);
             DeleteObject(g_hbm);
             DeleteDC(g_hdc_mem);
+            g_hdc_mem = nullptr;
+            g_hbm = nullptr;
+            g_hbm_old = nullptr;
+            g_bgra_bits = nullptr;
         }
-        HDC scr = GetDC(nullptr);
-        g_hdc_mem = CreateCompatibleDC(scr);
-        g_hbm = CreateCompatibleBitmap(scr, w, h);
-        ReleaseDC(nullptr, scr);
+        g_hdc_mem = CreateCompatibleDC(nullptr);
+        if (!g_hdc_mem) {
+            Log("[composite] CreateCompatibleDC FAILED err=" + std::to_string(GetLastError()));
+            return;
+        }
+        BITMAPINFO bi{};
+        bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+        bi.bmiHeader.biWidth = w;
+        bi.bmiHeader.biHeight = -h;
+        bi.bmiHeader.biPlanes = 1;
+        bi.bmiHeader.biBitCount = 32;
+        bi.bmiHeader.biCompression = BI_RGB;
+        HBITMAP dib = CreateDIBSection(g_hdc_mem, &bi, DIB_RGB_COLORS,
+            reinterpret_cast<void**>(&g_bgra_bits), nullptr, 0);
+        if (!dib || !g_bgra_bits) {
+            DWORD error = GetLastError();
+            DeleteDC(g_hdc_mem);
+            g_hdc_mem = nullptr;
+            g_bgra_bits = nullptr;
+            Log("[composite] CreateDIBSection FAILED err=" + std::to_string(error));
+            return;
+        }
+        g_hbm = dib;
         g_hbm_old = (HBITMAP)SelectObject(g_hdc_mem, g_hbm);
+        if (!g_hbm_old || g_hbm_old == HGDI_ERROR) {
+            DWORD error = GetLastError();
+            DeleteObject(g_hbm);
+            DeleteDC(g_hdc_mem);
+            g_hdc_mem = nullptr;
+            g_hbm = nullptr;
+            g_hbm_old = nullptr;
+            g_bgra_bits = nullptr;
+            Log("[composite] SelectObject(DIB) FAILED err=" + std::to_string(error));
+            return;
+        }
         g_bmp_w = w; g_bmp_h = h;
-        g_dst.assign((size_t)w * h * 4, 0);
     }
     // CEF ให้ BGRA (ไม่ premultiply) — layered window ต้องการ premultiplied
     // ★ เต็มเฟรมทุกครั้ง: ในโหมด GPU+Canvas compositing, dirty rects ที่ CEF รายงาน
     //   ไม่ครอบคลุมบริเวณที่ถูกลบ (ผี UI สองสถานะซ้อนกัน — บทเรียน 06:29)
     //   ความถูกต้องมาก่อนความเร็ว: 7MB/premultiply-ต่อเฟรม ยังไหวที่ 60fps
     const unsigned char* src = (const unsigned char*)bgra;
-    PremultRect(src, w, 0, w, 0, h);
+    PremultRect(src, g_bgra_bits, w, 0, w, 0, h);
     (void)dirty;
-    BITMAPINFO bi{};
-    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bi.bmiHeader.biWidth = w;
-    bi.bmiHeader.biHeight = -h;   // top-down
-    bi.bmiHeader.biPlanes = 1;
-    bi.bmiHeader.biBitCount = 32;
-    bi.bmiHeader.biCompression = BI_RGB;
-    SetDIBits(g_hdc_mem, g_hbm, 0, h, g_dst.data(), &bi, DIB_RGB_COLORS);
 
     // ★ view-scale: หน้าเพจล็อกที่ design (เช่น 1920) zoom 100% เสมอ — layout ไม่ขยับ
     //   host ขยาย/ย่อ "ทั้งหน้า" เป็นภาพเดียว: S = (จอ/view) × uiScale × g_ui_adjust
@@ -839,7 +893,10 @@ static void CompositeFrame(const void* bgra, int w, int h, const std::vector<Cef
     g_disp_w = (int)(w * S); g_disp_h = (int)(h * S);
     g_dst_x = (sw - g_disp_w) / 2; g_dst_y = (sh - g_disp_h) / 2;   // ≤0 เมื่อขยาย = crop กลางจอ
     POINT dstpt{ g_dst_x, g_dst_y };
-    SIZE winsz{ g_disp_w, g_disp_h };
+    // Leave a one-pixel gap at the right edge. UpdateLayeredWindow otherwise resets
+    // the HWND to exact monitor width, which makes Windows classify it as full-screen
+    // and suppress notifications even while the OSC is closed.
+    SIZE winsz{ (std::max)(1, g_disp_w - 1), g_disp_h };
     POINT zerop{ 0, 0 };
     BLENDFUNCTION bf{ AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
     HDC scr2 = GetDC(nullptr);
@@ -1051,6 +1108,7 @@ static void HandleOscQuery(const std::string& req, bool persistent,
         reply(it != g_store.end() ? it->second : "null");
         return;
     }
+
     if (cmd == "QUERY_WIN_CLOSE_OSC") {
         // แบบของแท้: หน้าเพจเป็นเจ้าของ UI — ปิดเองทาง socket แล้ว
         g_ui_rects.clear();
@@ -1105,6 +1163,27 @@ public:
     IMPLEMENT_REFCOUNTING(JsEvalTask);
 };
 
+static void QueueOscPageAction(bool open) {
+    if (!g_browser) {
+        g_pending_page_action = open ? 1 : 0;
+        Log(std::string("[toggle] page action pending: ") + (open ? "openOSC" : "closeOSC"));
+        return;
+    }
+
+    std::string method = open ? "openOSC" : "closeOSC";
+    std::string js =
+        "(function(){var tries=0;function run(){try{"
+        "var i=window.angular&&angular.element(document).injector();"
+        "if(!i){if(++tries<50)return setTimeout(run,100);"
+        "console.error('OSC display service injector unavailable');return;}"
+        "var d=i.get('oscDisplayService'),r=i.get('$rootScope');"
+        "if(r.$$phase)d." + method + "();"
+        "else r.$apply(function(){d." + method + "();});"
+        "}catch(e){console.error('OSC page action failed: '+e.message);}}run();})();";
+    CefPostTask(TID_UI, new JsEvalTask(g_browser, js));
+    Log(std::string("[toggle] page action dispatched: ") + method);
+}
+
 class OscQueryHandler : public CefMessageRouterBrowserSide::Handler {
 public:
     bool OnQuery(CefRefPtr<CefBrowser> browser, CefRefPtr<CefFrame> frame,
@@ -1130,17 +1209,14 @@ static void FireCloseEvent() {
     }
 }
 
-// ================= หน้าต่าง: แบบของแท้ — เปิดค้างตลอดเวลา =================
-// Share.exe จริง: หน้าต่าง Topmost ทับจอ "ตลอด" พื้นหลังโปร่งใส — พิกเซล alpha=0
-// ของ layered window คลิกทะลุเองตามกลไกของระบบ เปิด/ปิด OSC จึงเป็นเรื่องของ
-// "หน้าเพจ" (วาด UI / วาดโปร่งใส) ทาง socket เท่านั้น — host แค่สลับ WS_EX_TRANSPARENT
-// ตามสถานะที่หน้ารายงาน (QUERY_WIN_OPEN/CLOSE_OSC) — ห้าม ShowWindow ซ่อน/โชว์อีก
+// ================= หน้าต่าง: อยู่ตลอด แต่ topmost เฉพาะตอน OSC เปิด =================
+// หน้า CEF ไม่ถูกทำลายหรือซ่อน; ตอนปิด HWND ถอยหลังหน้าต่างปกติเพื่อให้ input
+// ไปถึงโปรเซสอื่นได้จริง (HTTRANSPARENT อย่างเดียวไม่ forward ข้ามเธรด/โปรเซส)
 static void EnsureShownOnce() {
     static bool done = false;
     if (done || !g_hwnd) return;
     done = true;
-    // ★ สเปกใหม่: โชว์ตั้งแต่บูตแล้ว — composite แรกแค่ทำให้พิกเซลปรากฏ (ตอนปิด = alpha 0 ล้วน)
-    Log("[window] first composite — window already on screen (transparent + click-through)");
+    Log("[window] first composite — CEF surface is visible");
 }
 
 // ================= client + OSR render handler =================
@@ -1162,6 +1238,12 @@ public:
     CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override { return this; }
     void OnBeforeContextMenu(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>, CefRefPtr<CefContextMenuParams>,
         CefRefPtr<CefMenuModel> model) override { model->Clear(); }
+
+    void OnAddressChange(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame> frame,
+        const CefString& url) override {
+        if (!frame || !frame->IsMain()) return;
+        Log("[route] " + url.ToString() + " (OpenShare state owns input mode)");
+    }
 
     void OnLoadingStateChange(CefRefPtr<CefBrowser> browser, bool isLoading, bool, bool) override {
         if (!isLoading) {
@@ -1186,6 +1268,25 @@ public:
                     "if(tl-t0>=1000){lb.textContent='FPS '+Math.round(f*1000/(tl-t0));f=0;t0=tl;}"
                     "requestAnimationFrame(smp);}requestAnimationFrame(smp);})();",
                     browser->GetMainFrame()->GetURL(), 0);
+            }
+            // ★ mods: ฉีด CSS ทุกไฟล์ใน osc/mods/*.css (สเปก OWNER 02:4x)
+            //   node ให้ list ที่ /mods/list (เรียงตามชื่อ) — แก้ไฟล์แล้วแค่ reload
+            //   หน้า ไม่ต้อง build host ใหม่ · ลิงก์โหลดทีหลัง CSS หน้า = ชนะ specificity
+            {
+                browser->GetMainFrame()->ExecuteJavaScript(
+                    "(function(){"
+                    "function inj(u){var l=document.createElement('link');"
+                    "l.rel='stylesheet';l.href=u;document.head.appendChild(l);}"
+                    "fetch('/mods/list').then(function(r){return r.json();})"
+                    ".then(function(fs){fs.forEach(function(f){inj('/mods/'+f);});})"
+                    ".catch(function(){});"
+                    "})();",
+                    browser->GetMainFrame()->GetURL(), 0);
+            }
+            if (g_pending_page_action >= 0) {
+                bool open = g_pending_page_action != 0;
+                g_pending_page_action = -1;
+                QueueOscPageAction(open);
             }
             // ★ same-origin แบบแท้ (10:5x): โหลดหน้าจาก node :59011 + ใช้ cefQuery
             //   แท้ผ่าน CEF message router (RouterEnabled=true) — ไม่ฉีด HTTP shim แล้ว
@@ -1332,12 +1433,16 @@ static void CreateBrowserNow() {
     char nsh[4] = { 0 };
     DWORD nshlen = GetEnvironmentVariableA("OSC_NOSHARED", nsh, 4);
     wi.shared_texture_enabled = (g_gpu_ok && g_gpu_shared && !(nshlen > 0 && nsh[0] == '1')) ? 1 : 0;
+    Log("[cfg] shared_texture_enabled=" + std::to_string(wi.shared_texture_enabled) +
+        " gpu_ok=" + std::to_string(g_gpu_ok) +
+        " gpu_shared=" + std::to_string(g_gpu_shared) +
+        " OSC_NOSHARED=" + std::string(nshlen > 0 ? nsh : "<unset>"));
     CefBrowserSettings bs;
     bs.background_color = CefColorSetARGB(0, 0, 0, 0);
-    bs.windowless_frame_rate = g_cfg.max_fps;   // ★ สเปก OWNER: cap 240 (จอ 240Hz จะวิ่งเต็ม)
-    // ★ external begin frame (12:1x): OSR รอเราสั่งวาด — internal timer มันวิ่งแค่ 5-6Hz
-    //   (เฟรมมาช้า = ต้นตอ "กระตุก/ไม่ถึง 30fps") — เราสั่งเองที่ 60Hz ผ่าน SendExternalBeginFrame
-    wi.external_begin_frame_enabled = !g_cfg.windowed;   // ★ windowed = Chrome pacing เอง
+    bs.windowless_frame_rate = g_cfg.max_fps;
+    // CEF 73 passes external_begin_frame_enabled as force_software_compositor
+    // to ui::Compositor. Keep its internal scheduler so shared-texture OSR stays on GPU.
+    wi.external_begin_frame_enabled = false;
     g_page_url = "http://localhost:59011/index.html";   // ★ same origin กับ node API/socket (แบบแท้)
     TouchFlag(L"boot-pending.flag");   // ค้าง = พังตรงนี้ → บูตหน้า sw mode
     auto created = CefBrowserHost::CreateBrowserSync(wi, new OscClient(),
@@ -1504,12 +1609,20 @@ static void BindDcompTarget() {
 }
 
 static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
-    if (g_browser) {
+    if (g_browser && g_ui_open) {
         auto host = g_browser->GetHost();
         switch (msg) {
-        case WM_MOUSEMOVE: { auto e = MkMouse(l); host->SendMouseMoveEvent(e, false); return 0; }
+        case WM_MOUSEMOVE: {
+            static bool logged_mouse = false;
+            if (!logged_mouse) { logged_mouse = true; Log("[input] first WM_MOUSEMOVE forwarded to CEF"); }
+            auto e = MkMouse(l); host->SendMouseMoveEvent(e, false); return 0;
+        }
         case WM_MOUSELEAVE: { CefMouseEvent e{}; e.x = -1; e.y = -1; host->SendMouseMoveEvent(e, true); return 0; }
-        case WM_LBUTTONDOWN: { auto e = MkMouse(l); g_browser->GetHost()->SetFocus(true); host->SendMouseClickEvent(e, MBT_LEFT, false, 1); SetCapture(h); return 0; }
+        case WM_LBUTTONDOWN: {
+            static bool logged_click = false;
+            if (!logged_click) { logged_click = true; Log("[input] first WM_LBUTTONDOWN forwarded to CEF"); }
+            auto e = MkMouse(l); g_browser->GetHost()->SetFocus(true); host->SendMouseClickEvent(e, MBT_LEFT, false, 1); SetCapture(h); return 0;
+        }
         case WM_LBUTTONUP:   { auto e = MkMouse(l); host->SendMouseClickEvent(e, MBT_LEFT, true, 1); ReleaseCapture(); return 0; }
         case WM_RBUTTONDOWN: { auto e = MkMouse(l); host->SendMouseClickEvent(e, MBT_RIGHT, false, 1); return 0; }
         case WM_RBUTTONUP:   { auto e = MkMouse(l); host->SendMouseClickEvent(e, MBT_RIGHT, true, 1); return 0; }
@@ -1523,8 +1636,11 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
             host->SendMouseWheelEvent(e, 0, d);
             return 0;
         }
-        case WM_KEYDOWN: case WM_SYSKEYDOWN:
+        case WM_KEYDOWN: case WM_SYSKEYDOWN: {
+            static bool logged_key = false;
+            if (!logged_key) { logged_key = true; Log("[input] first WM_KEYDOWN forwarded to CEF"); }
             ForwardKey(msg, w, l); return 0;
+        }
         case WM_KEYUP: case WM_SYSKEYUP:
             ForwardKey(msg, w, l); return 0;
         case WM_CHAR:
@@ -1538,10 +1654,16 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         int intent = (int)w;
         bool was = g_ui_open;
         bool ns = (intent == 1) ? true : (intent == 0) ? false : !was;
-        if (ns == was) { Log("[state] no-op (already " + std::string(ns ? "OPEN" : "CLOSED") + ") — ข้าม stale intent"); return 0; }
+        bool external_request = (l != 0);
+        if (ns == was) {
+            if (external_request) QueueOscPageAction(ns);
+            Log("[state] no-op (already " + std::string(ns ? "OPEN" : "CLOSED") + ") — ข้าม stale intent");
+            return 0;
+        }
         g_ui_open = ns;
         if (ns) {
-            SetOverlayRegion(true);
+            if (!SetFullOverlayRegion())
+                Log("[window] OSC opened but full hit-test region could not be restored");
             // OSC ขึ้นจอหลักเสมอ (primary) + ขยายเต็ม
             POINT zero{ 0, 0 };
             HMONITOR mon = MonitorFromPoint(zero, MONITOR_DEFAULTTOPRIMARY);
@@ -1549,18 +1671,14 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
             if (mon && GetMonitorInfoW(mon, &mi)) {
                 SetWindowPos(g_hwnd, HWND_TOPMOST,
                     mi.rcMonitor.left, mi.rcMonitor.top,
-                    mi.rcMonitor.right - mi.rcMonitor.left,
+                    NotificationSafeOverlayWidth(mi.rcMonitor.right - mi.rcMonitor.left),
                     mi.rcMonitor.bottom - mi.rcMonitor.top,
                     SWP_NOACTIVATE);
             }
-            SetClickThrough(false);
-            ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
-            SetTimer(g_hwnd, 2, 1000 / g_refresh_hz, nullptr);
-            static bool hzlog = false;
-            if (!hzlog) { hzlog = true; Log("[beginframe] locked to " + std::to_string(g_refresh_hz) + "Hz (จอ)"); }
-            // ★ เข้าโฟกัส (สเปก: osc เปิด = เปิดโฟกัส) — จับ foreground เฉพาะ
-            //   transition ปิด→เปิด [P2#6 Copilot] (กันจำ HWND ของ overlay เอง)
             if (!was) g_prev_fore = GetForegroundWindow();
+            ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
+            ApplyOpenShareInputMode();
+            SetTimer(g_hwnd, 2, 500, nullptr);
             SetForegroundWindow(g_hwnd);
             if (g_browser) g_browser->GetHost()->SetFocus(true);
             HWND child = FindWindowExW(g_hwnd, nullptr, L"Chrome_WidgetWin_1", nullptr);
@@ -1571,22 +1689,23 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                 if (!g_dcomp_bound) BindDcompTarget();
                 else g_dcomp_dev->Commit();
             }
+            if (g_clickthrough_hwnd && g_browser)
+                g_browser->GetHost()->Invalidate(PET_VIEW);
         } else {
-            SetClickThrough(true);
+            ApplyOpenShareInputMode();
             // ★ ปิดโฟกัส CEF (สเปก: osc ปิด = ปิดโฟกัส Cef) + คืนโฟกัสหน้าต่างเดิม
             if (g_browser) g_browser->GetHost()->SetFocus(false);
             if (g_prev_fore && IsWindow(g_prev_fore) && g_prev_fore != g_hwnd)
                 SetForegroundWindow(g_prev_fore);
             g_prev_fore = nullptr;
-            SetOverlayRegion(false);
-            SetTimer(g_hwnd, 2, 250, nullptr);   // ปิด: 4Hz — อุ่น CEF ไว้
+            KillTimer(g_hwnd, 2);
         }
+        if (external_request) QueueOscPageAction(ns);
         Log("[state] " + std::string(ns ? "OPEN" : "CLOSED") + " (was " + std::string(was ? "OPEN" : "CLOSED") + ", intent " + std::to_string(intent) + ")");
         return 0;
     }
     case WM_NCHITTEST: {
-        // ★ สเปก OWNER (10:5x): เปิด = ทั้งจอเป็นของ overlay (คลิกนอกเมนู = หน้าปิดเอง —
-        //   แบบแท้) · ปิด = window region ว่าง จึงไม่มีพื้นที่แสดงผลหรือรับ hit-test
+        // OpenShare is authoritative; page route changes never alter hit-testing.
         if (g_gpu_ok) return g_ui_open ? HTCLIENT : HTTRANSPARENT;
         break;   // CPU/layered path: alpha hit-test ของระบบทำให้อยู่แล้ว
     }
@@ -1594,19 +1713,9 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         // WM_TIMER วิ่งบนเธรด UI ของ CEF (หน้าต่างถูกสร้างบนเธรดนั้น) — เรียก browser ได้ตรง ๆ
         // timer 2 = เฝ้า topmost + watchdog
         if (w == 2 && g_browser) {
-            // ★ Share.exe แท้ = damage-driven (imports: libcef+UpdateLayeredWindow เท่านั้น)
-            //   timer-driven full-frame repaint = ตัวก่อกระตุกของเราเอง
-            // ★ windowed: Chromium จัดจังหวะเองตาม vsync จอ (Chrome model) — ห้ามแทรก
-            //   OSR เท่านั้นที่ต้องมีคนสั่งวาด (external begin frame)
-            if (!g_cfg.windowed && g_gpu_ok) {
-                if (g_ui_open) g_browser->GetHost()->SendExternalBeginFrame();
-            } else if (!g_cfg.windowed && !g_gpu_ok) {
-                g_browser->GetHost()->Invalidate(PET_VIEW);
-            }
-            // ★ วิดีโอ/เกม fullscreen ยกตัวเองขึ้น topmost ทับเรา — ยืนยันสิทธิ์บนสุดทุก ~0.5s
-            static int tz = 0;
-            if (++tz >= 32 && g_ui_open) {
-                tz = 0;
+            // CEF's internal scheduler handles OSR frames. This timer only keeps the
+            // open overlay above games without polling at the monitor refresh rate.
+            if (g_ui_open) {
                 SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
             }
@@ -1656,6 +1765,83 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         return 0;
     }
     return DefWindowProcW(h, msg, w, l);
+}
+
+static HWND CreateClickThroughWindow(int width, int height) {
+    WNDCLASSW wc{};
+    wc.lpfnWndProc = DefWindowProcW;
+    wc.hInstance = GetModuleHandleW(nullptr);
+    wc.lpszClassName = L"DulukaOscClickThrough";
+    if (!RegisterClassW(&wc) && GetLastError() != ERROR_CLASS_ALREADY_EXISTS) {
+        Log("[click-through] RegisterClass FAILED err=" + std::to_string(GetLastError()));
+        return nullptr;
+    }
+
+    const int window_width = NotificationSafeOverlayWidth(width);
+    HWND hwnd = CreateWindowExW(
+        WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOPMOST,
+        wc.lpszClassName, L"NVIDIA OSC Click Through", WS_POPUP,
+        0, 0, window_width, height, nullptr, nullptr, wc.hInstance, nullptr);
+    if (!hwnd) {
+        Log("[click-through] CreateWindowEx FAILED err=" + std::to_string(GetLastError()));
+        return nullptr;
+    }
+
+    HDC mem = CreateCompatibleDC(nullptr);
+    if (!mem) {
+        Log("[click-through] CreateCompatibleDC FAILED err=" + std::to_string(GetLastError()));
+        DestroyWindow(hwnd);
+        return nullptr;
+    }
+
+    BITMAPINFO bi{};
+    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bi.bmiHeader.biWidth = window_width;
+    bi.bmiHeader.biHeight = -height;
+    bi.bmiHeader.biPlanes = 1;
+    bi.bmiHeader.biBitCount = 32;
+    bi.bmiHeader.biCompression = BI_RGB;
+    void* pixels = nullptr;
+    HBITMAP bitmap = CreateDIBSection(mem, &bi, DIB_RGB_COLORS, &pixels, nullptr, 0);
+    if (!bitmap || !pixels) {
+        DWORD error = GetLastError();
+        if (bitmap) DeleteObject(bitmap);
+        DeleteDC(mem);
+        DestroyWindow(hwnd);
+        Log("[click-through] CreateDIBSection FAILED err=" + std::to_string(error));
+        return nullptr;
+    }
+    memset(pixels, 0, (size_t)window_width * height * 4);
+    HGDIOBJ old = SelectObject(mem, bitmap);
+    if (!old || old == HGDI_ERROR) {
+        DWORD error = GetLastError();
+        DeleteObject(bitmap);
+        DeleteDC(mem);
+        DestroyWindow(hwnd);
+        Log("[click-through] SelectObject FAILED err=" + std::to_string(error));
+        return nullptr;
+    }
+
+    POINT dst{ 0, 0 };
+    POINT src{ 0, 0 };
+    SIZE size{ window_width, height };
+    BLENDFUNCTION blend{ AC_SRC_OVER, 0, 255, AC_SRC_ALPHA };
+    BOOL updated = UpdateLayeredWindow(hwnd, nullptr, &dst, &size, mem, &src,
+        0, &blend, ULW_ALPHA);
+    DWORD error = updated ? ERROR_SUCCESS : GetLastError();
+    SelectObject(mem, old);
+    DeleteObject(bitmap);
+    DeleteDC(mem);
+    if (!updated) {
+        DestroyWindow(hwnd);
+        Log("[click-through] UpdateLayeredWindow FAILED err=" + std::to_string(error));
+        return nullptr;
+    }
+
+    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, window_width, height,
+        SWP_NOACTIVATE | SWP_SHOWWINDOW);
+    Log("[click-through] transparent layered proxy ready");
+    return hwnd;
 }
 
 // ================= page server :<page_port> (เสิร์ฟ osc\ แบบ Share แท้) =================
@@ -1730,7 +1916,7 @@ static void ServeClient(SOCKET c) {
         //   ตัดสินใจที่ WM_OSC_VIS handler (เจ้าของสถานะคนเดียว)
         //   repeats กันที่ helper ด้วย MOD_NOREPEAT (ไม่ใช้ time debounce แล้ว)
         int intent = (path == "/show") ? 1 : (path == "/hide") ? 0 : 2;
-        PostMessageW(g_hwnd, WM_OSC_VIS, intent, 0);
+        PostMessageW(g_hwnd, WM_OSC_VIS, intent, 1);
         const char* r = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
         send(c, r, (int)strlen(r), 0); closesocket(c);
         Log("[toggle] " + path + " intent=" + std::to_string(intent));
@@ -1816,15 +2002,11 @@ static DWORD WINAPI ToggleListener(LPVOID) {
 class OscApp : public CefApp, public CefBrowserProcessHandler, public CefRenderProcessHandler {
 public:
     CefRefPtr<CefBrowserProcessHandler> GetBrowserProcessHandler() override { return this; }
-    // ★ bisect 2026-10-07: บังคับ child log ไป stderr (wrapper redirect ลงไฟล์) —
-    //   เห็นเหตุผลจริงของ renderer exit=3 (KILLED_BAD_MESSAGE)
     void OnBeforeChildProcessLaunch(CefRefPtr<CefCommandLine> cmd) override {
         // ★ anti-backgrounding: renderer ต้องไม่ถูก throttle (OSR overlay วาด/นับเวลาตลอด)
         cmd->AppendSwitch("disable-background-timer-throttling");
         cmd->AppendSwitch("disable-renderer-backgrounding");
         cmd->AppendSwitch("disable-backgrounding-occluded-windows");
-        cmd->AppendSwitchWithValue("enable-logging", "stderr");
-        cmd->AppendSwitchWithValue("v", "1");
     }
     CefRefPtr<CefRenderProcessHandler> GetRenderProcessHandler() override { return this; }
 
@@ -1921,6 +2103,7 @@ public:
         OscClient::CreateRouter();
 
         int w = GetSystemMetrics(SM_CXSCREEN), h = GetSystemMetrics(SM_CYSCREEN);
+        int overlay_w = NotificationSafeOverlayWidth(w);
         if (g_cfg.design_w > 0 && g_cfg.design_h > 0) {
             // Canvas UI ฐานออกแบบ (เช่น 1920×1080 = UI scale 1.0) — host ย่อ/ขยายให้พอดีจอ
             g_view_w = g_cfg.design_w;
@@ -1942,22 +2125,15 @@ public:
         wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
         wc.lpszClassName = L"DulukaOscNative";
         RegisterClassW(&wc);
-        // ★ สเปกใหม่ (2026-10-07): สร้างในสถานะ "ปิด" = TRANSPARENT+NOACTIVATE ตั้งแต่แรก
-        //   แล้วโชว์ทันที — หน้าต่างค้างบนจอตลอดชีวิตเหมือน Share.exe แท้:
-        //   ปิด = พิกเซล alpha 0 ล้วน + คลิกทะลุทั้งจอ / เปิด = SetClickThrough(false)
+        // Create topmost for the entire process lifetime, retaining its full visible region.
         g_hwnd = CreateWindowExW(
-            WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | (g_cfg.topmost ? WS_EX_TOPMOST : 0),
+            WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE | WS_EX_TOPMOST,
             L"DulukaOscNative", L"NVIDIA OSC", WS_POPUP,
-            0, 0, w, h, nullptr, nullptr, wc.hInstance, nullptr);
+            0, 0, overlay_w, h, nullptr, nullptr, wc.hInstance, nullptr);
         // ★ บทเรียน 03:57 — DComp กับ LAYERED ขัดกัน (DWM ใช้เลเยอร์ GDI ทับ visual)
         //   และ LAYERED ก็ทำให้ DComp มองไม่เห็น → โมเดลใหม่ไม่พึ่งการซ่อนหน้าต่างแล้ว
-        //   (คลิกทะลุจัดการที่ WS_EX_TRANSPARENT ตามสถานะ + LL mouse hook ตอนเปิด)
-        // input path: hook ข้ามโปรเซส (ต้องอยู่บนเธรดที่มี message pump = เธรดนี้)
-        // ★ hook ถอดแล้ว (10:5x): LL mouse hook กลืนคลิกทั้งระบบตอนสถานะเปิด = บล็อกทั้งจอ!
-        //   คลิกเข้าผ่านหน้าต่างตรง ๆ (WndProc mouse cases) — เหมือนแท้ที่รับคลิกผ่าน HWND
-        // CreateThread(nullptr, 0, HookThreadProc, nullptr, 0, nullptr);   // (ปิด — เก็บไว้อ้างอิง)
-        // ★ GPU path ของแท้: init D3D11+DComp ก่อน ถ้าได้ = ไม่ต้อง layered เลย
-        //   (alpha จัดการโดย swapchain premultiplied + DWM — คลิกทะลุใช้ display rects)
+        //   Click-through/input mode follows the main-frame URL, not the open/closed command.
+        // GPU display uses DComp; the layered proxy handles click-through while it is closed.
         if (g_cfg.windowed) {
             // ★ [P1#2 Copilot] windowed mode = CEF render เองใน child — ห้าม init
             //   D3D11/DComp เลย (CreateTargetForHwnd topmost วางทับ child + swapchain
@@ -1967,22 +2143,33 @@ public:
             // โหมด GDI: layered window + UpdateLayeredWindow (เส้นทางที่พิสูจน์แล้วว่าแสดงผล)
             SetWindowLongW(g_hwnd, GWL_EXSTYLE,
                 GetWindowLongW(g_hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-            Log("[gpu] compositor=gdi → ULW path");
-        } else if (GpuCompositorInit(g_hwnd, w, h)) {
-            Log("[gpu] window: OSR + DComp visual (target bind ตอนเปิดครั้งแรก)");
+            g_clickthrough_hwnd = CreateClickThroughWindow(w, h);
+            Log(g_clickthrough_hwnd
+                ? "[gpu] compositor=gdi → ULW path with URL-driven click-through proxy"
+                : "[gpu] compositor=gdi → ULW path (proxy unavailable; using layered hit-testing)");
         } else {
-            SetWindowLongW(g_hwnd, GWL_EXSTYLE,
-                GetWindowLongW(g_hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+            g_clickthrough_hwnd = CreateClickThroughWindow(w, h);
+            if (!g_clickthrough_hwnd || !GpuCompositorInit(g_hwnd, w, h)) {
+                if (g_clickthrough_hwnd) {
+                    DestroyWindow(g_clickthrough_hwnd);
+                    g_clickthrough_hwnd = nullptr;
+                }
+                SetWindowLongW(g_hwnd, GWL_EXSTYLE,
+                    GetWindowLongW(g_hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+                Log("[gpu] hybrid init failed → layered CPU fallback");
+            } else {
+                ShowWindow(g_hwnd, SW_HIDE);
+                Log("[gpu] hybrid ready: DComp while open, layered click-through proxy while closed");
+            }
         }
-        // Keep the fullscreen HWND shown for the process lifetime. An empty window region while
-        // closed leaves it topmost but fully transparent and lets hit-testing pass underneath.
-        SetOverlayRegion(false);
-        ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
-        SetWindowPos(g_hwnd, g_cfg.topmost ? HWND_TOPMOST : HWND_TOP,
-            0, 0, w, h, SWP_NOACTIVATE);
-        Log("[window] boot: fullscreen — OSC closed, click-through enabled");
+        if (!g_clickthrough_hwnd) {
+            ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
+            SetWindowPos(g_hwnd, HWND_TOPMOST,
+                0, 0, overlay_w, h, SWP_NOACTIVATE);
+        }
+        ApplyOpenShareInputMode(); // OpenShare starts closed; input mode follows its state.
+        Log("[window] boot: click-through until OpenShare opens");
         SetTimer(g_hwnd, 1, 30000, nullptr);   // เฝ้าระวัง: หน้าค้าง about:blank → กู้คืนเอง
-        SetTimer(g_hwnd, 2, 250, nullptr);     // อุ่น CEF: invalidate จาง ๆ ตั้งแต่บูต
 
         // zoom แท้กำหนด scale css→จอ (ใช้แปลง display rects)
         {
@@ -2014,7 +2201,6 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int) {
     if (CefExecuteProcess(args, app.get(), nullptr) >= 0) return 0;
 
     LoadConfig();
-    g_refresh_hz = QueryRefreshHz();
     LogInit();
     AddVectoredExceptionHandler(1, CrashVecHandler);
 
@@ -2042,7 +2228,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int) {
     // OSR + handler ครบแล้ว (Phase B) — เปิดได้ (จำบทเรียน: เปิดก่อนมี handler = crash-loop)
     settings.windowless_rendering_enabled = !g_cfg.windowed;   // ★ windowed = CEF render เอง (GPU)
     settings.background_color = CefColorSetARGB(0, 0, 0, 0);
-    settings.log_severity = LOGSEVERITY_VERBOSE;   // จับ CHECK-fail: ต้องเห็นทุกบรรทัดก่อน ud2
+    settings.log_severity = LOGSEVERITY_WARNING;
     // ★ bisect 2026-10-07: OSC_NOLOGFILE=1 = ไม่ตั้ง log_file (ลูกไม่ได้รับ --log-file)
     {
         char nlf[4] = { 0 };
