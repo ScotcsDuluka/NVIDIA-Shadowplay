@@ -2,10 +2,10 @@
   "$comment": "NVIDIA OSC.exe — CEF host ของเรา (เลียน NVIDIA Share.exe)",
   "page": "C:\\My Project\\NVIDIA-Shadowplay\\Project\\Overlay OSC\\NVIDIA OSC\\osc\\index.html",
   "backend": {
-    "port": 59001,
+    "port": 59011,
     "$note": "หน้า OSC ยิง API ที่ 127.0.0.1:port นี้โดยตรง"
   },
-  "toggle": 59003,
+  "toggle": 59013,
   "debugPort": 59099,
   "window": {
     "borderless": true,
@@ -21,18 +21,18 @@
     "renderScale": 1.0,
     "frameRate": 60,
     "uiScale": 1.0,
-    "$renderScale_note": "WPF: ใช้ 1.0 เท่านั้น (hack ย่อ+ขยายทำ UI ล้น) — ส่วน native (Phase B) จะ scale ตอน composite ได้ถูกต้อง"
+    "$renderScale_note": "เลิกใช้ 2026-10-07 — zoom ใหม่ = min(screenW/1920, screenH/1080) → SetZoomLevel ตาม Share แท้ (OscWindow.ApplyOscZoom) ค่านี้ไม่ถูกอ่านแล้ว"
   },
   "cef": {
-    "cachePath": "C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Overlay OSC\\NVIDIA OSC Native\\CefCache",
+    "cachePath": "C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Overlay OSC\\NVIDIA OSC\\CefCache",
     "logSeverity": "Warn",
     "windowlessRendering": false,
     "remoteDebuggingPort": 0,
-    "subprocessPath": "C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Overlay OSC\\NVIDIA OSC Native\\NVIDIA OSC.exe",
-    "$note": "cachePath/subprocessPath/debugPort = จุดเดียวของ path CEF (Phase 1 path รวมศูนย์)"
+    "subprocessPath": "C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Overlay OSC\\NVIDIA OSC\\NVIDIA OSC.exe",
+    "$note": "cachePath/subprocessPath/debugPort = จุดเดียวของ path CEF (Phase 1 path รวมศูนย์) · ย้ายมา deploy ปัจจุบัน 2026-10-07 (แก้ v8_context_snapshot.bin ปน CEF 138 = renderer ตายวน exit=3 V8 snapshot mismatch)"
   },
-  "logFile": "C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Logs\\NVIDIA OSC Native.log",
+  "logFile": "C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Logs\\NVIDIA OSC.log",
   "pagePort": 3000,
-  "compositor": "gpu",
-  "$compositor_note": "gdi = UpdateLayeredWindow (แสดงผลได้ยืนยันแล้ว) | gpu = DComp+shared texture (ยังไม่แสดง — แก้ต่อ)"
+  "compositor": "gdi",
+  "$compositor_note": "gdi = UpdateLayeredWindow (แสดงผลได้ยืนยันแล้ว) | gpu = DComp+shared texture (BindDcompTarget FAILED 01:43 — กลับมาแก้ภายหลัง)"
 }
