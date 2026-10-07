@@ -706,18 +706,11 @@ static void ApplyOpenShareInputMode() {
     g_input_mode_initialized = true;
     g_applied_clickthrough = clickthrough;
     if (changed) SetClickThrough(clickthrough);
-    if (!g_clickthrough_hwnd) return;
-
-    if (clickthrough) {
-        if (!IsWindowVisible(g_clickthrough_hwnd))
-            SetWindowPos(g_clickthrough_hwnd, HWND_TOPMOST, 0, 0,
-                NotificationSafeOverlayWidth(GetSystemMetrics(SM_CXSCREEN)),
-                GetSystemMetrics(SM_CYSCREEN), SWP_NOACTIVATE | SWP_SHOWWINDOW);
-        if (IsWindowVisible(g_hwnd)) ShowWindow(g_hwnd, SW_HIDE);
-    } else {
-        if (!IsWindowVisible(g_hwnd)) ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
-        if (IsWindowVisible(g_clickthrough_hwnd)) ShowWindow(g_clickthrough_hwnd, SW_HIDE);
-    }
+    // Keep the CEF host visible in both routes: the layered click-through proxy
+    // is intentionally blank, so swapping to it would hide notifications too.
+    if (!IsWindowVisible(g_hwnd)) ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
+    if (g_clickthrough_hwnd && IsWindowVisible(g_clickthrough_hwnd))
+        ShowWindow(g_clickthrough_hwnd, SW_HIDE);
 }
 
 static bool SetFullOverlayRegion() {
@@ -1289,15 +1282,23 @@ public:
                     "(function(){if(window.__nvMods)return;window.__nvMods=1;"
                     "function rt(){var h=(location.hash||'#/base').split('/');"
                     "var r=h[2]||'base';"
-                    // exact: h[3] มี = หน้าย่อย → ใส่ชื่อต่อกัน ให้ scope จับแม่เฉพาะไม่รวมลูก
                     "if(h[3])r=r+'-'+h[3];"
                     "document.body.setAttribute('data-nv-route', r);}"
                     "rt();addEventListener('hashchange',rt);"
+                    // ★ real-time: sync ทุก 2 วิ — เพิ่มไฟล์ใหม่ = ฉีดเลย,
+                    //   แก้ไฟล์ = cache-bust reload ลิงก์ (CSS วาดใหม่ทันที ไม่ต้อง Alt+G)
                     "function inj(u){var l=document.createElement('link');"
-                    "l.rel='stylesheet';l.href=u;document.head.appendChild(l);}"
-                    "fetch('/mods/list').then(function(r){return r.json();})"
-                    ".then(function(fs){fs.forEach(function(f){inj('/mods/'+f);});})"
-                    ".catch(function(){});"
+                    "l.rel='stylesheet';l.href=u;l.dataset.nvmod=u;document.head.appendChild(l);}"
+                    "function bust(l){l.href=l.dataset.nvmod+'?t='+Date.now();}"
+                    "function sync(){fetch('/mods/list?t='+Date.now())"
+                    ".then(function(r){return r.json();})"
+                    ".then(function(fs){var have={};"
+                    "document.querySelectorAll('link[data-nvmod]').forEach(function(l){have[l.dataset.nvmod]=1;});"
+                    "fs.forEach(function(f){var u='/mods/'+f;"
+                    "if(!have[u])inj(u);});"
+                    "document.querySelectorAll('link[data-nvmod]').forEach(bust);})"
+                    ".catch(function(){});}"
+                    "sync();setInterval(sync,2000);"
                     "})();",
                     browser->GetMainFrame()->GetURL(), 0);
             }
