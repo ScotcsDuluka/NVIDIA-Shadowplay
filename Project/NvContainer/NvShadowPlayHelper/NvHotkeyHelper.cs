@@ -32,6 +32,7 @@ static class NvShadowPlayHelper
     struct MSG { public IntPtr hwnd; public uint message; public IntPtr wParam; public IntPtr lParam; public uint time; public int ptX; public int ptY; }
 
     const uint WM_HOTKEY = 0x0312;
+    const uint MOD_NOREPEAT = 0x4000;   // [P2#4 Copilot] 1 event ต่อ key-down (Win10+)
     const uint MOD_ALT = 0x1, MOD_CONTROL = 0x2, MOD_SHIFT = 0x4, MOD_WIN = 0x8;
 
     const string CONFIG = @"C:\My Project\NVIDIA-Shadowplay\Project\NvConfig\nvsphelper.json";
@@ -151,6 +152,14 @@ static class NvShadowPlayHelper
         Registered.Clear();
 
         var all = LoadAllKeys();
+        // ★ [P2#5 Copilot] reconcile: คีย์ที่ผู้ใช้ลบ/แก้ — ถอดออกจากตาราง retry ทั้งหมด
+        var live = new System.Collections.Generic.HashSet<string>(all.Keys);
+        var deadF = new System.Collections.Generic.List<string>();
+        foreach (var fk in FailedKeys) if (!live.Contains(fk.Key)) deadF.Add(fk.Key);
+        foreach (var n in deadF) { FailedKeys.Remove(n); Log("[hk] reconcile: ถอด " + n + " ออกจาก FailedKeys (ไม่มีใน settings แล้ว)"); }
+        var deadU = new System.Collections.Generic.List<string>();
+        foreach (var uk in UpgradableKeys) if (!live.Contains(uk.Key)) deadU.Add(uk.Key);
+        foreach (var n in deadU) { UpgradableKeys.Remove(n); Log("[hk] reconcile: ถอด " + n + " ออกจาก UpgradableKeys"); }
         foreach (var kv in all)
         {
             var keys = kv.Value;
@@ -175,10 +184,11 @@ static class NvShadowPlayHelper
                 continue;
             }
             int id = _nextId++;
-            if (RegisterHotKey(IntPtr.Zero, id, mods, vk))
+            if (RegisterHotKey(IntPtr.Zero, id, mods | MOD_NOREPEAT, vk))
             {
                 Registered[id] = Tuple.Create(kv.Key, mods, vk);
                 UpgradableKeys.Remove(kv.Key);   // ★ settings ใหม่ลงสำเร็จ = เลิก upgrade คีย์นี้ (กันทับคีย์ที่ user เลือก)
+                FailedKeys.Remove(kv.Key);       // ★ [P2#5 Copilot] สำเร็จตรง = ล้าง failed เก่า
                 Log("[hk] " + kv.Key + " = " + string.Join(",", keys) + " (id " + id + ")");
             }
             else
@@ -186,7 +196,7 @@ static class NvShadowPlayHelper
                 // ★ coexistence: NVIDIA App แท้จดชุด default (Alt+Z, Alt+F9 ฯลฯ) ไปก่อน
                 //   → เลื่อนคีย์ด้วย Shift พิเศษ (Alt+Shift+Z, Alt+Shift+F9 …) ให้ได้ทุกตัว
                 uint shifted = mods | MOD_SHIFT;
-                if ((mods & MOD_SHIFT) == 0 && RegisterHotKey(IntPtr.Zero, id, shifted, vk))
+                if ((mods & MOD_SHIFT) == 0 && RegisterHotKey(IntPtr.Zero, id, shifted | MOD_NOREPEAT, vk))
                 {
                     Registered[id] = Tuple.Create(kv.Key, shifted, vk);
                     UpgradableKeys[kv.Key] = Tuple.Create(mods, vk);   // เก็บ mods หลัก (Alt) — upgrade จะได้ Alt+X จริง
@@ -258,21 +268,27 @@ static class NvShadowPlayHelper
                         Registered.Remove(ridOld);
                     }
                     int nid = _nextId++;
-                    if (RegisterHotKey(IntPtr.Zero, nid, kv.Value.Item1, kv.Value.Item2)) {
+                    if (RegisterHotKey(IntPtr.Zero, nid, kv.Value.Item1 | MOD_NOREPEAT, kv.Value.Item2)) {
                         Registered[nid] = Tuple.Create(kv.Key, kv.Value.Item1, kv.Value.Item2);
                         UpgradableKeys.Remove(kv.Key);
                         Log("[hk] upgrade สำเร็จ: " + kv.Key + " ได้คีย์หลักกลับ (id " + nid + ")");
                     } else {
+                        // ★ [P2#5 Copilot] เช็คผล fallback ก่อนลง Registered
                         int rid2 = _nextId++;
-                        RegisterHotKey(IntPtr.Zero, rid2, kv.Value.Item1, kv.Value.Item2);
-                        Registered[rid2] = Tuple.Create(kv.Key, kv.Value.Item1, kv.Value.Item2);
-                        Log("[hk] upgrade ยังไม่ว่าง — ใช้ fallback ต่อ: " + kv.Key);
+                        if (RegisterHotKey(IntPtr.Zero, rid2, kv.Value.Item1 | MOD_NOREPEAT, kv.Value.Item2)) {
+                            Registered[rid2] = Tuple.Create(kv.Key, kv.Value.Item1, kv.Value.Item2);
+                            FailedKeys.Remove(kv.Key);
+                            Log("[hk] upgrade ยังไม่ว่าง — ใช้ fallback ต่อ: " + kv.Key + " (id " + rid2 + ")");
+                        } else {
+                            FailedKeys[kv.Key] = kv.Value;
+                            Log("[hk] upgrade fallback FAILED: " + kv.Key + " → ลง FailedKeys");
+                        }
                     }
                 }
                 var retry = new Dictionary<string, Tuple<uint, uint>>(FailedKeys);
                 foreach (var kv in retry) {
                     int rid = _nextId++;
-                    if (RegisterHotKey(IntPtr.Zero, rid, kv.Value.Item1, kv.Value.Item2)) {
+                    if (RegisterHotKey(IntPtr.Zero, rid, kv.Value.Item1 | MOD_NOREPEAT, kv.Value.Item2)) {
                         Registered[rid] = Tuple.Create(kv.Key, kv.Value.Item1, kv.Value.Item2);
                         FailedKeys.Remove(kv.Key);
                         Log("[hk] retry สำเร็จ: " + kv.Key + " = " + kv.Value.Item1 + "+" + kv.Value.Item2 + " (id " + rid + ")");

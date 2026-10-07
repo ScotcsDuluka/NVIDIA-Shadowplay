@@ -47,6 +47,8 @@
 #pragma comment(lib, "dcomp.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "psapi.lib")
+#pragma comment(lib, "winmm.lib")
+#include <mmsystem.h>
 
 // ================= config (แบบง่าย: หา "key": ค่า ใน json) =================
 struct OscConfig {
@@ -65,6 +67,9 @@ struct OscConfig {
     std::wstring cache_path = L"C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Overlay OSC\\NVIDIA OSC\\CefCache";
     std::wstring subprocess_path = L"C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Overlay OSC\\NVIDIA OSC\\NVIDIA OSC.exe";
     int debug_port = 59099;
+    bool windowed = true;          // ★ สเปก OWNER (10:5x): ให้ CEF จัดการ render เอง (GPU native)
+    int max_fps = 240;             // ★ สเปก OWNER: FPS ไม่จำกัด (cap ที่ 240 ตามจอที่รองรับ)
+    bool show_fps = true;          // ★ FPS meter บน overlay (นับเฟรมที่แสดงจริง)
     bool gdi_compositor = false;   // true = UpdateLayeredWindow (แสดงผลชัวร์) แทน DComp
 };
 static OscConfig g_cfg;
@@ -133,6 +138,9 @@ static void LoadConfig() {
     if (!sp.empty()) g_cfg.subprocess_path = sp;
     g_cfg.debug_port = (int)CfgNum(json, "debugPort", 59099);
     g_cfg.gdi_compositor = CfgStr(json, "compositor") == L"gdi";
+    g_cfg.windowed = CfgNum(json, "windowed", 1) != 0;
+    g_cfg.max_fps = (int)CfgNum(json, "maxFps", 240);
+    g_cfg.show_fps = CfgNum(json, "showFps", 1) != 0;
 }
 
 static HANDLE g_log = INVALID_HANDLE_VALUE;
@@ -232,6 +240,15 @@ static bool g_dcomp_bound = false;
 static ID3D11Texture2D* g_own_rt = nullptr;   // RT ของเรา (back buffer ของ swapchain เครื่องนี้ bind=0 วาดไม่ได้)
 static int g_own_w = 0, g_own_h = 0;
 
+// ★ ล็อก begin frame ตาม Hz จอจริง (สเปก OWNER: ตาม Hz จอ แบบล็อค)
+static int QueryRefreshHz() {
+    DEVMODEW dm{}; dm.dmSize = sizeof(dm);
+    if (EnumDisplaySettingsW(nullptr, ENUM_CURRENT_SETTINGS, &dm) && dm.dmDisplayFrequency >= 30)
+        return (int)dm.dmDisplayFrequency;
+    return 60;
+}
+static int g_refresh_hz = 60;
+
 // วาดลง RT ของเราเสมอ แล้ว copy ลง back buffer — บังคับทุกเส้นทางผ่านนี้
 static bool EnsureOwnRT(int w, int h) {
     if (g_own_rt && g_own_w == w && g_own_h == h) return true;
@@ -258,7 +275,7 @@ static void PresentToSwap(int w, int h) {
     if (SUCCEEDED(g_gpu_swap->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&back))) {
         g_gpu_ctx->CopyResource(back, g_own_rt);
         back->Release();
-        HRESULT hp = g_gpu_swap->Present(1, 0);          // vsync
+        HRESULT hp = g_gpu_swap->Present(0, 0);          // DComp: ไม่รอ vsync บน UI thread (คอขวด 6-14fps)
         static ULONGLONG last_hr_log = 0;
         ULONGLONG now = GetTickCount64();
         if (FAILED(hp) && now - last_hr_log > 3000) {
@@ -393,49 +410,81 @@ static bool g_ui_open = false;
 static HWND g_prev_fore = nullptr;           // หน้าต่างที่ถือโฟกัสก่อนเปิด OSC (คืนตอนปิด)
 
 // วาด shared texture ของ CEF ลง swapchain (เรียกจาก OnAcceleratedPaint — เธรด UI ของ CEF)
+static ID3D11Texture2D* g_shared_tex = nullptr;   // ★ cache: handle เดิม = เปิด/SRV ใหม่ไม่ต้อง (12:1x)
+static ID3D11ShaderResourceView* g_shared_srv = nullptr;
+static uint64_t g_shared_handle_cached = 0;
+
 static void GpuComposite(uint64_t shared_handle, int w, int h) {
     if (!g_gpu_ok) return;
+    // ★ วัดจังหวะเฟรม (12:1x): มาติด ๆ 16ms = scheduler ปกติ / ระเบิดชุด = begin-frame สะดุด
+    {
+        static ULONGLONG last = 0; static int b1 = 0, b2 = 0, b3 = 0, b4 = 0, n = 0;
+        ULONGLONG now = GetTickCount64();
+        ULONGLONG d = last ? now - last : 0; last = now;
+        if (d) {
+            n++;
+            if (d <= 20) b1++; else if (d <= 40) b2++; else if (d <= 100) b3++; else b4++;
+        }
+        if (n >= 120) {
+            char b[140]; snprintf(b, sizeof(b), "[rhythm] <=20ms:%d 21-40:%d 41-100:%d >100:%d (ของ 120 เฟรมล่าสุด)", b1, b2, b3, b4);
+            Log(b); b1 = b2 = b3 = b4 = 0; n = 0;
+        }
+    }
     ID3D11Resource* tex = nullptr;
-    {
-        // CEF มอบ NT shared handle → เปิดผ่าน OpenSharedResource1 (แบบ legacy ล้มกับ NT)
-        ID3D11Device1* dev1 = nullptr;
-        bool opened = false;
-        if (SUCCEEDED(g_gpu_dev->QueryInterface(__uuidof(ID3D11Device1), (void**)&dev1))) {
-            opened = SUCCEEDED(dev1->OpenSharedResource1((HANDLE)(uintptr_t)shared_handle,
-                __uuidof(ID3D11Resource), (void**)&tex));
-            if (!opened)   // บางแหล่งส่ง legacy handle — ลองแบบเก่าคือถูก
-                opened = SUCCEEDED(g_gpu_dev->OpenSharedResource((HANDLE)(uintptr_t)shared_handle,
-                    __uuidof(ID3D11Resource), (void**)&tex));
-            dev1->Release();
-        }
-        if (!opened) {
-            static int fails = 0;
-            if (fails++ < 5) Log("[gpu] open shared handle FAILED handle=0x" +
-                std::to_string((unsigned long long)shared_handle));
-            return;
-        }
-    }
-    // shared texture ของ CEF อาจถูกสร้างเป็น TYPELESS — SRV desc ต้องบังคับรูปแบบจริง
     ID3D11ShaderResourceView* srv = nullptr;
-    {
-        D3D11_SHADER_RESOURCE_VIEW_DESC sd{};
-        sd.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
-        sd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
-        sd.Texture2D.MipLevels = 1;
-        if (FAILED(g_gpu_dev->CreateShaderResourceView(tex, &sd, &srv)) &&
-            FAILED(g_gpu_dev->CreateShaderResourceView(tex, nullptr, &srv))) {
-            static int srf = 0;
-            if (srf++ < 3) Log("[gpu] shared SRV create FAILED");
-            tex->Release(); return;
+    if (g_shared_tex && g_shared_srv && g_shared_handle_cached == shared_handle) {
+        // ★ cache hit: CEF ใช้ handle เดิมทุกเฟรม — ไม่ต้อง open+SRV ใหม่ (คอขวด 6-14fps)
+        tex = g_shared_tex; srv = g_shared_srv;
+    } else {
+        if (g_shared_tex) { g_shared_tex->Release(); g_shared_tex = nullptr; }
+        if (g_shared_srv) { g_shared_srv->Release(); g_shared_srv = nullptr; }
+        {
+            // CEF มอบ NT shared handle → เปิดผ่าน OpenSharedResource1 (แบบ legacy ล้มกับ NT)
+            ID3D11Device1* dev1 = nullptr;
+            bool opened = false;
+            if (SUCCEEDED(g_gpu_dev->QueryInterface(__uuidof(ID3D11Device1), (void**)&dev1))) {
+                opened = SUCCEEDED(dev1->OpenSharedResource1((HANDLE)(uintptr_t)shared_handle,
+                    __uuidof(ID3D11Resource), (void**)&tex));
+                if (!opened)   // บางแหล่งส่ง legacy handle — ลองแบบเก่าคือถูก
+                    opened = SUCCEEDED(g_gpu_dev->OpenSharedResource((HANDLE)(uintptr_t)shared_handle,
+                        __uuidof(ID3D11Resource), (void**)&tex));
+                dev1->Release();
+            }
+            if (!opened) {
+                static int fails = 0;
+                if (fails++ < 5) Log("[gpu] open shared handle FAILED handle=0x" +
+                    std::to_string((unsigned long long)shared_handle));
+                return;
+            }
         }
+        // shared texture ของ CEF อาจถูกสร้างเป็น TYPELESS — SRV desc ต้องบังคับรูปแบบจริง
+        {
+            D3D11_SHADER_RESOURCE_VIEW_DESC sd{};
+            sd.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+            sd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+            sd.Texture2D.MipLevels = 1;
+            if (FAILED(g_gpu_dev->CreateShaderResourceView(tex, &sd, &srv)) &&
+                FAILED(g_gpu_dev->CreateShaderResourceView(tex, nullptr, &srv))) {
+                static int srf = 0;
+                if (srf++ < 3) Log("[gpu] shared SRV create FAILED");
+                tex->Release(); return;
+            }
+        }
+        g_shared_tex = static_cast<ID3D11Texture2D*>(tex);
+        g_shared_srv = srv;
+        g_shared_handle_cached = shared_handle;
+        Log("[gpu] shared texture cached handle=0x" + std::to_string((unsigned long long)shared_handle));
     }
-    // ★ วินิจฉัย: อ่านพิกเซลจริงจาก shared texture (ครั้งเดียว)
+    // ★ วินิจฉัย: อ่านพิกเซลจริงจาก shared texture — เฉพาะ OSC_GPUDUMP=1
+    //   [P2#7 Copilot] อ่านเป็น y*RowPitch + x*4 พร้อม bounds check (เดิมสลับแกน+อ่านเกิน)
     {
         static int dumped = 0;
+        char pdg[4] = { 0 };
+        bool pdOn = (GetEnvironmentVariableA("OSC_GPUDUMP", pdg, 4) > 0 && pdg[0] == '1');
         dumped++;
-        if (dumped < 3 || dumped == 300 || dumped == 1200 || dumped == 3000) {
+        if (pdOn && (dumped < 3 || dumped % 300 == 0)) {
             ID3D11Texture2D* t2 = nullptr;
-            if (FAILED(tex->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&t2)) || !t2) { tex->Release(); srv->Release(); return; }
+            if (FAILED(tex->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&t2)) || !t2) { return; }  // cache เป็นเจ้าของ — ห้าม release
             D3D11_TEXTURE2D_DESC sd2{};
             t2->GetDesc(&sd2);
             D3D11_TEXTURE2D_DESC st = sd2;
@@ -446,9 +495,12 @@ static void GpuComposite(uint64_t shared_handle, int w, int h) {
                 D3D11_MAPPED_SUBRESOURCE mp{};
                 if (SUCCEEDED(g_gpu_ctx->Map(staging, 0, D3D11_MAP_READ, 0, &mp))) {
                     unsigned char* px = (unsigned char*)mp.pData;
-                    size_t mid = (size_t)(sd2.Height / 2) * mp.RowPitch + (sd2.Width / 2) * 4;
-                    // ตำแหน่ง pill (CSS 1096 คูณ 0.875 → ~959) กลางจอแนวนอน ~840
-                    size_t pill = (size_t)(959) * mp.RowPitch + (size_t)(840) * 4;
+                    int midx = sd2.Width / 2, midy = sd2.Height / 2;
+                    int px_x = 840, px_y = 959;   // จุด pill: x=840, y=959 (y*RowPitch + x*4)
+                    if (px_y >= sd2.Height) px_y = sd2.Height - 1;
+                    if (px_x >= sd2.Width) px_x = sd2.Width - 1;
+                    size_t mid = (size_t)midy * mp.RowPitch + (size_t)midx * 4;
+                    size_t pill = (size_t)px_y * mp.RowPitch + (size_t)px_x * 4;
                     char buf[220];
                     snprintf(buf, sizeof(buf), "[gpu] tex %ux%u fmt=%d px0=%02X%02X%02X%02X pxmid=%02X%02X%02X%02X pill=%02X%02X%02X%02X",
                         sd2.Width, sd2.Height, (int)sd2.Format,
@@ -548,7 +600,7 @@ static void GpuComposite(uint64_t shared_handle, int w, int h) {
             PresentToSwap(w, h);
         }
     }
-    srv->Release(); tex->Release();
+    // ★ tex/srv = cache ของ g_shared_tex/g_shared_srv — ห้าม release ต่อ frame (12:1x)
 }
 
 // โหมดกึ่ง GPU (fallback): CEF ส่ง BGRA มาทาง CPU ครั้งเดียว → upload → shader premultiply
@@ -633,6 +685,28 @@ static void SetClickThrough(bool on) {
     SetWindowLongW(g_hwnd, GWL_EXSTYLE, want);
     Log(std::string("[win] click-through ") +
         (on ? "ON (OSC closed — ทะลุทั้งจอ + ไม่มีโฟกัส)" : "OFF (OSC open — interactive)"));
+}
+
+static bool SetOverlayRegion(bool interactive) {
+    if (!g_hwnd) return false;
+    if (interactive) {
+        if (SetWindowRgn(g_hwnd, nullptr, TRUE)) return true;
+        Log("[window] failed to restore fullscreen window region err=" +
+            std::to_string(GetLastError()));
+        return false;
+    }
+
+    HRGN empty = CreateRectRgn(0, 0, 0, 0);
+    if (!empty) {
+        Log("[window] CreateRectRgn failed err=" + std::to_string(GetLastError()));
+        return false;
+    }
+    if (SetWindowRgn(g_hwnd, empty, TRUE)) return true;
+    DWORD error = GetLastError();
+    DeleteObject(empty);
+    Log("[window] failed to make closed overlay region empty err=" +
+        std::to_string(error));
+    return false;
 }
 
 static void ParseDisplayRects(const std::string& req) {
@@ -980,8 +1054,8 @@ static void HandleOscQuery(const std::string& req, bool persistent,
     if (cmd == "QUERY_WIN_CLOSE_OSC") {
         // แบบของแท้: หน้าเพจเป็นเจ้าของ UI — ปิดเองทาง socket แล้ว
         g_ui_rects.clear();
-        g_ui_open = false;
-        if (g_hwnd) PostMessageW(g_hwnd, WM_OSC_VIS, 0, 0);   // ซ่อน = คลิกทะลุทั้งจอ
+        // [P1#1 Copilot] ส่งแค่ intent — สถานะให้ UI thread (WM_OSC_VIS) เป็นผู้เขียน
+        if (g_hwnd) PostMessageW(g_hwnd, WM_OSC_VIS, 0, 0);
         reply("{}");
         return;
     }
@@ -998,7 +1072,7 @@ static void HandleOscQuery(const std::string& req, bool persistent,
     if (cmd == "QUERY_WIN_OPEN_OSC") {
         // UI เปิดได้ = render ใช้ได้ → ให้บูตหน้าลอง GPU เต็มรูปแบบอีกครั้ง
         ClearFlag(L"sw-render.flag");
-        g_ui_open = true;
+        // [P1#1 Copilot] ส่งแค่ intent — สถานะให้ UI thread เป็นผู้เขียน
         if (g_hwnd) PostMessageW(g_hwnd, WM_OSC_VIS, 1, 0);
         reply("{}");
         return;
@@ -1095,26 +1169,27 @@ public:
             g_page_loaded_ms = GetTickCount64();
             // ล็อก zoom 100% ทุก load — กัน zoom เก่าที่ Chromium จำใน cache มายุ่ง layout
             ApplyGenuineZoom(true);
-            // ฉีด cefQuery shim (ทาง HTTP /cefquery — ไม่ใช้ render-side router)
+            // ★ FPS meter ถาวร (สเปก OWNER 12:5x): นับเฟรมที่แสดงจริง (compositor transform)
+            if (g_cfg.show_fps) {
                 browser->GetMainFrame()->ExecuteJavaScript(
-                // CEF 73 = เอนจินเดียวกับ Share.exe แท้ → CSS แท้ทำงานถูกต้องเอง
-                // (ถอด CSS injection ที่เคยง้อ Chrome 138 แล้ว — 2026-10-07)
-                "(function(){"
-                "if(window.cefQuery)return;"
-                "function post(b,p){return fetch('/cefquery',{method:'POST',headers:{'X-OSC-PERSISTENT':p?'1':'0'},body:b});}"
-                "window.cefQuery=function(q){"
-                "if(!q||typeof q.request!=='string'){q&&q.onFailure&&q.onFailure(1,'bad query');return;}"
-                "var pers=!!q.persistent;"
-                "post(q.request,pers).then(function(r){"
-                "if(!pers)return r.text().then(function(t){q.onSuccess&&q.onSuccess(t);});"
-                "(function wait(){fetch('/close-event').then(function(r){return r.status===200?r.text():null;})"
-                ".then(function(t){if(t){q.onSuccess&&q.onSuccess(t);}else{setTimeout(wait,500);}})"
-                ".catch(function(){setTimeout(wait,1000);});})();"
-                "return null;})"
-                ".catch(function(e){q.onFailure&&q.onFailure(1,String(e));});};"
-                "window.cefQueryCancel=function(){};"
-                "})();",
-                browser->GetMainFrame()->GetURL(), 0);
+                    "(function(){if(document.getElementById('nvfps'))return;"
+                    "var d=document.createElement('div');d.id='nvfps';"
+                    "d.style.cssText='position:fixed;top:0;left:0;width:600px;height:2px;background:#0f0;z-index:999999;will-change:transform;animation:nvfps 1s linear infinite;';"
+                    "var st=document.createElement('style');st.textContent='@keyframes nvfps{from{transform:translateX(0)}to{transform:translateX(4000px)}}';"
+                    "document.head.appendChild(st);document.body.appendChild(d);"
+                    "var lb=document.createElement('div');lb.id='nvfpslb';"
+                    "lb.style.cssText='position:fixed;top:0;left:0;z-index:999999;background:#000;color:#0f0;font:bold 30px monospace;padding:4px 12px;';"
+                    "document.body.appendChild(lb);"
+                    "var last=-1,f=0,t0=performance.now(),tl=t0;"
+                    "function smp(){var m=new WebKitCSSMatrix(window.getComputedStyle(d).transform);var x=Math.round(m.m41);"
+                    "if(x!==last){f++;last=x;}tl=performance.now();"
+                    "if(tl-t0>=1000){lb.textContent='FPS '+Math.round(f*1000/(tl-t0));f=0;t0=tl;}"
+                    "requestAnimationFrame(smp);}requestAnimationFrame(smp);})();",
+                    browser->GetMainFrame()->GetURL(), 0);
+            }
+            // ★ same-origin แบบแท้ (10:5x): โหลดหน้าจาก node :59011 + ใช้ cefQuery
+            //   แท้ผ่าน CEF message router (RouterEnabled=true) — ไม่ฉีด HTTP shim แล้ว
+            //   (shim เก่า override window.cefQuery ทับ bridge แท้ = ต้องง้อ HTTP)
         }
     }
     void OnLoadError(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame> frame, ErrorCode code,
@@ -1126,8 +1201,8 @@ public:
             " → LoadURL page");
         // ★ state machine: renderer ตาย = หน้าไม่มีทางส่ง WIN_CLOSE เอง → บังคับปิด
         //   (กันค้าง "เปิดล่องหน": กินคลิก/โฟกัสทั้งจอทั้งที่จอไม่มีอะไร)
-        g_ui_open = false;
         g_ui_rects.clear();
+        // [P1#1 Copilot] ส่ง intent — UI thread เป็นผู้เขียนสถานะ
         if (g_hwnd) PostMessageW(g_hwnd, WM_OSC_VIS, 0, 0);
         // renderer ตัวใหม่เกิดแต่ไม่โหลดซ้ำเอง — ReloadIgnoreCache ตอนยังไม่มี navigation
         // ที่ commit แล้วจะตก about:blank (เหตุการณ์ 05:31:40) → นำทางกลับ URL หน้าจริงเสมอ
@@ -1245,10 +1320,12 @@ static void CreateBrowserNow() {
     int w = GetSystemMetrics(SM_CXSCREEN), h = GetSystemMetrics(SM_CYSCREEN);
     CefWindowInfo wi;
     char ow[4] = { 0 };
-    if (GetEnvironmentVariableA("OSC_WINDOWED", ow, 4) > 0 && ow[0] == '1') {
-        RECT rcChild = { 0, 0, 800, 600 };
+    if (g_cfg.windowed) {
+        // ★ สเปก OWNER: CEF จัดการ render เอง (windowed child = GPU native 60fps)
+        //   หน้าต่าง host คงขนาดเต็มจอตลอด — OSC เปลี่ยนเฉพาะ input/focus
+        RECT rcChild = { 0, 0, w, h };
         wi.SetAsChild(g_hwnd, rcChild);
-        Log("[cfg] OSC_WINDOWED=1 → child windowed browser");
+        Log("[cfg] windowed GPU render (CEF native)");
     } else {
         wi.SetAsWindowless(g_hwnd);
     }
@@ -1257,8 +1334,11 @@ static void CreateBrowserNow() {
     wi.shared_texture_enabled = (g_gpu_ok && g_gpu_shared && !(nshlen > 0 && nsh[0] == '1')) ? 1 : 0;
     CefBrowserSettings bs;
     bs.background_color = CefColorSetARGB(0, 0, 0, 0);
-    bs.windowless_frame_rate = g_cfg.frame_rate;
-    g_page_url = "http://localhost:" + std::to_string(g_cfg.page_port) + "/index.html";
+    bs.windowless_frame_rate = g_cfg.max_fps;   // ★ สเปก OWNER: cap 240 (จอ 240Hz จะวิ่งเต็ม)
+    // ★ external begin frame (12:1x): OSR รอเราสั่งวาด — internal timer มันวิ่งแค่ 5-6Hz
+    //   (เฟรมมาช้า = ต้นตอ "กระตุก/ไม่ถึง 30fps") — เราสั่งเองที่ 60Hz ผ่าน SendExternalBeginFrame
+    wi.external_begin_frame_enabled = !g_cfg.windowed;   // ★ windowed = Chrome pacing เอง
+    g_page_url = "http://localhost:59011/index.html";   // ★ same origin กับ node API/socket (แบบแท้)
     TouchFlag(L"boot-pending.flag");   // ค้าง = พังตรงนี้ → บูตหน้า sw mode
     auto created = CefBrowserHost::CreateBrowserSync(wi, new OscClient(),
         g_page_url, bs, nullptr);
@@ -1407,6 +1487,8 @@ static void ForwardKey(UINT msg, WPARAM w, LPARAM l) {
 
 // ★ ผูก DComp target/visual กับหน้าต่าง "หลังโชว์" — DWM จะจับ visual tree ถูกต้อง
 static void BindDcompTarget() {
+    // ★ [P1#2 Copilot] target ต้องมีเจ้าของตลอดอายุที่แสดงผล — เก็บใน g_dcomp_target
+    //   (เดิม Release หลัง Commit = อ้างอิงค้าง และเรียกซ้ำจะ CreateTargetForHwnd FAILED)
     if (g_dcomp_bound || !g_dcomp_dev || !g_dxgi_dev2 || !g_hwnd) return;
     IDCompositionTarget* target = nullptr;
     IDCompositionVisual* vis = nullptr;
@@ -1415,7 +1497,8 @@ static void BindDcompTarget() {
     if (FAILED(vis->SetContent(g_gpu_swap))) { vis->Release(); target->Release(); Log("[gpu] BindDcompTarget: SetContent FAILED"); return; }
     if (FAILED(target->SetRoot(vis))) { vis->Release(); target->Release(); Log("[gpu] BindDcompTarget: SetRoot FAILED"); return; }
     if (FAILED(g_dcomp_dev->Commit())) { vis->Release(); target->Release(); Log("[gpu] BindDcompTarget: Commit FAILED"); return; }
-    vis->Release(); target->Release();
+    vis->Release();
+    g_dcomp_target = target;          // เจ้าของตลอดอายุ — teardown จริงค่อยปล่อย
     g_dcomp_bound = true;
     Log("[gpu] dcomp target BOUND after show");
 }
@@ -1450,8 +1533,16 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     }
     switch (msg) {
     case WM_OSC_VIS: {
-        if (w) {
-            // ★ ผู้ใช้กำหนด: OSC ขึ้นจอหลักเสมอ (primary)
+        // ★ [P1#1 Copilot] UI thread เป็นเจ้าของ g_ui_open ผู้เดียว — HTTP/หน้า/ผู้ตาย
+        //   ส่ง "intent" มาเท่านั้น: w=0 close · w=1 open · w=2 toggle
+        int intent = (int)w;
+        bool was = g_ui_open;
+        bool ns = (intent == 1) ? true : (intent == 0) ? false : !was;
+        if (ns == was) { Log("[state] no-op (already " + std::string(ns ? "OPEN" : "CLOSED") + ") — ข้าม stale intent"); return 0; }
+        g_ui_open = ns;
+        if (ns) {
+            SetOverlayRegion(true);
+            // OSC ขึ้นจอหลักเสมอ (primary) + ขยายเต็ม
             POINT zero{ 0, 0 };
             HMONITOR mon = MonitorFromPoint(zero, MONITOR_DEFAULTTOPRIMARY);
             MONITORINFO mi{ sizeof(mi) };
@@ -1461,71 +1552,57 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                     mi.rcMonitor.right - mi.rcMonitor.left,
                     mi.rcMonitor.bottom - mi.rcMonitor.top,
                     SWP_NOACTIVATE);
-                char b[96];
-                snprintf(b, sizeof(b), "[win] monitor-follow: %d,%d %dx%d",
-                    mi.rcMonitor.left, mi.rcMonitor.top,
-                    mi.rcMonitor.right - mi.rcMonitor.left, mi.rcMonitor.bottom - mi.rcMonitor.top);
-                Log(b);
             }
-        }
-        // ★ สเปกใหม่ (2026-10-07): ห้ามซ่อน — หน้าต่างค้างบนจอตลอด
-        //   เปิด = interactive (ถอด TRANSPARENT/NOACTIVATE) · ปิด = คลิกทะลุทั้งจอ
-        if (w) {
             SetClickThrough(false);
-            ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);   // กันเหนียว (ปกติโชว์ตั้งแต่บูตแล้ว)
-            SetTimer(g_hwnd, 2, 16, nullptr);    // เปิด: 60Hz
-            if (g_browser) g_browser->GetHost()->Invalidate(PET_VIEW);
-            // ★ เข้าโฟกัสตอนเปิด (สเปก: osc เปิด = เปิดโฟกัส): จำตัวที่ถือโฟกัสไว้ก่อน
-            //   เพื่อคืนตอนปิด · ถอด NOACTIVATE แล้วยกโฟกัสจริง — คีย์บอร์ดวิ่งเข้า
-            //   WndProc → ForwardKey → CEF
-            g_prev_fore = GetForegroundWindow();
+            ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
+            SetTimer(g_hwnd, 2, 1000 / g_refresh_hz, nullptr);
+            static bool hzlog = false;
+            if (!hzlog) { hzlog = true; Log("[beginframe] locked to " + std::to_string(g_refresh_hz) + "Hz (จอ)"); }
+            // ★ เข้าโฟกัส (สเปก: osc เปิด = เปิดโฟกัส) — จับ foreground เฉพาะ
+            //   transition ปิด→เปิด [P2#6 Copilot] (กันจำ HWND ของ overlay เอง)
+            if (!was) g_prev_fore = GetForegroundWindow();
             SetForegroundWindow(g_hwnd);
-            SetFocus(g_hwnd);
             if (g_browser) g_browser->GetHost()->SetFocus(true);
+            HWND child = FindWindowExW(g_hwnd, nullptr, L"Chrome_WidgetWin_1", nullptr);
+            SetFocus(child ? child : g_hwnd);
+            // ★ [P1#2 Copilot] OSR เท่านั้น — windowed ห้ามแตะ DComp · bind ครั้งเดียว
+            //   (target เก็บใน g_dcomp_target ตลอดอายุ) — เปิดซ้ำแค่ Commit ให้ DWM รับซ้ำ
+            if (!g_cfg.windowed && g_dcomp_dev) {
+                if (!g_dcomp_bound) BindDcompTarget();
+                else g_dcomp_dev->Commit();
+            }
         } else {
             SetClickThrough(true);
-            // ★ ย่อ 1×1 ตอนปิด (จำเป็น!): ถอดแล้ว DComp render ไม่ขึ้นเลย (diff=0 พิสูจน์ 11:1x)
-            SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, 1, 1, SWP_NOACTIVATE);
             // ★ ปิดโฟกัส CEF (สเปก: osc ปิด = ปิดโฟกัส Cef) + คืนโฟกัสหน้าต่างเดิม
             if (g_browser) g_browser->GetHost()->SetFocus(false);
             if (g_prev_fore && IsWindow(g_prev_fore) && g_prev_fore != g_hwnd)
                 SetForegroundWindow(g_prev_fore);
             g_prev_fore = nullptr;
-            SetTimer(g_hwnd, 2, 250, nullptr);   // ปิด: 4Hz — CEF อุ่นเครื่องไว้ เปิดเมื่อไหร่เฟรมมีเนื้อหาทันที
+            SetOverlayRegion(false);
+            SetTimer(g_hwnd, 2, 250, nullptr);   // ปิด: 4Hz — อุ่น CEF ไว้
         }
-        // DWM ทิ้ง visual tree ของหน้าต่างที่ถูกซ่อน — bind ใหม่ + Commit ทุกครั้งที่โชว์
-        if (w && g_dcomp_dev) {
-            // ★ ทฤษฎี OWNER (10:5x): bind ตอนที่ยังไม่มีเฟรมเนื้อหา (หน้าต่าง 1×1/ว่าง)
-            //   = visual ยึดเนื้อหาว่างไปตลอด → บังคับสร้าง target/visual ใหม่หลังขยายเต็มจอ
-            //   (target เก่าถูก Release แล้วตอนจบ BindDcompTarget = สร้างใหม่ได้)
-            g_dcomp_bound = false;
-            BindDcompTarget();
-            g_dcomp_dev->Commit();
-            // ★ วินิจฉัย UI ไม่ขึ้น: OSC_REDTEST=1 → เฟรมแดงสด 3 วิตอนเปิด
-            char rt[4] = { 0 };
-            if (GetEnvironmentVariableA("OSC_REDTEST", rt, 4) > 0 && rt[0] == '1'
-                && g_own_rt && g_gpu_rtv && g_gpu_ctx) {
-                const float red[4] = { 0, 0, 1, 1 };
-                g_gpu_ctx->ClearRenderTargetView(g_gpu_rtv, red);
-                PresentToSwap(0, 0);
-                Log("[diag] REDTEST frame presented");
-                Sleep(3000);
-            }
-        }
-        Log(std::string("[window] ") + (w ? "OSC open — interactive" : "OSC closed — click-through (window stays alive)"));
+        Log("[state] " + std::string(ns ? "OPEN" : "CLOSED") + " (was " + std::string(was ? "OPEN" : "CLOSED") + ", intent " + std::to_string(intent) + ")");
         return 0;
     }
     case WM_NCHITTEST: {
         // ★ สเปก OWNER (10:5x): เปิด = ทั้งจอเป็นของ overlay (คลิกนอกเมนู = หน้าปิดเอง —
-        //   แบบแท้) · ปิด = ทะลุทั้งจอ (หน้าต่าง 1×1 + ไม่มีพื้นที่ hit)
+        //   แบบแท้) · ปิด = window region ว่าง จึงไม่มีพื้นที่แสดงผลหรือรับ hit-test
         if (g_gpu_ok) return g_ui_open ? HTCLIENT : HTTRANSPARENT;
         break;   // CPU/layered path: alpha hit-test ของระบบทำให้อยู่แล้ว
     }
     case WM_TIMER: {
         // WM_TIMER วิ่งบนเธรด UI ของ CEF (หน้าต่างถูกสร้างบนเธรดนั้น) — เรียก browser ได้ตรง ๆ
-        // timer 2 = ไล่ invalidate ขณะ OSC เปิด (OSR ไม่ repaint เอง)
+        // timer 2 = เฝ้า topmost + watchdog
         if (w == 2 && g_browser) {
-            g_browser->GetHost()->Invalidate(PET_VIEW);
+            // ★ Share.exe แท้ = damage-driven (imports: libcef+UpdateLayeredWindow เท่านั้น)
+            //   timer-driven full-frame repaint = ตัวก่อกระตุกของเราเอง
+            // ★ windowed: Chromium จัดจังหวะเองตาม vsync จอ (Chrome model) — ห้ามแทรก
+            //   OSR เท่านั้นที่ต้องมีคนสั่งวาด (external begin frame)
+            if (!g_cfg.windowed && g_gpu_ok) {
+                if (g_ui_open) g_browser->GetHost()->SendExternalBeginFrame();
+            } else if (!g_cfg.windowed && !g_gpu_ok) {
+                g_browser->GetHost()->Invalidate(PET_VIEW);
+            }
             // ★ วิดีโอ/เกม fullscreen ยกตัวเองขึ้น topmost ทับเรา — ยืนยันสิทธิ์บนสุดทุก ~0.5s
             static int tz = 0;
             if (++tz >= 32 && g_ui_open) {
@@ -1649,37 +1726,14 @@ static void ServeClient(SOCKET c) {
     }
 
     if (path == "/toggle" || path == "/show" || path == "/hide") {
-        // ★ debounce 600ms (2026-10-07 ตามสั่ง): กดค้าง = key-repeat ยิง toggle รัว
-        //   เปิด-ปิดไวจนดูเหมือน "ไม่ทำงาน" — ตัวซ้ำในกรอบเวลานี้ทิ้ง
-        static std::atomic<unsigned long long> last_toggle_ms{ 0 };
-        unsigned long long now = GetTickCount64();
-        unsigned long long last = last_toggle_ms.load();
-        if (path == "/toggle" && now - last < 600 && last != 0) {
-            const char* r = "HTTP/1.1 200 OK\r\nContent-Length: 8\r\n\r\ndebounced";
-            send(c, r, (int)strlen(r), 0); closesocket(c);
-            Log("[toggle] debounced (gap=" + std::to_string(now - last) + "ms)");
-            return;
-        }
-        last_toggle_ms.store(now);
-        // ★ Alt+X ทางลัด (2026-10-07): helper ยิง :59013/toggle มาด้วย — สั่งหน้า toggle ตรง
-        // ★ สถานะขับด้วย host toggle ล้วน (10:5x): หน้า openOSC ส่งแค่ rects (ว่าง) —
-        //   WIN_OPEN มาจาก menu-controller (ฝั่ง UI — งานถัดไป) ห้ามรอ! flip เองเดี๋ยวนี้
-        std::string action;
-        if (path == "/show") { g_ui_open = true; action = "d.openOSC();"; }
-        else if (path == "/hide") { g_ui_open = false; action = "d.closeOSC();"; }
-        else { g_ui_open = !g_ui_open; action = std::string("if (") + (g_ui_open ? "true" : "false") + ") d.openOSC(); else d.closeOSC();"; }
-        if (g_browser && g_browser->GetMainFrame()) {
-            std::string js = "(function(){ try { var i=angular.element(document).injector();"
-                "var d=i.get('oscDisplayService'); var o=i.get('$rootScope');"
-                + action +
-                "o.$apply(); return 'toggled'; } catch(e) { return 'ERR:'+e.message; } })()";
-            CefPostTask(TID_UI, new JsEvalTask(g_browser, js));
-        }
-        // ขยาย/ย่อหน้าต่าง + โฟกัส ตามสถานะใหม่ทันที (ไม่รอ WIN_OPEN จากหน้า)
-        PostMessageW(g_hwnd, WM_OSC_VIS, g_ui_open ? 1 : 0, 0);
+        // ★ [P1#1 Copilot] ส่ง intent เข้า UI thread เท่านั้น — สถานะ/JS/ขยายย่อ
+        //   ตัดสินใจที่ WM_OSC_VIS handler (เจ้าของสถานะคนเดียว)
+        //   repeats กันที่ helper ด้วย MOD_NOREPEAT (ไม่ใช้ time debounce แล้ว)
+        int intent = (path == "/show") ? 1 : (path == "/hide") ? 0 : 2;
+        PostMessageW(g_hwnd, WM_OSC_VIS, intent, 0);
         const char* r = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
         send(c, r, (int)strlen(r), 0); closesocket(c);
-        Log("[toggle] " + path + " -> state=" + std::string(g_ui_open ? "OPEN" : "CLOSED"));
+        Log("[toggle] " + path + " intent=" + std::to_string(intent));
         return;
     }
 
@@ -1776,7 +1830,7 @@ public:
 
     // ---- render side ของ message router ----
     // ⚠ ชั่วคราว: ปิด (bisect — รอบที่ paint วิ่งยังไม่มี router ฝั่งนี้) เปิดคืนเมื่อรู้สาเหตุ
-    static bool RouterEnabled() { static bool v = false; return v; }
+    static bool RouterEnabled() { static bool v = true; return v; }  // ★ เปิดแล้ว (10:5x — สาเหตุ crash รู้แล้ว = v8 snapshot)
     static CefRefPtr<CefMessageRouterRendererSide>& Router() {
         static CefRefPtr<CefMessageRouterRendererSide> r;
         if (!r) {
@@ -1904,23 +1958,29 @@ public:
         // CreateThread(nullptr, 0, HookThreadProc, nullptr, 0, nullptr);   // (ปิด — เก็บไว้อ้างอิง)
         // ★ GPU path ของแท้: init D3D11+DComp ก่อน ถ้าได้ = ไม่ต้อง layered เลย
         //   (alpha จัดการโดย swapchain premultiplied + DWM — คลิกทะลุใช้ display rects)
-        if (g_cfg.gdi_compositor) {
+        if (g_cfg.windowed) {
+            // ★ [P1#2 Copilot] windowed mode = CEF render เองใน child — ห้าม init
+            //   D3D11/DComp เลย (CreateTargetForHwnd topmost วางทับ child + swapchain
+            //   ไม่ได้รับเฟรมจาก CEF native = surface ว่างบังหน้า)
+            Log("[gpu] windowed mode → CEF native render (ไม่มี custom compositor)");
+        } else if (g_cfg.gdi_compositor) {
             // โหมด GDI: layered window + UpdateLayeredWindow (เส้นทางที่พิสูจน์แล้วว่าแสดงผล)
             SetWindowLongW(g_hwnd, GWL_EXSTYLE,
                 GetWindowLongW(g_hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
             Log("[gpu] compositor=gdi → ULW path");
         } else if (GpuCompositorInit(g_hwnd, w, h)) {
-            // ★ คง WS_EX_LAYERED ไว้ — DComp วาดผ่าน DWM ได้ปกติ และ LAYERED+TRANSPARENT
-            //   คือคู่เดียวที่ hit-test ทะลุข้ามโปรเซส (ทดสอบ WindowFromPoint แล้ว)
-            Log("[gpu] window: DComp + LAYERED(alpha=255) + TRANSPARENT = click-through ข้ามโปรเซส");
+            Log("[gpu] window: OSR + DComp visual (target bind ตอนเปิดครั้งแรก)");
         } else {
             SetWindowLongW(g_hwnd, GWL_EXSTYLE,
                 GetWindowLongW(g_hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
         }
-        // ★ โชว์แล้วย่อ 1×1 ทันที (ปิด = ไม่มีพื้นที่คลิก · เปิด = ขยายเต็มจอ + bind DComp)
+        // Keep the fullscreen HWND shown for the process lifetime. An empty window region while
+        // closed leaves it topmost but fully transparent and lets hit-testing pass underneath.
+        SetOverlayRegion(false);
         ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
-        SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, 1, 1, SWP_NOACTIVATE);
-        Log("[window] boot: 1x1 dot — transparent + click-through (OSC closed)");
+        SetWindowPos(g_hwnd, g_cfg.topmost ? HWND_TOPMOST : HWND_TOP,
+            0, 0, w, h, SWP_NOACTIVATE);
+        Log("[window] boot: fullscreen — OSC closed, click-through enabled");
         SetTimer(g_hwnd, 1, 30000, nullptr);   // เฝ้าระวัง: หน้าค้าง about:blank → กู้คืนเอง
         SetTimer(g_hwnd, 2, 250, nullptr);     // อุ่น CEF: invalidate จาง ๆ ตั้งแต่บูต
 
@@ -1948,11 +2008,13 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int) {
     //   exception dispatch (heap/loader lock ถูกถือ) → deadlock → renderer โดน kill
     //   (ตายเงียบ — ไม่มี [crash] ใน log เพราะตายก่อนเขียนสำเร็จ) · dumb host ไม่มี
     //   โค้ดก่อน CefInitialize = เสถียรเสมอ จึงจบเส้นทาง child ที่บรรทัดแรก
+    timeBeginPeriod(1);   // timer ละเอียด 1ms — ยิง begin frame ตาม Hz จอได้
     CefMainArgs args(hInst);
     CefRefPtr<OscApp> app = new OscApp();
     if (CefExecuteProcess(args, app.get(), nullptr) >= 0) return 0;
 
     LoadConfig();
+    g_refresh_hz = QueryRefreshHz();
     LogInit();
     AddVectoredExceptionHandler(1, CrashVecHandler);
 
@@ -1978,7 +2040,7 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, PWSTR, int) {
         std::abort();
     });
     // OSR + handler ครบแล้ว (Phase B) — เปิดได้ (จำบทเรียน: เปิดก่อนมี handler = crash-loop)
-    settings.windowless_rendering_enabled = true;
+    settings.windowless_rendering_enabled = !g_cfg.windowed;   // ★ windowed = CEF render เอง (GPU)
     settings.background_color = CefColorSetARGB(0, 0, 0, 0);
     settings.log_severity = LOGSEVERITY_VERBOSE;   // จับ CHECK-fail: ต้องเห็นทุกบรรทัดก่อน ud2
     // ★ bisect 2026-10-07: OSC_NOLOGFILE=1 = ไม่ตั้ง log_file (ลูกไม่ได้รับ --log-file)
