@@ -556,6 +556,7 @@ static void GpuUploadComposite(const void* bgra, int w, int h) {
 static std::vector<RECT> g_ui_rects;         // พิกัดจอ (scale แล้ว)
 static double g_css_scale = 1.0;             // css px → จอ px (zoom แท้ fit)
 static bool g_ui_open = false;
+static HWND g_prev_fore = nullptr;           // หน้าต่างที่ถือโฟกัสก่อนเปิด OSC (คืนตอนปิด)
 
 // ★ สั่ง visibility จากเธรดอื่น (CEF/HTTP) ผ่าน message — หน้าต่างเป็นของเธรด CEF UI
 static const UINT WM_OSC_VIS = WM_APP + 2;
@@ -606,9 +607,10 @@ static void ParseDisplayRects(const std::string& req) {
         open = true;
     }
     if (g_ui_open != open)
-        Log(std::string("[ui] displayRects: ") + (open ? (std::to_string(g_ui_rects.size()) + " rects — interactive") : "empty — click-through"));
-    g_ui_open = open;
-    SetClickThrough(!open || g_ui_rects.empty());
+        Log(std::string("[ui] displayRects: ") + (open ? (std::to_string(g_ui_rects.size()) + " rects") : "empty"));
+    // ★ state machine (สเปก OWNER): rects = ขอบเขตคลิกเท่านั้น — ห้ามแตะสถานะเด็ดขาด!
+    //   (บั๊ก 10:4x: rects ตอนบูตพาง g_ui_open=true → hook กลืนคลิกทั้งจอทันทีที่เปิดโปรแกรม
+    //   ทั้งที่ overlay ยังไม่แสดง — สถานะเปิด/ปิด = WIN_OPEN_OSC / WIN_CLOSE_OSC เท่านั้น)
 }
 
 // view-scale state: ตำแหน่ง/ขนาดภาพที่ถูกวางลงจอ (ใช้แมพเมาส์จอ↔view)
@@ -1063,6 +1065,11 @@ public:
     void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, CefRequestHandler::TerminationStatus status) override {
         Log("[renderer] TERMINATED status=" + std::to_string((int)status) +
             " → LoadURL page");
+        // ★ state machine: renderer ตาย = หน้าไม่มีทางส่ง WIN_CLOSE เอง → บังคับปิด
+        //   (กันค้าง "เปิดล่องหน": กินคลิก/โฟกัสทั้งจอทั้งที่จอไม่มีอะไร)
+        g_ui_open = false;
+        g_ui_rects.clear();
+        if (g_hwnd) PostMessageW(g_hwnd, WM_OSC_VIS, 0, 0);
         // renderer ตัวใหม่เกิดแต่ไม่โหลดซ้ำเอง — ReloadIgnoreCache ตอนยังไม่มี navigation
         // ที่ commit แล้วจะตก about:blank (เหตุการณ์ 05:31:40) → นำทางกลับ URL หน้าจริงเสมอ
         browser->GetMainFrame()->LoadURL(g_page_url);
@@ -1409,14 +1416,23 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
             ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);   // กันเหนียว (ปกติโชว์ตั้งแต่บูตแล้ว)
             SetTimer(g_hwnd, 2, 16, nullptr);    // เปิด: 60Hz
             if (g_browser) g_browser->GetHost()->Invalidate(PET_VIEW);
-            // ★ เข้าโฟกัสตอนเปิด (ตามสั่ง 10:1x): ถอด NOACTIVATE แล้วต้องยกโฟกัสจริง —
-            //   Win32 focus = คีย์บอร์ดวิ่งเข้า WndProc → ForwardKey → CEF
-            //   (Alt+X = keypress ล่าสุดของระบบ → helper มีสิทธิ์ foreground ให้ยืมได้)
+            // ★ เข้าโฟกัสตอนเปิด (สเปก: osc เปิด = เปิดโฟกัส): จำตัวที่ถือโฟกัสไว้ก่อน
+            //   เพื่อคืนตอนปิด · ถอด NOACTIVATE แล้วยกโฟกัสจริง — คีย์บอร์ดวิ่งเข้า
+            //   WndProc → ForwardKey → CEF
+            g_prev_fore = GetForegroundWindow();
             SetForegroundWindow(g_hwnd);
             SetFocus(g_hwnd);
             if (g_browser) g_browser->GetHost()->SetFocus(true);
         } else {
             SetClickThrough(true);
+            // ★ ย่อ 1×1 (บทเรียน 10:5x): หน้าต่าง non-layered hit-test = ทั้งก้อนเฟรมเสมอ —
+            //   DComp โปร่งใสไม่ช่วยเรื่อง input! ตอนปิดต้องย่อจนไม่มีพื้นที่ให้คลิก
+            SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, 1, 1, SWP_NOACTIVATE);
+            // ★ ปิดโฟกัส CEF (สเปก: osc ปิด = ปิดโฟกัส Cef) + คืนโฟกัสหน้าต่างเดิม
+            if (g_browser) g_browser->GetHost()->SetFocus(false);
+            if (g_prev_fore && IsWindow(g_prev_fore) && g_prev_fore != g_hwnd)
+                SetForegroundWindow(g_prev_fore);
+            g_prev_fore = nullptr;
             SetTimer(g_hwnd, 2, 250, nullptr);   // ปิด: 4Hz — CEF อุ่นเครื่องไว้ เปิดเมื่อไหร่เฟรมมีเนื้อหาทันที
         }
         // DWM ทิ้ง visual tree ของหน้าต่างที่ถูกซ่อน — bind ใหม่ + Commit ทุกครั้งที่โชว์
@@ -1438,15 +1454,9 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         return 0;
     }
     case WM_NCHITTEST: {
-        // ★ click-through แบบของแท้ (ไม่ใช่ alpha hit-test): นอก UI rects = ทะลุ
-        if (g_gpu_ok) {
-            if (!g_ui_open || g_ui_rects.empty()) return HTTRANSPARENT;
-            POINT pt{ GET_X_LPARAM(l), GET_Y_LPARAM(l) };
-            for (auto& r : g_ui_rects)
-                if (pt.x >= r.left && pt.x < r.right && pt.y >= r.top && pt.y < r.bottom)
-                    return HTCLIENT;
-            return HTTRANSPARENT;
-        }
+        // ★ สเปก OWNER (10:5x): เปิด = ทั้งจอเป็นของ overlay (คลิกนอกเมนู = หน้าปิดเอง —
+        //   แบบแท้) · ปิด = ทะลุทั้งจอ (หน้าต่าง 1×1 + ไม่มีพื้นที่ hit)
+        if (g_gpu_ok) return g_ui_open ? HTCLIENT : HTTRANSPARENT;
         break;   // CPU/layered path: alpha hit-test ของระบบทำให้อยู่แล้ว
     }
     case WM_TIMER: {
@@ -1577,13 +1587,25 @@ static void ServeClient(SOCKET c) {
     }
 
     if (path == "/toggle" || path == "/show" || path == "/hide") {
+        // ★ debounce 600ms (2026-10-07 ตามสั่ง): กดค้าง = key-repeat ยิง toggle รัว
+        //   เปิด-ปิดไวจนดูเหมือน "ไม่ทำงาน" — ตัวซ้ำในกรอบเวลานี้ทิ้ง
+        static std::atomic<unsigned long long> last_toggle_ms{ 0 };
+        unsigned long long now = GetTickCount64();
+        unsigned long long last = last_toggle_ms.load();
+        if (path == "/toggle" && now - last < 600 && last != 0) {
+            const char* r = "HTTP/1.1 200 OK\r\nContent-Length: 8\r\n\r\ndebounced";
+            send(c, r, (int)strlen(r), 0); closesocket(c);
+            Log("[toggle] debounced (gap=" + std::to_string(now - last) + "ms)");
+            return;
+        }
+        last_toggle_ms.store(now);
         // ★ Alt+X ทางลัด (2026-10-07): helper ยิง :59013/toggle มาด้วย — สั่งหน้า toggle ตรง
-        //   (โซ่ socket /?hk= ยัง dispatch ไม่ครบในหน้า — ตัวนี้ทำงานแน่ เพราะ openOSC/closeOSC
-        //   ตอบตรงจาก injector — ทดสอบผ่าน CDP แล้ว) — สถานะ = g_ui_open (จาก WIN_OPEN/CLOSE)
+        // ★ สถานะขับด้วย host toggle ล้วน (10:5x): หน้า openOSC ส่งแค่ rects (ว่าง) —
+        //   WIN_OPEN มาจาก menu-controller (ฝั่ง UI — งานถัดไป) ห้ามรอ! flip เองเดี๋ยวนี้
         std::string action;
-        if (path == "/show") action = "d.openOSC();";
-        else if (path == "/hide") action = "d.closeOSC();";
-        else action = std::string("if (") + (g_ui_open ? "true" : "false") + ") d.closeOSC(); else d.openOSC();";
+        if (path == "/show") { g_ui_open = true; action = "d.openOSC();"; }
+        else if (path == "/hide") { g_ui_open = false; action = "d.closeOSC();"; }
+        else { g_ui_open = !g_ui_open; action = std::string("if (") + (g_ui_open ? "true" : "false") + ") d.openOSC(); else d.closeOSC();"; }
         if (g_browser && g_browser->GetMainFrame()) {
             std::string js = "(function(){ try { var i=angular.element(document).injector();"
                 "var d=i.get('oscDisplayService'); var o=i.get('$rootScope');"
@@ -1591,9 +1613,11 @@ static void ServeClient(SOCKET c) {
                 "o.$apply(); return 'toggled'; } catch(e) { return 'ERR:'+e.message; } })()";
             CefPostTask(TID_UI, new JsEvalTask(g_browser, js));
         }
+        // ขยาย/ย่อหน้าต่าง + โฟกัส ตามสถานะใหม่ทันที (ไม่รอ WIN_OPEN จากหน้า)
+        PostMessageW(g_hwnd, WM_OSC_VIS, g_ui_open ? 1 : 0, 0);
         const char* r = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
         send(c, r, (int)strlen(r), 0); closesocket(c);
-        Log("[toggle] " + path + " -> page " + (path == "/hide" ? "closeOSC" : path == "/show" ? "openOSC" : (g_ui_open ? "closeOSC" : "openOSC")));
+        Log("[toggle] " + path + " -> state=" + std::string(g_ui_open ? "OPEN" : "CLOSED"));
         return;
     }
 
@@ -1813,7 +1837,9 @@ public:
         //   และ LAYERED ก็ทำให้ DComp มองไม่เห็น → โมเดลใหม่ไม่พึ่งการซ่อนหน้าต่างแล้ว
         //   (คลิกทะลุจัดการที่ WS_EX_TRANSPARENT ตามสถานะ + LL mouse hook ตอนเปิด)
         // input path: hook ข้ามโปรเซส (ต้องอยู่บนเธรดที่มี message pump = เธรดนี้)
-        CreateThread(nullptr, 0, HookThreadProc, nullptr, 0, nullptr);   // hook เธรดเฉพาะ
+        // ★ hook ถอดแล้ว (10:5x): LL mouse hook กลืนคลิกทั้งระบบตอนสถานะเปิด = บล็อกทั้งจอ!
+        //   คลิกเข้าผ่านหน้าต่างตรง ๆ (WndProc mouse cases) — เหมือนแท้ที่รับคลิกผ่าน HWND
+        // CreateThread(nullptr, 0, HookThreadProc, nullptr, 0, nullptr);   // (ปิด — เก็บไว้อ้างอิง)
         // ★ GPU path ของแท้: init D3D11+DComp ก่อน ถ้าได้ = ไม่ต้อง layered เลย
         //   (alpha จัดการโดย swapchain premultiplied + DWM — คลิกทะลุใช้ display rects)
         if (g_cfg.gdi_compositor) {
@@ -1830,8 +1856,10 @@ public:
                 GetWindowLongW(g_hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
         }
         // ★ โชว์ทันที (ห้ามซ่อน — สเปก 2026-10-07): layered ก่อน ULW เฟรมแรก = ยังมองไม่เห็นอยู่ดี
+        //   ★ แต่ย่อ 1×1 ก่อน (หน้าต่าง non-layered hit-test ทั้งก้อน — ปิด = ต้องไม่มีพื้นที่คลิก)
         ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
-        Log("[window] boot: on screen — transparent + click-through (OSC closed)");
+        SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, 1, 1, SWP_NOACTIVATE);
+        Log("[window] boot: 1x1 dot — transparent + click-through (OSC closed)");
         SetTimer(g_hwnd, 1, 30000, nullptr);   // เฝ้าระวัง: หน้าค้าง about:blank → กู้คืนเอง
         SetTimer(g_hwnd, 2, 250, nullptr);     // อุ่น CEF: invalidate จาง ๆ ตั้งแต่บูต
 
