@@ -151,9 +151,11 @@ static void Log(const std::string& msg) {
 }
 
 // ★ VEH: จับ backtrace ของ int3 (CHECK ใน libcef) ก่อน process ตาย — เขียน module+offset
+//   ⚠ ห้ามจับ 0xE06D7363 (C++ exception) — d3d11 โยนเองเป็นปกติทุกเฟรม และการเดิน
+//     stack+module ใน VEH ระหว่าง exception dispatch = กระตุกหนัก (บทเรียน 10:2x)
 static LONG WINAPI CrashVecHandler(EXCEPTION_POINTERS* ep) {
     const DWORD c = ep->ExceptionRecord->ExceptionCode;
-    if (c != 0x80000003 && c != 0xe06d7363 && c != 0xC0000409) return EXCEPTION_CONTINUE_SEARCH;
+    if (c != 0x80000003 && c != 0xC0000409) return EXCEPTION_CONTINUE_SEARCH;
     void* frames[24];
     USHORT n = CaptureStackBackTrace(0, 24, frames, nullptr);
     std::string bt = "[crash] code=0x" + [](unsigned long h) { char b[12]; snprintf(b, sizeof(b), "%lX", h); return std::string(b); }(c) + " bt:";
@@ -322,15 +324,12 @@ static bool GpuCompositorInit(HWND hwnd, int w, int h) {
         Log("[gpu] swapchain OK (premultiplied)");
     }
     {   // DComp: ผูก swapchain เข้าหน้าต่าง
-        IDCompositionDevice* dcompDev = nullptr; IDCompositionTarget* target = nullptr; IDCompositionVisual* vis = nullptr;
+        IDCompositionDevice* dcompDev = nullptr;
         if (FAILED(hr = DCompositionCreateDevice(dxgiDev, __uuidof(IDCompositionDevice), (void**)&dcompDev)))
             { Log("[gpu] step dcomp dev hr=" + std::to_string((long)hr)); goto fail; }
-        if (FAILED(hr = dcompDev->CreateTargetForHwnd(hwnd, TRUE, &target)))
-            { Log("[gpu] step target hr=" + std::to_string((long)hr)); goto fail; }
-        if (FAILED(hr = dcompDev->CreateVisual(&vis)))
-            { Log("[gpu] step visual hr=" + std::to_string((long)hr)); goto fail; }
-        // ★ target/visual ย้ายไปสร้างตอนโชว์หน้าต่างครั้งแรก (BindDcompTarget)
-        //   เดิมสร้างตอนหน้าต่างซ่อน → DWM ไม่ผูก visual tree → บางบูตแสดงไม่ออกตลอด
+        // ★ ห้ามสร้าง target ที่นี่ (บทเรียน 10:2x): CreateTargetForHwnd ต่อ hwnd ได้ "ครั้งเดียว"
+        //   ตลอดชีวิตหน้าต่าง — สร้างที่ boot แล้ว BindDcompTarget ตอนโชว์จะ FAILED ตลอด
+        //   → visual ไม่เคยถูกผูก = GPU path วาดไม่ลงจอ — ให้ BindDcompTarget สร้างครั้งเดียวตอนโชว์
         g_dcomp_dev = dcompDev;
         g_dxgi_dev2 = dxgiDev; dxgiDev->AddRef();
         Log("[gpu] dcomp device ready (target จะสร้างตอนโชว์)");
@@ -881,8 +880,11 @@ static void HandleOscQuery(const std::string& req, bool persistent,
         //   :59001 ของแท้) — ของเรา: config จริงของ backend เรา (พอร์ตเดียว :59011)
         //   ★ jarvis.server ต้องเป็น URL จริง (ค่าแท้จาก piplConfig.json) — ใส่ "" แล้ว
         //     getClientTelemetryConsent สร้าง URL undefined → openOSC ตาย indexOf (09:3x)
+        //   ★ ต้องมี field "secret" (NODE_INFO แท้ = {port, secret} — index.js:740) —
+        //     หน้า localSdk.updateNodeInfo อ่าน t.secret → X_LOCAL_SECURITY_COOKIE header —
+        //     ถ้าไม่มี = header undefined = ทุก XHR ตาย indexOf ใน NvEndpoint.i() (09:4x)
         reply("{\"port\":59011,\"disableSecurity\":true,"
-              "\"securityCookie\":\"\","
+              "\"secret\":\"\",\"securityCookie\":\"\","
               "\"gfwsl\":{\"server\":\"https://gfwsl.geforce.com/\"},"
               "\"jarvis\":{\"server\":\"https://accounts.nvgs.nvidia.com\"},"
               "\"gxtarget\":{\"server\":\"gx-target-experiments-frontend-api.gx.nvidia.com\","
@@ -951,6 +953,21 @@ public:
     std::string msg;
     void Execute() override { if (cb) cb->Success(msg); }
     IMPLEMENT_REFCOUNTING(QueryReplyTask);
+};
+
+// ★ รัน JS ในหน้าจากเธรด HTTP (toggle route) — ต้อง post ไป TID_UI เสมอ
+class JsEvalTask : public CefTask {
+public:
+    CefRefPtr<CefBrowser> browser;
+    std::string js;
+    JsEvalTask(CefRefPtr<CefBrowser> b, const std::string& j) : browser(b), js(j) {}
+    void Execute() override {
+        if (browser && browser->GetMainFrame()) {
+            CefString url = browser->GetMainFrame()->GetURL();
+            browser->GetMainFrame()->ExecuteJavaScript(js, url, 0);
+        }
+    }
+    IMPLEMENT_REFCOUNTING(JsEvalTask);
 };
 
 class OscQueryHandler : public CefMessageRouterBrowserSide::Handler {
@@ -1392,6 +1409,12 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
             ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);   // กันเหนียว (ปกติโชว์ตั้งแต่บูตแล้ว)
             SetTimer(g_hwnd, 2, 16, nullptr);    // เปิด: 60Hz
             if (g_browser) g_browser->GetHost()->Invalidate(PET_VIEW);
+            // ★ เข้าโฟกัสตอนเปิด (ตามสั่ง 10:1x): ถอด NOACTIVATE แล้วต้องยกโฟกัสจริง —
+            //   Win32 focus = คีย์บอร์ดวิ่งเข้า WndProc → ForwardKey → CEF
+            //   (Alt+X = keypress ล่าสุดของระบบ → helper มีสิทธิ์ foreground ให้ยืมได้)
+            SetForegroundWindow(g_hwnd);
+            SetFocus(g_hwnd);
+            if (g_browser) g_browser->GetHost()->SetFocus(true);
         } else {
             SetClickThrough(true);
             SetTimer(g_hwnd, 2, 250, nullptr);   // ปิด: 4Hz — CEF อุ่นเครื่องไว้ เปิดเมื่อไหร่เฟรมมีเนื้อหาทันที
@@ -1554,10 +1577,23 @@ static void ServeClient(SOCKET c) {
     }
 
     if (path == "/toggle" || path == "/show" || path == "/hide") {
+        // ★ Alt+X ทางลัด (2026-10-07): helper ยิง :59013/toggle มาด้วย — สั่งหน้า toggle ตรง
+        //   (โซ่ socket /?hk= ยัง dispatch ไม่ครบในหน้า — ตัวนี้ทำงานแน่ เพราะ openOSC/closeOSC
+        //   ตอบตรงจาก injector — ทดสอบผ่าน CDP แล้ว) — สถานะ = g_ui_open (จาก WIN_OPEN/CLOSE)
+        std::string action;
+        if (path == "/show") action = "d.openOSC();";
+        else if (path == "/hide") action = "d.closeOSC();";
+        else action = std::string("if (") + (g_ui_open ? "true" : "false") + ") d.closeOSC(); else d.openOSC();";
+        if (g_browser && g_browser->GetMainFrame()) {
+            std::string js = "(function(){ try { var i=angular.element(document).injector();"
+                "var d=i.get('oscDisplayService'); var o=i.get('$rootScope');"
+                + action +
+                "o.$apply(); return 'toggled'; } catch(e) { return 'ERR:'+e.message; } })()";
+            CefPostTask(TID_UI, new JsEvalTask(g_browser, js));
+        }
         const char* r = "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nok";
         send(c, r, (int)strlen(r), 0); closesocket(c);
-        // แบบของแท้: host ไม่ยุ่ง visibility — เปิด/ปิดเป็นของหน้าเพจทาง :59002
-        Log("[toggle] " + path + " ignored — page owns UI state (genuine model)");
+        Log("[toggle] " + path + " -> page " + (path == "/hide" ? "closeOSC" : path == "/show" ? "openOSC" : (g_ui_open ? "closeOSC" : "openOSC")));
         return;
     }
 
@@ -1643,6 +1679,10 @@ public:
     // ★ bisect 2026-10-07: บังคับ child log ไป stderr (wrapper redirect ลงไฟล์) —
     //   เห็นเหตุผลจริงของ renderer exit=3 (KILLED_BAD_MESSAGE)
     void OnBeforeChildProcessLaunch(CefRefPtr<CefCommandLine> cmd) override {
+        // ★ anti-backgrounding: renderer ต้องไม่ถูก throttle (OSR overlay วาด/นับเวลาตลอด)
+        cmd->AppendSwitch("disable-background-timer-throttling");
+        cmd->AppendSwitch("disable-renderer-backgrounding");
+        cmd->AppendSwitch("disable-backgrounding-occluded-windows");
         cmd->AppendSwitchWithValue("enable-logging", "stderr");
         cmd->AppendSwitchWithValue("v", "1");
     }
@@ -1675,12 +1715,18 @@ public:
         return false;
     }
     void OnBeforeCommandLineProcessing(const CefString&, CefRefPtr<CefCommandLine> cmd) override {
-        // ★ bisect 2026-10-07 (renderer TERMINATED status=2 วน): รันใน child ด้วย —
-        //   dumb host (ไม่ append สวิตช์ใด ๆ) เสถียร → gate ทีละก้อนหาตัวการ
-        //   OSC_NOSWITCH=1 ข้ามทั้งหมด · OSC_NOGPU_SW=1 ตัด enable-gpu/use-angle ·
-        //   OSC_NOHR=1 ตัด host-resolver-rules · OSC_NOPREREAD=1 ตัด no-pre-read-main-dll
-        char nosw[4] = { 0 };
-        if (GetEnvironmentVariableA("OSC_NOSWITCH", nosw, 4) > 0 && nosw[0] == '1') return;
+    // ★ bisect 2026-10-07 (renderer TERMINATED status=2 วน): รันใน child ด้วย —
+    //   dumb host (ไม่ append สวิตช์ใด ๆ) เสถียร → gate ทีละก้อนหาตัวการ
+    //   OSC_NOSWITCH=1 ข้ามทั้งหมด · OSC_NOGPU_SW=1 ตัด enable-gpu/use-angle ·
+    //   OSC_NOHR=1 ตัด host-resolver-rules · OSC_NOPREREAD=1 ตัด no-pre-read-main-dll
+    char nosw[4] = { 0 };
+    if (GetEnvironmentVariableA("OSC_NOSWITCH", nosw, 4) > 0 && nosw[0] == '1') return;
+    // ★ anti-backgrounding (2026-10-07): OSR หน้าถูก Chromium มองเป็น background —
+    //   timers/rAF โดน throttle → open sequence ของหน้า timeout → หน้าปิดเองใน ~2 วิ
+    //   (พิสูจน์: เปิดผ่าน CDP ที่แนบอยู่ = อยู่ได้ยาว ไม่มี CDP = ปิดเอง 2 วิ)
+    cmd->AppendSwitch("disable-background-timer-throttling");
+    cmd->AppendSwitch("disable-renderer-backgrounding");
+    cmd->AppendSwitch("disable-backgrounding-occluded-windows");
         // ★ ชุดที่พิสูจน์แล้วว่า "วาดได้ + renderer เสถียร" บนเครื่องนี้:
         //   no-pre-read + host-resolver-rules — ส่วน GPU เลื่อนขั้นเป็น ANGLE→D3D11
         //   เพื่อ 60fps (จากเดิม disable-gpu = raster ด้วย CPU อย่างเดียว = กระตุก)
