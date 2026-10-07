@@ -1245,8 +1245,11 @@ public:
         if (!frame || !frame->IsMain()) return;
         std::string current_url = url.ToString();
         size_t hash = current_url.find('#');
-        const bool clickthrough = hash != std::string::npos &&
-            current_url.substr(hash) == "#/base";
+        if (hash == std::string::npos) {
+            Log("[route] " + current_url + " (waiting for hash route; keep current input mode)");
+            return;
+        }
+        const bool clickthrough = current_url.substr(hash) == "#/base";
         if (g_hwnd) PostMessageW(g_hwnd, WM_OSC_ROUTE, clickthrough ? 1 : 0, 0);
         Log("[route] " + current_url + (clickthrough
             ? " (exact #/base = click-through)"
@@ -1283,9 +1286,12 @@ public:
             //     → mod จำกัดขอบเขตด้วย attribute นี้ ไม่โดนทุกหน้า
             {
                 browser->GetMainFrame()->ExecuteJavaScript(
-                    "(function(){"
+                    "(function(){if(window.__nvMods)return;window.__nvMods=1;"
                     "function rt(){var h=(location.hash||'#/base').split('/');"
-                    "document.body.setAttribute('data-nv-route', h[2]||'base');}"
+                    "var r=h[2]||'base';"
+                    // exact: h[3] มี = หน้าย่อย → ใส่ชื่อต่อกัน ให้ scope จับแม่เฉพาะไม่รวมลูก
+                    "if(h[3])r=r+'-'+h[3];"
+                    "document.body.setAttribute('data-nv-route', r);}"
                     "rt();addEventListener('hashchange',rt);"
                     "function inj(u){var l=document.createElement('link');"
                     "l.rel='stylesheet';l.href=u;document.head.appendChild(l);}"
