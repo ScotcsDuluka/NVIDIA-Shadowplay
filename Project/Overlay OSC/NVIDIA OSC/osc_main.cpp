@@ -238,11 +238,17 @@ static bool EnsureOwnRT(int w, int h) {
     if (g_own_rt) { g_own_rt->Release(); g_own_rt = nullptr; g_gpu_rtv->Release(); g_gpu_rtv = nullptr; }
     D3D11_TEXTURE2D_DESC td{};
     td.Width = w; td.Height = h; td.MipLevels = 1; td.ArraySize = 1;
-    td.Format = DXGI_FORMAT_B8G8R8A8_UNORM; td.SampleDesc.Count = 1;
+    // ★ TYPELESS (10:5x): shared texture ของ CEF เป็น TYPELESS — CopyResource
+    //   ต้องการ format ตรงกัน ไม่งั้นเฟลเงียบ → ownRT ไม่เคยมีเนื้อหา = จอโปร่งตลอด
+    td.Format = DXGI_FORMAT_B8G8R8A8_TYPELESS; td.SampleDesc.Count = 1;
     td.Usage = D3D11_USAGE_DEFAULT;
     td.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
     if (FAILED(g_gpu_dev->CreateTexture2D(&td, nullptr, &g_own_rt))) return false;
-    if (FAILED(g_gpu_dev->CreateRenderTargetView(g_own_rt, nullptr, &g_gpu_rtv))) return false;
+    // RTV บังคับ UNORM (typeless ต้องระบุ view format จริง)
+    D3D11_RENDER_TARGET_VIEW_DESC rd{};
+    rd.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    rd.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+    if (FAILED(g_gpu_dev->CreateRenderTargetView(g_own_rt, &rd, &g_gpu_rtv))) return false;
     g_own_w = w; g_own_h = h;
     return true;
 }
@@ -380,6 +386,12 @@ fail:
     return false;
 }
 
+// ★ สถานะ OSC (ย้ายขึ้นบน — ให้ GpuComposite/GPUDUMP ใช้ได้)
+static std::vector<RECT> g_ui_rects;         // พิกัดจอ (scale แล้ว)
+static double g_css_scale = 1.0;             // css px → จอ px (zoom แท้ fit)
+static bool g_ui_open = false;
+static HWND g_prev_fore = nullptr;           // หน้าต่างที่ถือโฟกัสก่อนเปิด OSC (คืนตอนปิด)
+
 // วาด shared texture ของ CEF ลง swapchain (เรียกจาก OnAcceleratedPaint — เธรด UI ของ CEF)
 static void GpuComposite(uint64_t shared_handle, int w, int h) {
     if (!g_gpu_ok) return;
@@ -463,10 +475,61 @@ static void GpuComposite(uint64_t shared_handle, int w, int h) {
             if (SUCCEEDED(tex->QueryInterface(__uuidof(ID3D11Texture2D), (void**)&t2)) && t2) {
                 D3D11_TEXTURE2D_DESC td{}; t2->GetDesc(&td);
                 if ((int)td.Width == w && (int)td.Height == h) {
-                    g_gpu_ctx->CopyResource(g_own_rt, t2);
+                    g_gpu_ctx->CopyResource(g_own_rt, t2);   // void — ทำงานเสมอ (typeless family ใช้ได้)
                     PresentToSwap(w, h);
                     static bool dcl = false;
                     if (!dcl) { dcl = true; Log("[gpu] direct-copy path active (GPU ล้วน)"); }
+                    // ★ OSC_GPUDUMP=1 — ดัมป์ท่อ 3 ขั้นตอนเมื่อ OSC เปิด (ทุก 240 เฟรม):
+                    //   shared tex → ownRT → backbuffer (นับพิกเซลไม่โปร่งใส + จุดกลาง)
+                    {
+                        static char dg[4] = { 0 };
+                        static bool dumpOn = (GetEnvironmentVariableA("OSC_GPUDUMP", dg, 4) > 0 && dg[0] == '1');
+                        static unsigned long long dcalls = 0;
+                        dcalls++;
+                        if (dumpOn && g_ui_open && (dcalls % 240 == 20) && g_own_rt) {
+                            auto stage = [&](ID3D11Texture2D* src, const char* name) {
+                                D3D11_TEXTURE2D_DESC d{}; src->GetDesc(&d);
+                                D3D11_TEXTURE2D_DESC st = d;
+                                st.Usage = D3D11_USAGE_STAGING; st.BindFlags = 0;
+                                st.CPUAccessFlags = D3D11_CPU_ACCESS_READ; st.MiscFlags = 0;
+                                st.MipLevels = 1; st.ArraySize = 1;
+                                st.SampleDesc.Count = 1; st.SampleDesc.Quality = 0;
+                                ID3D11Texture2D* stg = nullptr;
+                                if (FAILED(g_gpu_dev->CreateTexture2D(&st, nullptr, &stg)))
+                                    { Log(std::string("[pipe] ") + name + " staging FAIL"); return; }
+                                g_gpu_ctx->CopyResource(stg, src);
+                                D3D11_MAPPED_SUBRESOURCE mp{};
+                                if (SUCCEEDED(g_gpu_ctx->Map(stg, 0, D3D11_MAP_READ, 0, &mp))) {
+                                    unsigned char* px = (unsigned char*)mp.pData;
+                                    int nonzero = 0, total = 0;
+                                    for (int gy = 0; gy < 9; gy++) for (int gx = 0; gx < 16; gx++) {
+                                        size_t off = (size_t)(d.Height * (gy + 1) / 10) * mp.RowPitch
+                                                   + (size_t)(d.Width * (gx + 1) / 17) * 4;
+                                        total++; if (px[off + 3] > 0) nonzero++;
+                                    }
+                                    size_t c = (size_t)(d.Height / 2) * mp.RowPitch + (size_t)(d.Width / 2) * 4;
+                                    char b[160];
+                                    snprintf(b, sizeof(b), "[pipe] %-8s %ux%u nonzero=%d/%d center=%02X%02X%02X%02X",
+                                        name, d.Width, d.Height, nonzero, total, px[c], px[c+1], px[c+2], px[c+3]);
+                                    Log(b);
+                                    g_gpu_ctx->Unmap(stg, 0);
+                                }
+                                stg->Release();
+                            };
+                            stage(t2, "shared");
+                            stage(g_own_rt, "ownRT");
+                            ID3D11Texture2D* back = nullptr;
+                            if (SUCCEEDED(g_gpu_swap->GetBuffer(0, __uuidof(ID3D11Texture2D), (void**)&back))) {
+                                stage(back, "backbuf");
+                                back->Release();
+                            }
+                            RECT wr; GetWindowRect(g_hwnd, &wr);
+                            char b[120];
+                            snprintf(b, sizeof(b), "[pipe] window=(%ld,%ld)-(%ld,%ld) ui_open=%d",
+                                wr.left, wr.top, wr.right, wr.bottom, (int)g_ui_open);
+                            Log(b);
+                        }
+                    }
                 } else {
                     Log("[gpu] DIRECTCOPY size mismatch — shader path");
                 }
@@ -553,10 +616,6 @@ static void GpuUploadComposite(const void* bgra, int w, int h) {
 // ═══ click-through ตาม display rects (QUERY_OSC_SET_DISPLAY_RECTS ของแท้) ═══
 // หน้าบอก host ว่า UI อยู่ตรงไหน (พิกัด CSS) → host เก็บเป็น rect จอ
 // นอก rect = HTTRANSPARENT (คลิกทะลุ) — แบบนี้ไม่ต้องพึ่ง alpha hit-test ของ layered
-static std::vector<RECT> g_ui_rects;         // พิกัดจอ (scale แล้ว)
-static double g_css_scale = 1.0;             // css px → จอ px (zoom แท้ fit)
-static bool g_ui_open = false;
-static HWND g_prev_fore = nullptr;           // หน้าต่างที่ถือโฟกัสก่อนเปิด OSC (คืนตอนปิด)
 
 // ★ สั่ง visibility จากเธรดอื่น (CEF/HTTP) ผ่าน message — หน้าต่างเป็นของเธรด CEF UI
 static const UINT WM_OSC_VIS = WM_APP + 2;
@@ -1425,8 +1484,7 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
             if (g_browser) g_browser->GetHost()->SetFocus(true);
         } else {
             SetClickThrough(true);
-            // ★ ย่อ 1×1 (บทเรียน 10:5x): หน้าต่าง non-layered hit-test = ทั้งก้อนเฟรมเสมอ —
-            //   DComp โปร่งใสไม่ช่วยเรื่อง input! ตอนปิดต้องย่อจนไม่มีพื้นที่ให้คลิก
+            // ★ ย่อ 1×1 ตอนปิด (จำเป็น!): ถอดแล้ว DComp render ไม่ขึ้นเลย (diff=0 พิสูจน์ 11:1x)
             SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, 1, 1, SWP_NOACTIVATE);
             // ★ ปิดโฟกัส CEF (สเปก: osc ปิด = ปิดโฟกัส Cef) + คืนโฟกัสหน้าต่างเดิม
             if (g_browser) g_browser->GetHost()->SetFocus(false);
@@ -1437,6 +1495,10 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         }
         // DWM ทิ้ง visual tree ของหน้าต่างที่ถูกซ่อน — bind ใหม่ + Commit ทุกครั้งที่โชว์
         if (w && g_dcomp_dev) {
+            // ★ ทฤษฎี OWNER (10:5x): bind ตอนที่ยังไม่มีเฟรมเนื้อหา (หน้าต่าง 1×1/ว่าง)
+            //   = visual ยึดเนื้อหาว่างไปตลอด → บังคับสร้าง target/visual ใหม่หลังขยายเต็มจอ
+            //   (target เก่าถูก Release แล้วตอนจบ BindDcompTarget = สร้างใหม่ได้)
+            g_dcomp_bound = false;
             BindDcompTarget();
             g_dcomp_dev->Commit();
             // ★ วินิจฉัย UI ไม่ขึ้น: OSC_REDTEST=1 → เฟรมแดงสด 3 วิตอนเปิด
@@ -1855,8 +1917,7 @@ public:
             SetWindowLongW(g_hwnd, GWL_EXSTYLE,
                 GetWindowLongW(g_hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
         }
-        // ★ โชว์ทันที (ห้ามซ่อน — สเปก 2026-10-07): layered ก่อน ULW เฟรมแรก = ยังมองไม่เห็นอยู่ดี
-        //   ★ แต่ย่อ 1×1 ก่อน (หน้าต่าง non-layered hit-test ทั้งก้อน — ปิด = ต้องไม่มีพื้นที่คลิก)
+        // ★ โชว์แล้วย่อ 1×1 ทันที (ปิด = ไม่มีพื้นที่คลิก · เปิด = ขยายเต็มจอ + bind DComp)
         ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
         SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, 1, 1, SWP_NOACTIVATE);
         Log("[window] boot: 1x1 dot — transparent + click-through (OSC closed)");

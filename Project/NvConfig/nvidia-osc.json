@@ -33,6 +33,6 @@
   },
   "logFile": "C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Logs\\NVIDIA OSC.log",
   "pagePort": 3000,
-  "compositor": "gpu",
+  "compositor": "gdi",
   "$compositor_note": "gdi = UpdateLayeredWindow (แสดงผลได้ยืนยันแล้ว) | gpu = DComp+shared texture (BindDcompTarget FAILED 01:43 — กลับมาแก้ภายหลัง)"
 }
