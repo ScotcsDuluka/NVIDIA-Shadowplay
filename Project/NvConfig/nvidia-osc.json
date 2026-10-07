@@ -1,6 +1,6 @@
 {
   "$comment": "NVIDIA OSC.exe — CEF host ของเรา (เลียน NVIDIA Share.exe)",
-  "page": "C:\\My Project\\NVIDIA-Shadowplay\\Project\\Overlay OSC\\NVIDIA OSC\\osc\\index.html",
+  "page": "C:\\My Project\\NVIDIA-Shadowplay\\Project\\Overlay OSC\\NVIDIA NodeAPI\\osc\\index.html",
   "backend": {
     "port": 59011,
     "$note": "หน้า OSC ยิง API ที่ 127.0.0.1:port นี้โดยตรง"
@@ -20,9 +20,9 @@
     "designHeight": 0,
     "renderScale": 1.0,
     "frameRate": 60,
-    "windowed": 1,
-  "maxFps": 240,
-  "showFps": 1,
+    "windowed": 0,
+    "maxFps": 60,
+    "showFps": 0,
     "uiScale": 1.0,
     "$renderScale_note": "เลิกใช้ 2026-10-07 — zoom ใหม่ = min(screenW/1920, screenH/1080) → SetZoomLevel ตาม Share แท้ (OscWindow.ApplyOscZoom) ค่านี้ไม่ถูกอ่านแล้ว"
   },
@@ -36,6 +36,6 @@
   },
   "logFile": "C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Logs\\NVIDIA OSC.log",
   "pagePort": 3000,
-  "compositor": "gpu",
-  "$compositor_note": "gdi = UpdateLayeredWindow (แสดงผลได้ยืนยันแล้ว) | gpu = DComp+shared texture (BindDcompTarget FAILED 01:43 — กลับมาแก้ภายหลัง)"
+  "compositor": "hybrid",
+  "$compositor_note": "hybrid = DComp+shared texture while open; transparent layered proxy provides cross-process click-through while closed | gdi = CPU UpdateLayeredWindow fallback"
 }
