@@ -18,6 +18,7 @@ const bridge = () => ({
   GetStatus: () => rpc("status"),
   StartBuild: (clean) => rpc("startBuild", clean === true),
   GetLog: (since) => rpc("log", since | 0),
+  CancelBuild: () => rpc("cancelBuild"),
   GetVersionConfig: () => rpc("version"),
   SaveVersionConfig: (j) => rpc("saveVersion", typeof j === "string" ? j : JSON.stringify(j)),
   GetVersions: () => rpc("versions"),
@@ -30,10 +31,11 @@ const bridge = () => ({
 window.onerror = (m, src, l, c) => { try { chrome.webview.postMessage("JSERR: " + m + " @" + l + ":" + c); } catch {} };
 window.addEventListener("unhandledrejection", (e) => { try { chrome.webview.postMessage("JSREJ: " + e.reason); } catch {} });
 const $ = (s) => document.querySelector(s);
-const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 let buildTimer = null;
 let logSince = 0;
+let buildRan = false;   // จะแสดง OK/FAILED เฉพาะเมื่อมี build รอบนี้รันจบจริง (ไม่งั้น exit=-1 ตอนเปิดหน้ามาหลอนเป็น FAILED)
 
 const views = {};
 
@@ -81,13 +83,13 @@ views.dashboard = async function () {
       <div class="stat"><div class="k">BUILD VER</div><div class="v green">${esc(s.buildNo)}</div></div>
       <div class="stat"><div class="k">COMMIT</div><div class="v" style="font-size:15px">${esc(s.commit)}</div></div>
       <div class="stat"><div class="k">ENGINE (nvsphelper64)</div><div class="v ${up("nvsphelper64") ? "green" : ""}" style="font-size:15px">${up("nvsphelper64") ? "RUNNING" : "STOPPED"}</div></div>
-      <div class="stat"><div class="k">OVERLAY (NvShadowPlay)</div><div class="v ${up("NvShadowPlay") ? "green" : ""}" style="font-size:15px">${up("NvShadowPlay") ? "RUNNING" : "STOPPED"}</div></div>
+      <div class="stat"><div class="k">OVERLAY (NVIDIA Share)</div><div class="v ${up("NVIDIA Share") ? "green" : ""}" style="font-size:15px">${up("NVIDIA Share") ? "RUNNING" : "STOPPED"}</div></div>
     </div>
     <div class="card">
       <h2>FAMILY STATUS</h2>
       <table>
         <tr><th>PROCESS</th><th>สถานะ</th></tr>
-        ${["NvContainer", "nvsphelper64", "NvBackend", "NvShadowPlay", "NvNotifier"]
+        ${["NvContainer", "nvsphelper64", "NvBackend", "NVIDIA Web Helper", "NVIDIA Share"]
           .map((n) => `<tr><td>${n}</td><td class="${up(n) ? "green" : "dim"}" style="color:${up(n) ? "var(--green)" : "var(--red)"}">${up(n) ? "● RUNNING" : "○ STOPPED"}</td></tr>`)
           .join("")}
       </table>
@@ -114,14 +116,23 @@ views.build = async function () {
       <div class="row">
         <button class="primary" id="btnBuild">▶ BUILD</button>
         <button id="btnClean">▶ CLEAN BUILD</button>
+        <button id="btnCancel" style="display:none">■ CANCEL</button>
+        <button id="btnCopyLog">คัดลอก log</button>
         <span id="bstate" class="sub"></span>
       </div>
       <div class="log" id="log">— log ว่าง —</div>
     </div>`;
   $("#btnBuild").onclick = () => start(false);
   $("#btnClean").onclick = () => start(true);
+  $("#btnCancel").onclick = async () => { await bridge().CancelBuild(); };
+  $("#btnCopyLog").onclick = () => {
+    const t = ($("#log") ? $("#log").textContent : "") || "";
+    if (navigator.clipboard) navigator.clipboard.writeText(t);
+  };
   const st = $("#bstate");
   st.textContent = s.running ? "กำลัง build อยู่..." : "พร้อม";
+  $("#btnCancel").style.display = s.running ? "" : "none";
+  if (s.running) { $("#btnBuild").disabled = $("#btnClean").disabled = true; buildRan = true; }
   pollLog();
 };
 
@@ -129,7 +140,10 @@ async function start(clean) {
   const r = JSON.parse(await bridge().StartBuild(clean));
   if (!r.ok) { alert(r.error); return; }
   logSince = 0;
+  buildRan = true;
   $("#btnBuild").disabled = $("#btnClean").disabled = true;
+  $("#btnCancel").style.display = "";
+  const st0 = $("#bstate"); if (st0) { st0.style.color = ""; st0.textContent = "กำลัง build #" + r.no + " (BuildVer จะ +1 เมื่อสำเร็จ)..."; }
   $("#log").textContent = "";
   pollLog();
 }
@@ -145,10 +159,20 @@ function pollLog() {
       box.textContent += r.lines.join("\n") + "\n";
       box.scrollTop = box.scrollHeight;
     }
-    const st = $("#bstate"); if (st) st.textContent = r.running ? "กำลัง build (BuildVer จะ +1 เมื่อสำเร็จ)..." : "พร้อม";
+    const st = $("#bstate");
+    if (st) st.textContent = r.running ? "กำลัง build (BuildVer จะ +1 เมื่อสำเร็จ)..." : st.textContent;
+    const cancelBtn = $("#btnCancel");
+    if (cancelBtn) cancelBtn.style.display = r.running ? "" : "none";
     if (!r.running) {
       $("#btnBuild").disabled = $("#btnClean").disabled = false;
-      if (r.exit === 0) { const st2 = $("#bstate"); if (st2) st2.textContent = "BUILD OK — BuildVer " + (JSON.parse(await bridge().GetStatus()).buildNo); }
+      const st2 = $("#bstate");
+      if (buildRan && r.exit === 0) {
+        if (st2) { st2.style.color = "var(--green)"; st2.textContent = "BUILD OK — BuildVer " + (JSON.parse(await bridge().GetStatus()).buildNo); }
+      } else if (buildRan && st2) {
+        st2.style.color = "var(--red)";
+        st2.textContent = "BUILD FAILED — exit " + r.exit + " (ดู log)";
+      }
+      buildRan = false;
       clearInterval(buildTimer);
       refreshSide();
     }

@@ -20,6 +20,7 @@
 #include "include/cef_app.h"
 #include "include/cef_client.h"
 #include "include/cef_browser.h"
+#include "include/cef_keyboard_handler.h"
 #include "include/wrapper/cef_helpers.h"
 #include "include/wrapper/cef_message_router.h"
 #include "include/base/cef_logging.h"
@@ -201,6 +202,8 @@ static LONG WINAPI CrashVecHandler(EXCEPTION_POINTERS* ep) {
 static HWND g_hwnd = nullptr;
 static HWND g_clickthrough_hwnd = nullptr;
 static CefRefPtr<CefBrowser> g_browser;
+static std::atomic<bool> g_devtools_open{ false };
+static std::atomic<ULONGLONG> g_devtools_close_grace_until{ 0 };
 static std::string g_page_url;          // URL หน้า OSC — กู้คืนเมื่อ renderer ตายกลางทาง
 static int g_pending_page_action = -1;   // external show/hide received before browser creation
 static std::atomic<bool> g_visible{ false };
@@ -407,6 +410,8 @@ static std::atomic<bool> g_route_clickthrough{ true };
 static bool g_applied_clickthrough = false;
 static bool g_input_mode_initialized = false;
 static HWND g_prev_fore = nullptr;           // หน้าต่างที่ถือโฟกัสก่อนเปิด OSC (คืนตอนปิด)
+static int g_foreground_restore_attempts = 0;
+static int g_osc_activation_attempts = 0;
 
 // วาด shared texture ของ CEF ลง swapchain (เรียกจาก OnAcceleratedPaint — เธรด UI ของ CEF)
 static ID3D11Texture2D* g_shared_tex = nullptr;   // ★ cache: handle เดิม = เปิด/SRV ใหม่ไม่ต้อง (12:1x)
@@ -675,6 +680,50 @@ static const UINT WM_OSC_ROUTE = WM_APP + 3;
 static int NotificationSafeOverlayWidth(int monitor_width) {
     // A monitor-sized top-level HWND puts Windows in QUNS_BUSY and suppresses notifications.
     return monitor_width > 1 ? monitor_width - 1 : monitor_width;
+}
+
+static bool SetForegroundWithInput(HWND target) {
+    if (!target || !IsWindow(target)) return false;
+
+    const DWORD current_thread = GetCurrentThreadId();
+    const DWORD target_thread = GetWindowThreadProcessId(target, nullptr);
+    HWND foreground = GetForegroundWindow();
+    const DWORD foreground_thread = foreground
+        ? GetWindowThreadProcessId(foreground, nullptr) : 0;
+    bool attached_foreground = false;
+    bool attached_target = false;
+    if (foreground_thread && foreground_thread != current_thread)
+        attached_foreground = AttachThreadInput(current_thread, foreground_thread, TRUE) != FALSE;
+    if (target_thread && target_thread != current_thread &&
+        target_thread != foreground_thread)
+        attached_target = AttachThreadInput(current_thread, target_thread, TRUE) != FALSE;
+
+    BringWindowToTop(target);
+    const bool foreground_set = SetForegroundWindow(target) != FALSE;
+    if (target == g_hwnd) {
+        SetActiveWindow(target);
+        if (g_browser) g_browser->GetHost()->SetFocus(true);
+        HWND child = FindWindowExW(target, nullptr, L"Chrome_WidgetWin_1", nullptr);
+        SetFocus(child ? child : target);
+    }
+
+    if (attached_target) AttachThreadInput(current_thread, target_thread, FALSE);
+    if (attached_foreground) AttachThreadInput(current_thread, foreground_thread, FALSE);
+    return foreground_set && GetForegroundWindow() == target;
+}
+
+static bool RestorePreviousForeground() {
+    if (!g_prev_fore || !IsWindow(g_prev_fore) || g_prev_fore == g_hwnd) {
+        g_prev_fore = nullptr;
+        return true;
+    }
+    if (GetForegroundWindow() != g_hwnd && GetForegroundWindow() != nullptr) {
+        g_prev_fore = nullptr;
+        return true;
+    }
+    if (!SetForegroundWithInput(g_prev_fore)) return false;
+    g_prev_fore = nullptr;
+    return true;
 }
 
 // A DComp HWND needs WS_EX_LAYERED as well as WS_EX_TRANSPARENT for cross-process
@@ -1110,6 +1159,11 @@ static void HandleOscQuery(const std::string& req, bool persistent,
     }
 
     if (cmd == "QUERY_WIN_CLOSE_OSC") {
+        if (g_devtools_open.load() || GetTickCount64() < g_devtools_close_grace_until.load()) {
+            Log("[state] ignored close request while DevTools is active or closing");
+            reply("{}");
+            return;
+        }
         // แบบของแท้: หน้าเพจเป็นเจ้าของ UI — ปิดเองทาง socket แล้ว
         g_ui_rects.clear();
         // [P1#1 Copilot] ส่งแค่ intent — สถานะให้ UI thread (WM_OSC_VIS) เป็นผู้เขียน
@@ -1219,6 +1273,44 @@ static void EnsureShownOnce() {
     Log("[window] first composite — CEF surface is visible");
 }
 
+class OscDevToolsClient : public CefClient,
+                          public CefLifeSpanHandler {
+public:
+    CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override { return this; }
+    void OnBeforeClose(CefRefPtr<CefBrowser>) override {
+        g_devtools_open = false;
+        g_devtools_close_grace_until = GetTickCount64() + 10000;
+        Log("[devtools] window closed");
+    }
+    IMPLEMENT_REFCOUNTING(OscDevToolsClient);
+};
+
+static void OpenDevTools(CefRefPtr<CefBrowser> browser);
+
+class OpenDevToolsTask : public CefTask {
+public:
+    explicit OpenDevToolsTask(CefRefPtr<CefBrowser> browser) : browser_(browser) {}
+    void Execute() override { OpenDevTools(browser_); }
+private:
+    CefRefPtr<CefBrowser> browser_;
+    IMPLEMENT_REFCOUNTING(OpenDevToolsTask);
+};
+
+static void OpenDevTools(CefRefPtr<CefBrowser> browser) {
+    if (!browser) return;
+    CefRefPtr<CefBrowserHost> host = browser->GetHost();
+    g_devtools_open = true;
+    if (g_hwnd) SetTimer(g_hwnd, 4, 500, nullptr);
+    CefWindowInfo window_info;
+    window_info.SetAsPopup(nullptr, "NVIDIA OSC DevTools");
+    CefBrowserSettings settings;
+    host->ShowDevTools(window_info, new OscDevToolsClient(),
+        settings, CefPoint());
+    Log(host->HasDevTools()
+        ? "[devtools] shown from keyboard shortcut"
+        : "[devtools] requested from keyboard shortcut");
+}
+
 // ================= client + OSR render handler =================
 // ★ สร้าง browser หลัง init เสร็จสนิท (เรียกผ่าน CefPostDelayedTask)
 class OscClient : public CefClient,
@@ -1227,17 +1319,32 @@ class OscClient : public CefClient,
                   public CefRenderHandler,
                   public CefDisplayHandler,
                   public CefRequestHandler,
-                  public CefContextMenuHandler {
+                  public CefContextMenuHandler,
+                  public CefKeyboardHandler {
 public:
     CefRefPtr<CefLifeSpanHandler> GetLifeSpanHandler() override { return this; }
     CefRefPtr<CefLoadHandler> GetLoadHandler() override { return this; }
     CefRefPtr<CefRenderHandler> GetRenderHandler() override { return this; }
     CefRefPtr<CefDisplayHandler> GetDisplayHandler() override { return this; }
     CefRefPtr<CefRequestHandler> GetRequestHandler() override { return this; }
+    CefRefPtr<CefKeyboardHandler> GetKeyboardHandler() override { return this; }
     // Overlay: ไม่มี context menu (คลิกขวา = เมนู browser ไม่จำเป็น)
     CefRefPtr<CefContextMenuHandler> GetContextMenuHandler() override { return this; }
     void OnBeforeContextMenu(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame>, CefRefPtr<CefContextMenuParams>,
         CefRefPtr<CefMenuModel> model) override { model->Clear(); }
+
+    bool OnPreKeyEvent(CefRefPtr<CefBrowser> browser, const CefKeyEvent& event,
+        CefEventHandle, bool* is_keyboard_shortcut) override {
+        if (!browser || !g_browser ||
+            browser->GetIdentifier() != g_browser->GetIdentifier() ||
+            event.type != KEYEVENT_RAWKEYDOWN) return false;
+        if (event.windows_key_code != 'I' ||
+            (event.modifiers & EVENTFLAG_CONTROL_DOWN) == 0 ||
+            (event.modifiers & EVENTFLAG_SHIFT_DOWN) == 0) return false;
+        if (is_keyboard_shortcut) *is_keyboard_shortcut = true;
+        CefPostTask(TID_UI, new OpenDevToolsTask(browser));
+        return true;
+    }
 
     void OnAddressChange(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame> frame,
         const CefString& url) override {
@@ -1279,38 +1386,52 @@ public:
                     "requestAnimationFrame(smp);}requestAnimationFrame(smp);})();",
                     browser->GetMainFrame()->GetURL(), 0);
             }
-            // ★ mods: ฉีด CSS ทุกไฟล์ใน osc/mods/*.css (สเปก OWNER 02:4x)
-            //   node ให้ list ที่ /mods/list (เรียงตามชื่อ) — แก้ไฟล์แล้วแค่ reload
-            //   ★ scoping (03:2x): body[data-nv-route="preferences"] ติดตาม hash ตลอด
-            //     → mod จำกัดขอบเขตด้วย attribute นี้ ไม่โดนทุกหน้า
+            // Inject CSS mods only when their file version changes.
             {
                 browser->GetMainFrame()->ExecuteJavaScript(
                     "(function(){if(window.__nvMods)return;window.__nvMods=1;"
                     "function rt(){var h=(location.hash||'#/base').split('/');"
                     "var r=h[2]||'base';"
-                    "if(h[3])r=r+'-'+h[3];"
+                    "if(h[3])r=r==='preferences'?(h[3]==='privacy-control'?'preferences/privacy-control':'preferences-'+h[3]):r+'-'+h[3];"
                     "document.body.setAttribute('data-nv-route', r);}"
                     "rt();addEventListener('hashchange',rt);"
-                    // ★ real-time: sync ทุก 2 วิ — เพิ่มไฟล์ใหม่ = ฉีดเลย,
-                    //   แก้ไฟล์ = cache-bust reload ลิงก์ (CSS วาดใหม่ทันที ไม่ต้อง Alt+G)
-                    "function inj(u){"
-                    "if(u.endsWith('.js')){var sc=document.createElement('script');"
-                    "sc.src=u;sc.dataset.nvmod=u;document.head.appendChild(sc);return;}"
-                    "var l=document.createElement('link');"
-                    "l.rel='stylesheet';l.href=u;l.dataset.nvmod=u;document.head.appendChild(l);}"
-                    "function bust(m){if(m.tagName==='SCRIPT'){"
-                    // js mod: reload = ถอดแล้วสร้างใหม่ (script ไม่ re-execute เอง)
-                    "var s2=document.createElement('script');s2.src=m.dataset.nvmod+'?t='+Date.now();"
-                    "s2.dataset.nvmod=m.dataset.nvmod;m.parentNode.replaceChild(s2,m);return;}"
-                    "m.href=m.dataset.nvmod+'?t='+Date.now();}"
-                    "function sync(){fetch('/mods/list?t='+Date.now())"
-                    ".then(function(r){return r.json();})"
-                    ".then(function(fs){var have={};"
-                    "document.querySelectorAll('[data-nvmod]').forEach(function(l){have[l.dataset.nvmod]=1;});"
-                    "fs.forEach(function(f){var u='/mods/'+f;"
-                    "if(!have[u])inj(u);});"
-                    "document.querySelectorAll('link[data-nvmod]').forEach(bust);})"
-                    ".catch(function(){});}"
+                    "function find(u){var a=document.querySelectorAll('[data-nvmod]');"
+                    "for(var i=0;i<a.length;i++)if(a[i].dataset.nvmod===u)return a[i];"
+                    "return null;}"
+                    "function load(entry){var u='/mods/'+entry.name,old=find(u);"
+                    "if(old&&old.dataset.nvversion===entry.version)return;"
+                    "if(entry.name.slice(-3)==='.js'){"
+                    "var sc=document.createElement('script');sc.src=u+'?v='+encodeURIComponent(entry.version);"
+                    "sc.dataset.nvmod=u;sc.dataset.nvversion=entry.version;"
+                    "sc.onload=function(){if(old&&old.parentNode)old.parentNode.removeChild(old);};"
+                    "sc.onerror=function(){if(sc.parentNode)sc.parentNode.removeChild(sc);};"
+                    "document.head.appendChild(sc);return;}"
+                    "var link=document.createElement('link');link.rel='stylesheet';"
+                    "link.href=u+'?v='+encodeURIComponent(entry.version);"
+                    "link.dataset.nvmod=u;link.dataset.nvversion=entry.version;"
+                    "link.onload=function(){if(old&&old.parentNode)old.parentNode.removeChild(old);};"
+                    "link.onerror=function(){if(link.parentNode)link.parentNode.removeChild(link);};"
+                    "document.head.appendChild(link);}"
+                    "var busy=false;"
+                    "function sync(){if(busy)return;busy=true;"
+                    "fetch('/mods/list',{cache:'no-store'})"
+                    ".then(function(r){if(!r.ok)throw new Error('mods list '+r.status);return r.json();})"
+                    ".then(function(entries){return Promise.all(entries.map(function(item){"
+                    "if(typeof item!=='string')return item;"
+                    "return fetch('/mods/'+item+'?__nvcheck='+Date.now(),{cache:'no-store'})"
+                    ".then(function(r){if(!r.ok)throw new Error('mod '+item+' '+r.status);return r.text();})"
+                    ".then(function(text){var h=2166136261;for(var i=0;i<text.length;i++)"
+                    "h=Math.imul(h^text.charCodeAt(i),16777619);"
+                    "return{name:item,version:'legacy-'+(h>>>0).toString(16)};});"
+                    "}));}).then(function(entries){var keep={};"
+                    "entries.forEach(function(e){"
+                    "if(!e||typeof e.name!=='string'||typeof e.version!=='string')return;"
+                    "var u='/mods/'+e.name;keep[u]=1;var old=find(u);"
+                    "if(!old||old.dataset.nvversion!==e.version)load(e);});"
+                    "document.querySelectorAll('[data-nvmod]').forEach(function(m){"
+                    "if(!keep[m.dataset.nvmod]&&m.parentNode)m.parentNode.removeChild(m);});})"
+                    ".catch(function(e){console.warn('[osc-mods] sync failed',e);})"
+                    ".then(function(){busy=false;});}"
                     "sync();setInterval(sync,2000);"
                     "})();",
                     browser->GetMainFrame()->GetURL(), 0);
@@ -1640,6 +1761,12 @@ static void BindDcompTarget() {
 }
 
 static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
+    if ((msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN) &&
+        w == VK_F12 && (l & (1LL << 30)) == 0 && g_browser) {
+        if (!CefPostTask(TID_UI, new OpenDevToolsTask(g_browser)))
+            Log("[devtools] failed to post F12 toggle to CEF UI thread");
+        return 0;
+    }
     if (g_browser && !g_route_clickthrough) {
         auto host = g_browser->GetHost();
         switch (msg) {
@@ -1687,6 +1814,19 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                 (clickthrough ? "click-through (#/base)" : "interactive"));
         }
         ApplyOpenShareInputMode();
+        if (g_ui_open && !clickthrough) {
+            SetTimer(g_hwnd, 2, 500, nullptr);
+            ShowWindow(g_hwnd, SW_SHOW);
+            g_osc_activation_attempts = 10;
+            if (SetForegroundWithInput(g_hwnd)) {
+                g_osc_activation_attempts = 0;
+            } else {
+                Log("[focus] activation pending after interactive route change");
+            }
+        } else if (clickthrough) {
+            KillTimer(g_hwnd, 2);
+            g_osc_activation_attempts = 0;
+        }
         return 0;
     }
     case WM_OSC_VIS: {
@@ -1703,6 +1843,13 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
         }
         g_ui_open = ns;
         if (ns) {
+            if (!was) {
+                KillTimer(g_hwnd, 3);
+                g_prev_fore = GetForegroundWindow();
+                if (g_prev_fore == g_hwnd) g_prev_fore = nullptr;
+                g_foreground_restore_attempts = 0;
+                g_osc_activation_attempts = 0;
+            }
             if (!g_route_clickthrough && !SetFullOverlayRegion())
                 Log("[window] OSC opened but full hit-test region could not be restored");
             // OSC ขึ้นจอหลักเสมอ (primary) + ขยายเต็ม
@@ -1716,17 +1863,19 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                     mi.rcMonitor.bottom - mi.rcMonitor.top,
                     SWP_NOACTIVATE);
             }
-            if (!was && !g_route_clickthrough) g_prev_fore = GetForegroundWindow();
-            ShowWindow(g_hwnd, SW_SHOWNOACTIVATE);
+            ShowWindow(g_hwnd, g_route_clickthrough ? SW_SHOWNOACTIVATE : SW_SHOW);
             ApplyOpenShareInputMode();
             if (!g_route_clickthrough) {
                 SetTimer(g_hwnd, 2, 500, nullptr);
-                SetForegroundWindow(g_hwnd);
-                if (g_browser) g_browser->GetHost()->SetFocus(true);
-                HWND child = FindWindowExW(g_hwnd, nullptr, L"Chrome_WidgetWin_1", nullptr);
-                SetFocus(child ? child : g_hwnd);
+                g_osc_activation_attempts = 10;
+                if (SetForegroundWithInput(g_hwnd)) {
+                    g_osc_activation_attempts = 0;
+                } else {
+                    Log("[focus] activation pending after OSC open");
+                }
             } else {
                 KillTimer(g_hwnd, 2);
+                g_osc_activation_attempts = 0;
             }
             // ★ [P1#2 Copilot] OSR เท่านั้น — windowed ห้ามแตะ DComp · bind ครั้งเดียว
             //   (target เก็บใน g_dcomp_target ตลอดอายุ) — เปิดซ้ำแค่ Commit ให้ DWM รับซ้ำ
@@ -1738,11 +1887,14 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
                 g_browser->GetHost()->Invalidate(PET_VIEW);
         } else {
             ApplyOpenShareInputMode();
-            // ★ ปิดโฟกัส CEF (สเปก: osc ปิด = ปิดโฟกัส Cef) + คืนโฟกัสหน้าต่างเดิม
+            g_osc_activation_attempts = 0;
+            // Close CEF focus first, then return activation to the window captured at open.
             if (g_browser) g_browser->GetHost()->SetFocus(false);
-            if (g_prev_fore && IsWindow(g_prev_fore) && g_prev_fore != g_hwnd)
-                SetForegroundWindow(g_prev_fore);
-            g_prev_fore = nullptr;
+            if (!RestorePreviousForeground()) {
+                g_foreground_restore_attempts = 0;
+                SetTimer(g_hwnd, 3, 50, nullptr);
+                Log("[focus] previous foreground restore pending");
+            }
             KillTimer(g_hwnd, 2);
         }
         if (external_request) QueueOscPageAction(ns);
@@ -1756,13 +1908,50 @@ static LRESULT CALLBACK WndProc(HWND h, UINT msg, WPARAM w, LPARAM l) {
     }
     case WM_TIMER: {
         // WM_TIMER วิ่งบนเธรด UI ของ CEF (หน้าต่างถูกสร้างบนเธรดนั้น) — เรียก browser ได้ตรง ๆ
+        if (w == 4) {
+            if (g_browser && !g_browser->GetHost()->HasDevTools()) {
+                g_devtools_open = false;
+                g_devtools_close_grace_until = GetTickCount64() + 10000;
+                KillTimer(g_hwnd, 4);
+                Log("[devtools] closed");
+            }
+            return 0;
+        }
+        if (w == 3) {
+            if (g_ui_open) {
+                KillTimer(g_hwnd, 3);
+                g_foreground_restore_attempts = 0;
+            } else if (RestorePreviousForeground()) {
+                KillTimer(g_hwnd, 3);
+                g_foreground_restore_attempts = 0;
+            } else if (++g_foreground_restore_attempts >= 10) {
+                KillTimer(g_hwnd, 3);
+                g_prev_fore = nullptr;
+                Log("[focus] previous foreground restore failed after retries");
+            }
+            return 0;
+        }
         // timer 2 = เฝ้า topmost + watchdog
         if (w == 2 && g_browser) {
             // CEF's internal scheduler handles OSR frames. This timer only keeps the
             // open overlay above games without polling at the monitor refresh rate.
-            if (!g_route_clickthrough) {
+            if (g_ui_open && !g_route_clickthrough) {
                 SetWindowPos(g_hwnd, HWND_TOPMOST, 0, 0, 0, 0,
                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+                if (g_osc_activation_attempts > 0) {
+                    HWND foreground = GetForegroundWindow();
+                    if (foreground == g_hwnd) {
+                        g_osc_activation_attempts = 0;
+                    } else if (!foreground || foreground == g_prev_fore) {
+                        if (SetForegroundWithInput(g_hwnd)) {
+                            g_osc_activation_attempts = 0;
+                        } else if (--g_osc_activation_attempts == 0) {
+                            Log("[focus] OSC activation failed after retries");
+                        }
+                    } else {
+                        g_osc_activation_attempts = 0;
+                    }
+                }
             }
             return 0;
         }

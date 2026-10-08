@@ -23,7 +23,7 @@ public class MainForm : Form
 
     public MainForm()
     {
-        var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, ".."));
+        var root = RootLocator.Find();
         _bridge = new Bridge(root);
 
         Text = "NVIDIA ShadowPlay - Build";
@@ -92,9 +92,14 @@ public class MainForm : Form
             // postMessage(payload): payload ที่เป็น JSON text จะถูก wrap เป็น JSON string
             // (double-encoded) - decode ชั้นนอกก่อนเสมอ
             var outer = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
-            payload = outer.ValueKind == JsonValueKind.String
-                ? JsonDocument.Parse(outer.GetString()).RootElement
-                : outer;
+            var text = outer.ValueKind == JsonValueKind.String ? outer.GetString() : outer.GetRawText();
+            if (string.IsNullOrWhiteSpace(text) || !text.TrimStart().StartsWith("{"))
+            {
+                // ข้อความธรรมดา (JSERR:/JSREJ:/DOM: debug ฯลฯ) = ไม่ใช่ RPC - บันทึกแล้วจบ
+                UiLog("JS note: " + text);
+                return;
+            }
+            payload = JsonDocument.Parse(text).RootElement;
         }
         catch (Exception ex)
         {
@@ -128,10 +133,11 @@ public class MainForm : Form
                 {
                     "status" => _bridge.GetStatus(),
                     "startBuild" => _bridge.StartBuild(ArgsBool(args, 0)),
+                    "cancelBuild" => _bridge.CancelBuild(),
                     "log" => _bridge.GetLog(ArgsInt(args, 0)),
                     "version" => _bridge.GetVersionConfig(),
                     "versions" => _bridge.GetVersions(),
-                    "saveVersions" => _bridge.SaveVersions(args.HasValue && args.Value.GetArrayLength() > 0 ? args.Value[0].GetRawText() : "{}"),
+                    "saveVersions" => _bridge.SaveVersions(ArgsStr(args, 0)),
                     "saveVersion" => _bridge.SaveVersionConfig(ArgsStr(args, 0)),
                     "preview" => _bridge.GetPreview(),
                     "launch" => _bridge.LaunchApp(),
@@ -156,6 +162,25 @@ public class MainForm : Form
     private static int ArgsInt(JsonElement? args, int idx) =>
         args.HasValue && args.Value.GetArrayLength() > idx ? args.Value[idx].GetInt32() : 0;
 
-    private static string ArgsStr(JsonElement? args, int idx) =>
-        args.HasValue && args.Value.GetArrayLength() > idx ? args.Value[idx].GetRawText() : "{}";
+    private static string ArgsStr(JsonElement? args, int idx)
+    {
+        // arg จาก JS มักเป็น JSON string (JSON.stringify แล้ว) - ต้องไขชั้นคำพูดออกก่อน
+        // ไม่งั้นปลายทางได้ JSON ที่ encode ซ้อนแล้ว Deserialize พังทุกครั้ง
+        if (!args.HasValue || args.Value.GetArrayLength() <= idx) return "{}";
+        var el = args.Value[idx];
+        return el.ValueKind == JsonValueKind.String ? el.GetString() : el.GetRawText();
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        if (_bridge.IsRunning && MessageBox.Show(
+                "build กำลังรันอยู่ — ปิดเลยนะเหรอ?\n(build process จะถูกยกเลิกทั้ง tree)",
+                "NVIDIA ShadowPlay - Build", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+        {
+            e.Cancel = true;
+            return;
+        }
+        _bridge.KillIfRunning();
+        base.OnFormClosing(e);
+    }
 }

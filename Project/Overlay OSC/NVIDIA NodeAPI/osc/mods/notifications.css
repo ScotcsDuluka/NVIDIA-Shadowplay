@@ -1,0 +1,23 @@
+body[data-nv-route="preferences-notifications"] .notif-row {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+body[data-nv-route="preferences-notifications"] .notif-item-row {
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box;
+    padding-right: 24px;
+}
+
+.notif-item-container{
+ min-width: 0%;
+    max-width: 100%;
+    min-height: 0%;
+    max-height: 95%;
+}
+
+
+.notif-item, .notif-item-row, .notif-root-label {
+    max-width: 100%;
+}

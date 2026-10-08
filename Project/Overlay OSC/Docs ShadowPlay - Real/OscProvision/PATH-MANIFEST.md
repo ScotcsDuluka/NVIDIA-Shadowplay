@@ -814,3 +814,24 @@ COverlayApi::SetInputRedirectionMode: mode[4] → COverlayApi::SetSP(25640,2)/(1
 
 **ทิศทางที่ OWNER พึ่งตัดสิน:** ถอด osc ออกจาก Share.exe → port หน้าเอง (WebView2 spike = ทางที่แนะนำ; สเปก scale ตรงยืนยันแล้ว: zoom = log(min(W/1920,H/1080))/log(1.2) = -0.732395 ที่ 1680×1050, factor 0.875; หน้ากัน cefQuery หายไว้แล้ว — "No cefQuery." + ยิงแค่ 5 คำสั่ง) — แต่ host เรายังมั่ว = พักไว้ก่อน
 
+### §21.5 — ไล่ปม "container OscProcMgr ยอมแพ้" ปิด + boot รอบใหม่เขียวครบ (2026-10-06 ~20:0x — รันต่อ §21.4 ตามสั่ง OWNER)
+
+**boot (19:51):** `NvPlugins.exe boot` (elevated) → **17/17 OK** — kill node ร้าว PID 3452 (PF NvNode) + helper ผิด path 15700 → spawn node แท้ 12208 + helper แท้ → Share 13012 ขึ้น · ตรวจสด: `launch:true` · Share ×3 · `Capture/State: Ready` · **nvosc_container check 6 ชั้นเขียวทั้งหมด** (L0/L1 13 routes/L2/L3/L4 socket ✓ Share main 1 GFE/L5 paused)
+
+**log ที่ถูกต้องของปม (เดิมหาผิดที่):** `C:\ProgramData\NVIDIA Corporation\ShadowPlay\CaptureCore.log` (+`.old`) = log ของ ShadowPlayContainerPlugin ฝั่ง container (แท็ก `[CNTNR:pid]`) · log NvContainerUser1SPUser.log เงียบหลัง start เสมอ (plugin ไม่พิมพ์ลงนั่น) · **COscProcMgr อยู่ใน `_nvspcaps64.dll` (SPUser container)** — พิสูจน์ด้วย string scan ASCII+UTF-16 24 ไฟล์ NVIDIA
+
+**timeline วันนี้ (CaptureCore.log/.old + debug.log):**
+- 18:05:15 boot — Starting nvosc → Share 13680 ✓ · 18:55:11 **OSC Crashed! try#0 → restart ได้** (Share 26408) · 19:03:40 **try#1 → restart ได้** (Share 16352; 0.3 วิก่อนตายมี hotkey msg 7 + GetFocusProcInfo fail 0x8004023A) — ไม่มี WER record ของ Share.exe เลย (Application Error วันนี้ = PyQt app + VALORANT เท่านั้น)
+- 19:12:03 container 2536 shutdown/rotate (Run Exiting Thread ตอนนั้น = ปิด container ปกติ ไม่ใช่ยอมแพ้) → 19:13:32 container 12220 ใหม่
+- **19:28:20.5 Share 19984 โผล่โดยไม่มีบันทึกของ container เลย** (ไม่มี Starting nvosc/StartProcess; ตอน join bus container แจ้ง `Unexpected. m_pSPServer not initialized`) = spawn นอก lifecycle ของ OscProcMgr → **plugin ไม่มี handle ของมัน**
+- 19:28:26.694 **NODJS:3452 (node ร้าว PF) ยิง `EnableShadowPlay origin(4)`** → enable flow เริ่ม (threads 19:28:28.777)
+- 19:28:29.368 `[E] KillProcess: failed to kill 19984 (error 6)` = **ERROR_INVALID_HANDLE** → Starting nvosc → StartProcess 63ms → `[E] OSC not started 0` (Share ใหม่โดน single-instance เพราะ 19984 ยังมีชีวิต) → **`COscProcMgr::Run: Exiting Thread`** (ยอมแพ้ 1 วิหลังเริ่ม) → rollback "shutting down OSC 16 mSec" ปิด 19984 แบบ graceful → **Share 0 · launch:false (0x80040233) · OpenOsc E_INVALIDARG (19:33/19:46)** = สถานะที่ §21.4 เห็นพอดี (spawn 19984 → ตาย 9 วิ → rollback)
+- 19:51 boot ใหม่: node ร้าวถูกล่า → enable จาก node แท้ 12208 → field สะอาด (ไม่มี Share ค้าง) → StartProcess ผ่าน → launch:true ถึงตอนนี้
+
+**คำตอบปม (3 ชั้น):**
+1. **"ยอมแพ้" = COscProcMgr::Run เป็น single-shot ตอน start-up** — StartProcess รอบแรกล้ม = Exiting Thread ทันที **ไม่มี retry** (กลไก OnEndProcess try#N ทำงานเฉพาะหลัง spawn สำเร็จครั้งแรกเท่านั้น — รอบเช้า try#0/#1 กู้ Share กลับมาได้จริง = กลไกนี้ไม่ผิด)
+2. **สาเหตุที่ StartProcess ล้ม = Share ตัวเก่า (19984) ยังมีชีวิต + kill ไม่ได้** (error 6: OscProcMgr ไม่มี handle เพราะ 19984 spawn นอก lifecycle) → Share ใหม่โดน single-instance gate → "OSC not started 0"
+3. **ผู้จุดชนวน = enable จาก node ร้าว 3452** (ตัวที่ supervisor step [3] จับได้ใน status รอบเช้า) — node ร้าว + Share ค้างนอก lifecycle พร้อมกัน = สูตร crash ของ enable
+
+**หมายเหตุ:** try#5 ที่ handoff §21.4 เอ่ยถึงไม่พบใน log รอบนี้ (อาจอยู่ rotation เก่ากว่า .old) — ไม่กระทบข้อสรุป · **เสนอแนวป้องกัน (ยังไม่ทำ รอ OWNER):** ก่อน [6] arm enable — verify field สะอาด (kill/รอ Share ทุกตัวก่อน) เพราะ [6d] dedupe ครอบเฉพาะ duplicate ตัว main แต่ไม่ครอบ "Share มีชีวิตตอน enable"
+

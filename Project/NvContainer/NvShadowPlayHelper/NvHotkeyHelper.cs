@@ -4,7 +4,7 @@
 //   • RegisterHotKey ทุกตัวที่มี modifier (Alt+F1, Alt+F9, Ctrl+Alt+R …)
 //   • กดแล้วยิง :59002/?hk=<Name> → node shim → socket /ShadowPlay/v.1.0/Hotkey → หน้าทำงาน
 //   • FileSystemWatcher ตามไฟล์ settings — แก้คีย์ใน OSC แล้วมีผลทันที (ไม่ต้องรีสตาร์ท)
-//   • กด Alt+Z = OpenShare (toggle overlay) — ยิง :59003 คู่ด้วย (โหมด genuine ผ่านได้)
+//   • OpenShare ยิง hotkey callback เข้า NvNode; OSC page เป็นเจ้าของ toggle state
 // config: Project\NvConfig\nvsphelper.json
 //
 // WinExe: ห้ามแตะ Console ทุกชนิด (handle invalid = crash) — log ลงไฟล์เท่านั้น
@@ -24,9 +24,11 @@ static class NvShadowPlayHelper
     [DllImport("user32.dll")]
     static extern bool UnregisterHotKey(IntPtr h, int id);
     [DllImport("user32.dll")]
-    static extern int GetMessageW(out MSG m, IntPtr h, uint a, uint b);
+    static extern short GetAsyncKeyState(int vKey);
     [DllImport("user32.dll")]
     static extern int PeekMessageW(out MSG m, IntPtr h, uint a, uint b, uint remove);
+    [DllImport("winmm.dll")]
+    static extern uint timeBeginPeriod(uint period);
 
     [StructLayout(LayoutKind.Sequential)]
     struct MSG { public IntPtr hwnd; public uint message; public IntPtr wParam; public IntPtr lParam; public uint time; public int ptX; public int ptY; }
@@ -34,12 +36,10 @@ static class NvShadowPlayHelper
     const uint WM_HOTKEY = 0x0312;
     const uint MOD_NOREPEAT = 0x4000;   // [P2#4 Copilot] 1 event ต่อ key-down (Win10+)
     const uint MOD_ALT = 0x1, MOD_CONTROL = 0x2, MOD_SHIFT = 0x4, MOD_WIN = 0x8;
-
     const string CONFIG = @"C:\My Project\NVIDIA-Shadowplay\Project\NvConfig\nvsphelper.json";
-    const string SETTINGS = @"C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\Overlay OSC\NvNode\shadowplay-settings.json";
+    const string SETTINGS = @"C:\My Project\NVIDIA-Shadowplay\Project\Overlay OSC\NVIDIA NodeAPI\shadowplay-settings.json";
 
     static string _fireUrl = "http://127.0.0.1:59011/?hk={name}";
-    static string _winUrl = "";   // ว่าง = ไม่ยิงคู่ (หน้าเป็นเจ้าของ UI ตามแท้)
     static string _logFile = @"C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\NvContainer\Logs\nvsphelper.log";
 
     // ค่า default ตาม GFE แท้ (route-floor HOTKEYS) — ใช้เมื่อ settings ไม่มีชื่อนั้น
@@ -90,7 +90,9 @@ static class NvShadowPlayHelper
     static long _lastRetry = -100000;
     // ★ upgrade-retry: คีย์ที่ได้ fallback (+Shift) ไว้ก่อน — ลองเอาคีย์หลักคืนทุก 10 วิ
     static readonly Dictionary<string, Tuple<uint, uint>> UpgradableKeys = new Dictionary<string, Tuple<uint, uint>>();
-    static readonly Dictionary<string, long> _lastFire = new Dictionary<string, long>();
+    static readonly Dictionary<string, uint> _awaitingKeyRelease = new Dictionary<string, uint>();
+    static readonly Dictionary<string, long> _lastHotkeyMessage = new Dictionary<string, long>();
+    const long HOTKEY_QUEUE_QUIET_MS = 150;
 
     static void LoadConfig()
     {
@@ -99,7 +101,6 @@ static class NvShadowPlayHelper
             using var doc = JsonDocument.Parse(File.ReadAllText(CONFIG));
             var r = doc.RootElement;
             if (r.TryGetProperty("fireUrl", out var v)) _fireUrl = v.GetString();
-            if (r.TryGetProperty("windowToggleUrl", out v)) _winUrl = v.GetString();
             if (r.TryGetProperty("logFile", out v)) _logFile = v.GetString();
         }
         catch { /* default ไว้แล้ว */ }
@@ -184,7 +185,8 @@ static class NvShadowPlayHelper
                 continue;
             }
             int id = _nextId++;
-            if (RegisterHotKey(IntPtr.Zero, id, mods | MOD_NOREPEAT, vk))
+            uint hotkeyFlags = mods | MOD_NOREPEAT;
+            if (RegisterHotKey(IntPtr.Zero, id, hotkeyFlags, vk))
             {
                 Registered[id] = Tuple.Create(kv.Key, mods, vk);
                 UpgradableKeys.Remove(kv.Key);   // ★ settings ใหม่ลงสำเร็จ = เลิก upgrade คีย์นี้ (กันทับคีย์ที่ user เลือก)
@@ -196,7 +198,8 @@ static class NvShadowPlayHelper
                 // ★ coexistence: NVIDIA App แท้จดชุด default (Alt+Z, Alt+F9 ฯลฯ) ไปก่อน
                 //   → เลื่อนคีย์ด้วย Shift พิเศษ (Alt+Shift+Z, Alt+Shift+F9 …) ให้ได้ทุกตัว
                 uint shifted = mods | MOD_SHIFT;
-                if ((mods & MOD_SHIFT) == 0 && RegisterHotKey(IntPtr.Zero, id, shifted | MOD_NOREPEAT, vk))
+                uint fallbackFlags = shifted | MOD_NOREPEAT;
+                if ((mods & MOD_SHIFT) == 0 && RegisterHotKey(IntPtr.Zero, id, fallbackFlags, vk))
                 {
                     Registered[id] = Tuple.Create(kv.Key, shifted, vk);
                     UpgradableKeys[kv.Key] = Tuple.Create(mods, vk);   // เก็บ mods หลัก (Alt) — upgrade จะได้ Alt+X จริง
@@ -221,6 +224,8 @@ static class NvShadowPlayHelper
 
         LoadConfig();
         RegisterAll();
+        if (timeBeginPeriod(1) != 0)
+            Log("[hotkey] warning: could not set 1ms timer resolution");
 
         // ตามไฟล์ settings — ผู้ใช้แก้คีย์ใน OSC = มีผลทันที
         var watcher = new FileSystemWatcher(Path.GetDirectoryName(SETTINGS), Path.GetFileName(SETTINGS))
@@ -242,20 +247,26 @@ static class NvShadowPlayHelper
                 if (!Registered.TryGetValue(id, out var info)) continue;
                 string name = info.Item1;
                 string canonical = Canonical.TryGetValue(name, out var c) ? c : name;
-                // ★ debounce: คีย์แช่ (auto-repeat) ยิงซ้ำใน <600ms — กลืนซ้ำ
-                var nowS = Environment.TickCount64;
-                if (_lastFire.TryGetValue(canonical, out var lastT) && nowS - lastT < 600) continue;
-                _lastFire[canonical] = nowS;
-                Log("[hotkey] " + name + " (" + canonical + ") -> fire");
+                _lastHotkeyMessage[canonical] = Environment.TickCount64;
+                if (_awaitingKeyRelease.ContainsKey(canonical)) continue;
+                _awaitingKeyRelease[canonical] = info.Item3;
                 var n = canonical;
+                var hotkeyName = name;
                 ThreadPool.QueueUserWorkItem(delegate
                 {
-                    // ★ 2026-10-07: fireUrl ว่าง = ข้าม (Alt+X/G ใช้ทางเดียว :59013/toggle —
-                    //   เดิมยิงสองทาง node+host = หน้า toggle สองรอบ = เปิดแล้วปิดทันที)
+                    Log("[hotkey] " + hotkeyName + " (" + n + ") -> fire");
                     if (_fireUrl.Length > 0) Post(_fireUrl.Replace("{name}", n));
-                    if (name == "openshare" && _winUrl.Length > 0) Post(_winUrl);   // host เรา (โหมด genuine ผ่านได้)
                 });
             }
+            var released = new System.Collections.Generic.List<string>();
+            foreach (var pending in _awaitingKeyRelease)
+            {
+                bool queueQuiet = !_lastHotkeyMessage.TryGetValue(pending.Key, out var lastMessage) ||
+                                  Environment.TickCount64 - lastMessage >= HOTKEY_QUEUE_QUIET_MS;
+                bool keyUp = (GetAsyncKeyState((int)pending.Value) & 0x8000) == 0;
+                if (keyUp && queueQuiet) released.Add(pending.Key);
+            }
+            foreach (var key in released) _awaitingKeyRelease.Remove(key);
             if ((FailedKeys.Count > 0 || UpgradableKeys.Count > 0) && Environment.TickCount64 - _lastRetry > 10000) {
                 _lastRetry = Environment.TickCount64;
                 // ★ upgrade: คีย์ที่ใช้ fallback — ถอด fallback ลองคีย์หลัก ถ้าไม่ได้ใส่ fallback กลับ
@@ -275,8 +286,9 @@ static class NvShadowPlayHelper
                     } else {
                         // ★ [P2#5 Copilot] เช็คผล fallback ก่อนลง Registered
                         int rid2 = _nextId++;
-                        if (RegisterHotKey(IntPtr.Zero, rid2, kv.Value.Item1 | MOD_NOREPEAT, kv.Value.Item2)) {
-                            Registered[rid2] = Tuple.Create(kv.Key, kv.Value.Item1, kv.Value.Item2);
+                        uint fallbackMods = kv.Value.Item1 | MOD_SHIFT;
+                        if (RegisterHotKey(IntPtr.Zero, rid2, fallbackMods | MOD_NOREPEAT, kv.Value.Item2)) {
+                            Registered[rid2] = Tuple.Create(kv.Key, fallbackMods, kv.Value.Item2);
                             FailedKeys.Remove(kv.Key);
                             Log("[hk] upgrade ยังไม่ว่าง — ใช้ fallback ต่อ: " + kv.Key + " (id " + rid2 + ")");
                         } else {
@@ -301,7 +313,7 @@ static class NvShadowPlayHelper
                 Log("[hk] settings เปลี่ยน — re-register (เธรดหลัก)");
                 RegisterAll();
             }
-            Thread.Sleep(80);
+            Thread.Sleep(1);
         }
     }
 
@@ -320,4 +332,5 @@ static class NvShadowPlayHelper
         }
         catch (Exception ex) { Log("[hotkey] " + url + " fail: " + ex.Message); }
     }
+
 }

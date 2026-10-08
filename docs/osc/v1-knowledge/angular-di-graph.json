@@ -1,0 +1,1615 @@
+{
+  "count": 91,
+  "registrations": [
+    {
+      "moduleId": 4,
+      "kind": "service",
+      "name": "$q",
+      "deps": [
+        "$log",
+        "$document",
+        "$filter",
+        "$state",
+        "shadowPlayEndpoints",
+        "oscNotificationService",
+        "socketService",
+        "cefService",
+        "galleryService",
+        "oscGalleryService",
+        "eventAggregator",
+        "keyboardService",
+        "telemetryService",
+        "hardwareService",
+        "$timeout",
+        "ugcService",
+        "oscDisplayService",
+        "sdkService",
+        "gameProfileService",
+        "quietMode2Service",
+        "OSC_CONFIG",
+        "DEFAULT_VIDEO_TAGS",
+        "NOTIFIER_SELECTIONS",
+        "OSC_MODE",
+        "HOTKEY_EVENTS",
+        "SHADOWPLAY_EVENTS",
+        "WINDOW_EVENTS",
+        "COPLAY_STATE",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "TELEMETRY_OSC_PERF_ID",
+        "TELEMETRY_OSC_CAPTURE_TYPE",
+        "NVCAMERA_EVENTS",
+        "TELEMETRY_CAPTURE_ACTION",
+        "TELEMETRY_OVERLAY_LOCATION",
+        "TELEMETRY_OSC_AVAILABLE_STATUS",
+        "TELEMETRY_OSC_MENU_TYPE",
+        "NGX_NOTIFICATIONS"
+      ]
+    },
+    {
+      "moduleId": 5,
+      "kind": "directive",
+      "name": "$log",
+      "deps": []
+    },
+    {
+      "moduleId": 5,
+      "kind": "directive",
+      "name": "$timeout",
+      "deps": [
+        "$log"
+      ]
+    },
+    {
+      "moduleId": 5,
+      "kind": "directive",
+      "name": "$timeout",
+      "deps": []
+    },
+    {
+      "moduleId": 5,
+      "kind": "directive",
+      "name": "$timeout",
+      "deps": []
+    },
+    {
+      "moduleId": 5,
+      "kind": "directive",
+      "name": "eventAggregator",
+      "deps": [
+        "COMMON_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 12,
+      "kind": "service",
+      "name": "$state",
+      "deps": [
+        "$stateParams",
+        "$log",
+        "$timeout",
+        "$rootScope",
+        "$window",
+        "cefService",
+        "socketService",
+        "eventAggregator",
+        "telemetryService",
+        "highlightsEndpoints",
+        "shadowPlayEndpoints",
+        "HOTKEY_EVENTS",
+        "WINDOW_EVENTS",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "PERFTOOL_EVENTS",
+        "OSC_EVENTS",
+        "TELEMETRY_OSC_PERF_ID",
+        "CONFIRMATION_TYPE",
+        "COMMON_EVENTS",
+        "NOTIFIER_SELECTIONS"
+      ]
+    },
+    {
+      "moduleId": 14,
+      "kind": "directive",
+      "name": "$$rAF",
+      "deps": [
+        "$window",
+        "$mdAria",
+        "$mdUtil",
+        "$mdConstant",
+        "$mdGesture",
+        "$parse",
+        "$log",
+        "$timeout",
+        "OSC_KEYBOARD"
+      ]
+    },
+    {
+      "moduleId": 22,
+      "kind": "service",
+      "name": "$state",
+      "deps": [
+        "$log",
+        "$q",
+        "$window",
+        "$filter",
+        "$http",
+        "eventAggregator",
+        "cefService",
+        "oscDisplayService",
+        "shadowPlayService",
+        "hotkeyService",
+        "settingsService",
+        "telemetryService",
+        "hardwareService",
+        "oscNotificationService",
+        "gfwslService",
+        "PERFTOOL_EVENTS",
+        "SHADOWPLAY_EVENTS",
+        "HOTKEY_EVENTS",
+        "COMMON_EVENTS",
+        "OSC_CONFIG",
+        "OVERLAY_VIEW",
+        "SCAN_TYPE",
+        "MODULE",
+        "TELEMETRY_OSC_AVAILABLE_STATUS",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "TELEMETRY_OSC_TOGGLE_STATE",
+        "SYSTEM_TYPE",
+        "OVERCLOCKING_FEATURE",
+        "DISCLAIMER_OPTIONS",
+        "$timeout",
+        "$interval",
+        "OC_SCANNER_STATUS",
+        "NOTIFIER_SELECTIONS",
+        "PERFTOOL_VIEWNAMES"
+      ]
+    },
+    {
+      "moduleId": 23,
+      "kind": "service",
+      "name": "$window",
+      "deps": [
+        "$log",
+        "eventAggregator",
+        "oscDisplayService",
+        "NOTIFICATION_EVENT",
+        "COMMON_EVENTS",
+        "piplConfigService"
+      ]
+    },
+    {
+      "moduleId": 25,
+      "kind": "service",
+      "name": "$log",
+      "deps": [
+        "$q",
+        "$filter",
+        "eventAggregator",
+        "hardwareEndpoints",
+        "COMMON_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 26,
+      "kind": "service",
+      "name": "$q",
+      "deps": [
+        "$timeout",
+        "$log",
+        "jsEventsService",
+        "cefService",
+        "eventsDetailService",
+        "eventAggregator",
+        "nvAccountService",
+        "gameProfileService",
+        "socketService",
+        "ACCOUNT_SOCKET_EVENTS",
+        "ACCOUNT_EVENTS",
+        "GDPR_CONSENT",
+        "OSC_CONFIG",
+        "OSC_BUILD_INFO",
+        "OSC_EVENTS",
+        "TELEMETRY_OSC_TOGGLE_STATE",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "TELEMETRY_OSC_VALID_PROVIDERS",
+        "TELEMETRY_OSC_SCREEN_STATE",
+        "TELEMETRY_OSC_BOOLEAN_STATUS",
+        "EVENTS_DETAIL_DATA",
+        "EVENTS_RETURN_CODE",
+        "CONNECT_EVENTS",
+        "GALLERY_TYPES",
+        "GALLERY_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 32,
+      "kind": "service",
+      "name": "$q",
+      "deps": [
+        "$log",
+        "$interval",
+        "$timeout",
+        "shadowPlayService",
+        "keyboardService",
+        "connectService",
+        "shadowPlayEndpoints",
+        "hardwareService",
+        "oscService",
+        "errorDialogService",
+        "oscNotificationService",
+        "socketService",
+        "eventAggregator",
+        "oscDisplayService",
+        "telemetryService",
+        "cefService",
+        "NOTIFIER_SELECTIONS",
+        "BROADCAST_STATES",
+        "HOTKEY_EVENTS",
+        "SHADOWPLAY_EVENTS",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "TELEMETRY_OSC_PERF_ID",
+        "TELEMETRY_OSC_TOGGLE_STATE",
+        "TELEMETRY_OSC_SCREEN_STATE",
+        "TELEMETRY_OSC_QUALITY_SETTING",
+        "TELEMETRY_OSC_MIC_MODE",
+        "TELEMETRY_OSC_BOOLEAN_STATUS",
+        "TELEMETRY_OSC_AVAILABLE_STATUS",
+        "OSC_CONFIG"
+      ]
+    },
+    {
+      "moduleId": 33,
+      "kind": "service",
+      "name": "$window",
+      "deps": [
+        "$filter",
+        "$timeout",
+        "$log",
+        "$q",
+        "coplayEndpoints",
+        "socketService",
+        "eventAggregator",
+        "oscDisplayService",
+        "oscNotificationService",
+        "errorDialogService",
+        "cefService",
+        "webrtcP2PService",
+        "shadowPlayService",
+        "telemetryService",
+        "COPLAY_STATE",
+        "COPLAY_EVENTS",
+        "COPLAY_CONTROLLER_MAPPING",
+        "OSC_EVENTS",
+        "NOTIFIER_SELECTIONS",
+        "SHADOWPLAY_EVENTS",
+        "HOTKEY_EVENTS",
+        "TELEMETRY_OSC_EVENT_NAMES"
+      ]
+    },
+    {
+      "moduleId": 34,
+      "kind": "service",
+      "name": "$log",
+      "deps": [
+        "$document",
+        "eventAggregator",
+        "OSC_KEYBOARD",
+        "KEYBOARD_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 35,
+      "kind": "service",
+      "name": "$q",
+      "deps": [
+        "$log",
+        "$window",
+        "shadowPlayService",
+        "broadcastService",
+        "octoolService",
+        "connectService",
+        "oscDisplayService",
+        "eventAggregator",
+        "COMMON_EVENTS",
+        "SHADOWPLAY_EVENTS",
+        "BROADCAST_STATES",
+        "CONNECT_EVENTS",
+        "PERFTOOL_EVENTS",
+        "OSC_CONFIG"
+      ]
+    },
+    {
+      "moduleId": 40,
+      "kind": "service",
+      "name": "$q",
+      "deps": [
+        "$state",
+        "$log",
+        "$timeout",
+        "$window",
+        "$filter",
+        "$http",
+        "$interval",
+        "eventAggregator",
+        "gfwslService",
+        "socketService",
+        "oscDisplayService",
+        "shadowPlayService",
+        "oscNotificationService",
+        "nvCameraEndpoints",
+        "settingsService",
+        "telemetryService",
+        "gamepadService",
+        "hardwareService",
+        "cefService",
+        "oscService",
+        "nisEndpoints",
+        "dvcEndpoints",
+        "HOTKEY_EVENTS",
+        "NVCAMERA_EVENTS",
+        "NOTIFIER_SELECTIONS",
+        "COMMON_EVENTS",
+        "SHADOWPLAY_EVENTS",
+        "OSC_CONFIG",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "TELEMETRY_OSC_ANSEL_TYPE",
+        "TELEMETRY_OSC_ANSEL_FAILURE_TYPE",
+        "TELEMETRY_OSC_SCREENSHOT_FAILURE_TYPE",
+        "TELEMETRY_OSC_PERF_ID",
+        "TELEMETRY_OSC_BOOLEAN_STATUS",
+        "TELEMETRY_OSC_ANSEL_GAMEPAD_TYPE",
+        "TELEMETRY_OSC_TRIGGER_MODE",
+        "NVCAMERA_MODE",
+        "TELEMETRY_OSC_MENU_TYPE",
+        "NVCAMERA_STATUS",
+        "TELEMETRY_OSC_AVAILABLE_STATUS",
+        "TELEMETRY_OSC_FILTER_CONTROL_TYPES",
+        "TELEMETRY_OSC_SCREEN_STATE",
+        "OSC_KEYBOARD"
+      ]
+    },
+    {
+      "moduleId": 46,
+      "kind": "service",
+      "name": "$state",
+      "deps": [
+        "oscDisplayService"
+      ]
+    },
+    {
+      "moduleId": 47,
+      "kind": "service",
+      "name": "$log",
+      "deps": [
+        "socketService",
+        "eventAggregator",
+        "HOTKEY_EVENTS",
+        "OSC_CONFIG",
+        "shadowPlayService",
+        "OSC_KEYBOARD",
+        "$document",
+        "$q"
+      ]
+    },
+    {
+      "moduleId": 49,
+      "kind": "service",
+      "name": "$q",
+      "deps": [
+        "$log",
+        "$window",
+        "$timeout",
+        "hardwareService",
+        "settingsService",
+        "oscDisplayService",
+        "oscNotificationService",
+        "connectService",
+        "jarvisService",
+        "oscGalleryService",
+        "socketService",
+        "eventAggregator",
+        "runTimeConfigService",
+        "hardwareConfigWrapper",
+        "recordingPathConfigWrapper",
+        "twitchIngestServerConfigWrapper",
+        "shotWithGeForceService",
+        "oscTargetService",
+        "cefService",
+        "OSC_CONFIG",
+        "COMMON_EVENTS",
+        "ACCOUNT_SOCKET_EVENTS",
+        "ACCOUNT_EVENTS",
+        "CONNECT_EVENTS",
+        "OSC_EVENTS",
+        "NOTIFIER_SELECTIONS",
+        "piplConfigService"
+      ]
+    },
+    {
+      "moduleId": 60,
+      "kind": "service",
+      "name": "$log",
+      "deps": [
+        "$filter",
+        "$q",
+        "eventAggregator",
+        "highlightsEndpoints",
+        "shadowPlayEndpoints",
+        "socketService",
+        "oscDisplayService",
+        "oscNotificationService",
+        "telemetryService",
+        "oscGalleryService",
+        "NOTIFIER_SELECTIONS",
+        "HIGHLIGHTS_EVENTS",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "CONFIRMATION_TYPE",
+        "HIGHLIGHT_PERMISSIONS",
+        "GALLERY_FILEPROCESS",
+        "TELEMETRY_OSC_AVAILABLE_STATUS"
+      ]
+    },
+    {
+      "moduleId": 61,
+      "kind": "service",
+      "name": "$log",
+      "deps": [
+        "$translate",
+        "$q",
+        "socketService",
+        "eventAggregator",
+        "settingsEndpoints",
+        "gfeUpdatesEndpoints",
+        "CLIENT_LOCALES",
+        "COMMON_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 89,
+      "kind": "service",
+      "name": "$log",
+      "deps": [
+        "eventAggregator",
+        "oscDisplayService",
+        "cefService",
+        "OSC_CONFIG",
+        "HOTKEY_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 91,
+      "kind": "service",
+      "name": "$log",
+      "deps": [
+        "$window",
+        "$rootScope",
+        "$timeout",
+        "OSC_KEYBOARD",
+        "cefService",
+        "eventAggregator",
+        "GAMEPAD_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 92,
+      "kind": "service",
+      "name": "$log",
+      "deps": [
+        "$q",
+        "hardwareService",
+        "gfwslEndpoints",
+        "OSC_BUILD_INFO"
+      ]
+    },
+    {
+      "moduleId": 93,
+      "kind": "service",
+      "name": "$q",
+      "deps": [
+        "$timeout",
+        "$log",
+        "eventAggregator",
+        "quietMode2Endpoints",
+        "socketService",
+        "OSC_CONFIG",
+        "QUIET_MODE2_EVENTS",
+        "COMMON_EVENTS",
+        "QUIET_MODE2_SERVICE_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 94,
+      "kind": "service",
+      "name": "$log",
+      "deps": [
+        "$q",
+        "websocketService",
+        "webrtcPeerConnectionFactory"
+      ]
+    },
+    {
+      "moduleId": 97,
+      "kind": "directive",
+      "name": "$document",
+      "deps": [
+        "$filter",
+        "$window",
+        "$log"
+      ]
+    },
+    {
+      "moduleId": 98,
+      "kind": "directive",
+      "name": "$document",
+      "deps": [
+        "$filter",
+        "$window",
+        "$log"
+      ]
+    },
+    {
+      "moduleId": 135,
+      "kind": "service",
+      "name": "$log",
+      "deps": [
+        "$q",
+        "$window",
+        "$translatePartialLoader",
+        "$state",
+        "$rootScope",
+        "$interpolate",
+        "$translate",
+        "eventAggregator",
+        "cefService",
+        "oscService",
+        "hotkeyService",
+        "oscDisplayService",
+        "shadowPlayService",
+        "sdkService",
+        "broadcastService",
+        "keyboardService",
+        "telemetryService",
+        "hardwareService",
+        "coplayService",
+        "settingsService",
+        "uploadManagerService",
+        "nvCameraService",
+        "socketService",
+        "oscNotificationService",
+        "osdService",
+        "gamepadService",
+        "ugcService",
+        "gameProfileService",
+        "octoolService",
+        "gfwslService",
+        "edgeDevKitService",
+        "piplConfigService",
+        "jarvis",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "OSC_CONFIG",
+        "OSC_BUILD_INFO",
+        "COMMON_EVENTS",
+        "quietMode2Service"
+      ]
+    },
+    {
+      "moduleId": 138,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "$log",
+        "broadcastService",
+        "ugcService",
+        "shadowPlayService",
+        "oscNotificationService",
+        "eventAggregator",
+        "KEYBOARD_EVENTS",
+        "NOTIFIER_SELECTIONS"
+      ]
+    },
+    {
+      "moduleId": 140,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "ACCORDION_MODES",
+        "OSC_KEYBOARD"
+      ]
+    },
+    {
+      "moduleId": 141,
+      "kind": "directive",
+      "name": "$compile",
+      "deps": []
+    },
+    {
+      "moduleId": 141,
+      "kind": "directive",
+      "name": "ACCORDION_MODES",
+      "deps": []
+    },
+    {
+      "moduleId": 145,
+      "kind": "service",
+      "name": "$q",
+      "deps": [
+        "$timeout",
+        "eventAggregator",
+        "shadowPlayEndpoints"
+      ]
+    },
+    {
+      "moduleId": 146,
+      "kind": "service",
+      "name": "$q",
+      "deps": [
+        "$log",
+        "$timeout",
+        "$document",
+        "galleryService",
+        "galleryEndpoints",
+        "eventAggregator",
+        "GALLERY_STATE",
+        "GALLERY_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 147,
+      "kind": "service",
+      "name": "$log",
+      "deps": [
+        "$q",
+        "telemetryService",
+        "targetService",
+        "eventAggregator",
+        "dbCacheService",
+        "$filter",
+        "jarvisService",
+        "socketService",
+        "abHubEndpoints",
+        "AB_HUB_SOCKET_EVENTS",
+        "AB_HUB_MESSAGE_TYPES",
+        "AB_STORE",
+        "OSC_BUILD_INFO",
+        "OSC_CONFIG",
+        "COMMON_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 149,
+      "kind": "service",
+      "name": "$log",
+      "deps": [
+        "$q",
+        "eventAggregator",
+        "COMMON_EVENTS",
+        "piplConfigEndpoints",
+        "PIPL_CONFIG_SOCKET_EVENTS",
+        "PIPL_CONFIG_SERVICE_EVENTS",
+        "socketService"
+      ]
+    },
+    {
+      "moduleId": 150,
+      "kind": "controller",
+      "name": "$element",
+      "deps": [
+        "$scope",
+        "eventAggregator",
+        "COMMON_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 151,
+      "kind": "directive",
+      "name": "$document",
+      "deps": [
+        "_",
+        "$compile"
+      ]
+    },
+    {
+      "moduleId": 154,
+      "kind": "controller",
+      "name": "$document",
+      "deps": [
+        "eventAggregator",
+        "NOTIFIER_SELECTIONS"
+      ]
+    },
+    {
+      "moduleId": 156,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "$stateParams",
+        "$log",
+        "oscDisplayService",
+        "shadowPlayService",
+        "eventAggregator",
+        "KEYBOARD_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 158,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "$stateParams",
+        "$window",
+        "$filter",
+        "OSC_CONFIG",
+        "oscDisplayService",
+        "eventAggregator",
+        "KEYBOARD_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 161,
+      "kind": "controller",
+      "name": "oscDisplayService",
+      "deps": []
+    },
+    {
+      "moduleId": 163,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$log"
+      ]
+    },
+    {
+      "moduleId": 165,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$element",
+        "$window",
+        "$document",
+        "$interval",
+        "$log",
+        "$timeout",
+        "connectService",
+        "ugcService",
+        "cefService"
+      ]
+    },
+    {
+      "moduleId": 166,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$stateParams",
+        "$log",
+        "eventAggregator",
+        "oscDisplayService",
+        "KEYBOARD_EVENTS",
+        "CONNECT_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 168,
+      "kind": "controller",
+      "name": "$filter",
+      "deps": [
+        "$scope",
+        "$log",
+        "eventAggregator",
+        "NOTIFICATION_DATA",
+        "NOTIFICATION_EVENT",
+        "NOTIFIER_SELECTIONS",
+        "UGC_NOTIFICATION_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 170,
+      "kind": "directive",
+      "name": "$document",
+      "deps": [
+        "$timeout",
+        "$log",
+        "oscDisplayService"
+      ]
+    },
+    {
+      "moduleId": 171,
+      "kind": "directive",
+      "name": "webrtcP2PService",
+      "deps": []
+    },
+    {
+      "moduleId": 172,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "eventAggregator",
+        "coplayService",
+        "KEYBOARD_EVENTS",
+        "OSC_KEYBOARD",
+        "COPLAY_CONTROLLER_MAPPING"
+      ]
+    },
+    {
+      "moduleId": 174,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "$window",
+        "eventAggregator",
+        "coplayService",
+        "KEYBOARD_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 176,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$q",
+        "$log",
+        "$filter",
+        "$document",
+        "$timeout",
+        "$window",
+        "eventAggregator",
+        "shadowPlayService",
+        "broadcastService",
+        "telemetryService",
+        "connectService",
+        "OSC_MODE",
+        "VIDEO_STATE",
+        "KEYBOARD_EVENTS",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "TELEMETRY_OSC_CAPTURE_TYPE"
+      ]
+    },
+    {
+      "moduleId": 178,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$log",
+        "edgeDevKitService"
+      ]
+    },
+    {
+      "moduleId": 180,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$log",
+        "$filter",
+        "$timeout",
+        "$window",
+        "$q",
+        "eventAggregator",
+        "_",
+        "connectService",
+        "oscGalleryService",
+        "ugcService",
+        "CONNECT_EVENTS",
+        "GALLERY_TYPES",
+        "GALLERY_SUBTYPES"
+      ]
+    },
+    {
+      "moduleId": 181,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "$log",
+        "$document",
+        "$timeout",
+        "oscDisplayService",
+        "oscGalleryService",
+        "eventAggregator",
+        "shadowPlayService",
+        "galleryService",
+        "telemetryService",
+        "cefService",
+        "KEYBOARD_EVENTS",
+        "GALLERY_STATE",
+        "OSC_KEYBOARD",
+        "GALLERY_TYPES",
+        "GALLERY_AUDIOTYPES",
+        "GALLERY_SUBTYPES",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "TELEMETRY_OSC_PERF_ID",
+        "piplConfigService",
+        "COMMON_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 183,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$log",
+        "$timeout",
+        "oscGalleryService",
+        "eventAggregator",
+        "shadowPlayService",
+        "KEYBOARD_EVENTS",
+        "GALLERY_SUBTYPES",
+        "OSC_KEYBOARD"
+      ]
+    },
+    {
+      "moduleId": 184,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "$log",
+        "$timeout",
+        "$window",
+        "$filter",
+        "eventAggregator",
+        "galleryService",
+        "oscGalleryService",
+        "cefService",
+        "oscDisplayService",
+        "oscNotificationService",
+        "NOTIFIER_SELECTIONS",
+        "KEYBOARD_EVENTS",
+        "GALLERY_TYPES",
+        "GALLERY_SUBTYPES"
+      ]
+    },
+    {
+      "moduleId": 186,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$sce",
+        "$log"
+      ]
+    },
+    {
+      "moduleId": 188,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "$log",
+        "$timeout",
+        "eventAggregator",
+        "galleryService",
+        "oscGalleryService",
+        "telemetryService",
+        "KEYBOARD_EVENTS",
+        "TELEMETRY_OSC_EVENT_NAMES"
+      ]
+    },
+    {
+      "moduleId": 190,
+      "kind": "controller",
+      "name": "$q",
+      "deps": [
+        "$scope",
+        "$state",
+        "$log",
+        "$timeout",
+        "$filter",
+        "$stateParams",
+        "sdkService",
+        "eventAggregator",
+        "galleryService",
+        "connectService",
+        "uploadService",
+        "oscGalleryService",
+        "ugcService",
+        "oscDisplayService",
+        "oscNotificationService",
+        "telemetryService",
+        "shadowPlayService",
+        "errorDialogService",
+        "oscService",
+        "galleryEndpoints",
+        "KEYBOARD_EVENTS",
+        "NOTIFIER_SELECTIONS",
+        "COMMON_EVENTS",
+        "GALLERY_TYPES",
+        "GALLERY_SUBTYPES",
+        "GALLERY_FILEPROCESS",
+        "piplConfigService",
+        "HIGHLIGHTS_EVENTS",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "TELEMETRY_OSC_AVAILABLE_STATUS"
+      ]
+    },
+    {
+      "moduleId": 192,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$document",
+        "$interval",
+        "$filter",
+        "$sce",
+        "$log",
+        "oscGalleryService",
+        "eventAggregator",
+        "NOTIFIER_SELECTIONS"
+      ]
+    },
+    {
+      "moduleId": 193,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$document",
+        "$interval",
+        "$filter",
+        "$sce",
+        "$log",
+        "oscGalleryService"
+      ]
+    },
+    {
+      "moduleId": 210,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$mdMenu",
+        "$state",
+        "$log",
+        "$document",
+        "$timeout",
+        "$q",
+        "$filter",
+        "shadowPlayService",
+        "broadcastService",
+        "osdService",
+        "oscNotificationService",
+        "oscDisplayService",
+        "eventAggregator",
+        "COMMON_EVENTS",
+        "coplayService",
+        "errorDialogService",
+        "telemetryService",
+        "nvCameraService",
+        "octoolService",
+        "quietMode2Service",
+        "SHADOWPLAY_EVENTS",
+        "RECORDING_STATES",
+        "AUDIO_STATE",
+        "NVCAMERA_EVENTS",
+        "BROADCAST_STATES",
+        "TILE_STATUS_BRUSH",
+        "NOTIFIER_SELECTIONS",
+        "KEYBOARD_EVENTS",
+        "COPLAY_STATE",
+        "COPLAY_EVENTS",
+        "OSC_KEYBOARD",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "TELEMETRY_OSC_CAPTURE_TYPE",
+        "TELEMETRY_OSC_PERF_ID",
+        "VIDEO_STATE",
+        "piplConfigService"
+      ]
+    },
+    {
+      "moduleId": 212,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "$log",
+        "$timeout",
+        "eventAggregator",
+        "shadowPlayService",
+        "KEYBOARD_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 216,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "$stateParams",
+        "$log",
+        "$document",
+        "$timeout",
+        "SHADOWPLAY_EVENTS",
+        "$q",
+        "eventAggregator",
+        "nvCameraService",
+        "oscDisplayService",
+        "shadowPlayService",
+        "KEYBOARD_EVENTS",
+        "NVCAMERA_EVENTS",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "HOTKEY_EVENTS",
+        "OSC_KEYBOARD",
+        "hotkeyService",
+        "cefService",
+        "$filter"
+      ]
+    },
+    {
+      "moduleId": 218,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "$stateParams",
+        "$log",
+        "$document",
+        "$timeout",
+        "$q",
+        "$filter",
+        "$window",
+        "eventAggregator",
+        "nvCameraService",
+        "oscDisplayService",
+        "shadowPlayService",
+        "cefService",
+        "settingsService",
+        "galleryService",
+        "oscNotificationService",
+        "telemetryService",
+        "hotkeyService",
+        "KEYBOARD_EVENTS",
+        "NVCAMERA_EVENTS",
+        "NOTIFIER_SELECTIONS",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "TELEMETRY_OSC_TOGGLE_STATE",
+        "OSC_KEYBOARD",
+        "GAMEPAD_EVENTS",
+        "COMMON_EVENTS",
+        "NVCAMERA_STATUS",
+        "HOTKEY_EVENTS",
+        "SHADOWPLAY_EVENTS",
+        "NGX_NOTIFICATIONS",
+        "TELEMETRY_OSC_AVAILABLE_STATUS",
+        "TELEMETRY_OSC_SCREEN_STATE",
+        "NVCAMERA_MODE"
+      ]
+    },
+    {
+      "moduleId": 220,
+      "kind": "controller",
+      "name": "$state",
+      "deps": [
+        "$stateParams",
+        "$scope",
+        "$q",
+        "$filter",
+        "$log",
+        "$interval",
+        "$timeout",
+        "eventAggregator",
+        "cefService",
+        "hotkeyService",
+        "octoolService",
+        "oscDisplayService",
+        "shadowPlayService",
+        "keyboardService",
+        "settingsService",
+        "KEYBOARD_EVENTS",
+        "HOTKEY_EVENTS",
+        "OSC_KEYBOARD",
+        "TELEMETRY_OSC_AVAILABLE_STATUS",
+        "OVERCLOCKING_FEATURE",
+        "DISCLAIMER_OPTIONS",
+        "PERFTOOL_EVENTS",
+        "OC_NOT_SUPPORTED_STATE",
+        "OC_SCANNER_STATUS"
+      ]
+    },
+    {
+      "moduleId": 222,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$filter",
+        "eventAggregator",
+        "osdService",
+        "shadowPlayService",
+        "keyboardService",
+        "COMMON_EVENTS",
+        "CONNECT_EVENTS",
+        "HOTKEY_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 224,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$window",
+        "osdService",
+        "oscDisplayService",
+        "octoolService",
+        "eventAggregator",
+        "COMMON_EVENTS",
+        "PERFTOOL_EVENTS",
+        "OSC_CONFIG"
+      ]
+    },
+    {
+      "moduleId": 226,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$interval",
+        "$filter",
+        "eventAggregator",
+        "oscDisplayService",
+        "shadowPlayService",
+        "keyboardService",
+        "octoolService",
+        "hotkeyService",
+        "osdService",
+        "PERFTOOL_EVENTS",
+        "COMMON_EVENTS",
+        "HOTKEY_EVENTS",
+        "SHADOWPLAY_EVENTS",
+        "PERFTOOL_VIEWNAMES"
+      ]
+    },
+    {
+      "moduleId": 228,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "shadowPlayService",
+        "eventAggregator",
+        "osdService",
+        "COMMON_EVENTS",
+        "SHADOWPLAY_EVENTS",
+        "HOTKEY_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 230,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$element",
+        "$timeout",
+        "eventAggregator",
+        "osdService",
+        "shadowPlayEndpoints",
+        "COMMON_EVENTS",
+        "SHADOWPLAY_EVENTS",
+        "CONNECT_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 232,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$window",
+        "osdService",
+        "eventAggregator",
+        "COMMON_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 234,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$state",
+        "$timeout",
+        "$filter",
+        "shadowPlayService",
+        "eventAggregator",
+        "$document",
+        "telemetryService",
+        "KEYBOARD_EVENTS",
+        "OSC_KEYBOARD",
+        "AUDIO_STATE",
+        "TELEMETRY_OSC_EVENT_NAMES"
+      ]
+    },
+    {
+      "moduleId": 235,
+      "kind": "directive",
+      "name": "$document",
+      "deps": [
+        "$filter",
+        "$window",
+        "$log"
+      ]
+    },
+    {
+      "moduleId": 236,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$log",
+        "$state",
+        "$stateParams",
+        "$filter",
+        "$q",
+        "broadcastService",
+        "shadowPlayService",
+        "twitchService",
+        "eventAggregator",
+        "hardwareService",
+        "galleryService",
+        "KEYBOARD_EVENTS",
+        "VIDEO_STATE",
+        "OSC_KEYBOARD",
+        "OSC_MODE",
+        "BROADCAST_STATES"
+      ]
+    },
+    {
+      "moduleId": 238,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "$stateParams",
+        "$log",
+        "$filter",
+        "oscNotificationService",
+        "connectService",
+        "oscService",
+        "errorDialogService",
+        "eventAggregator",
+        "shadowPlayService",
+        "broadcastService",
+        "ugcService",
+        "KEYBOARD_EVENTS",
+        "CONNECT_EVENTS",
+        "OSC_KEYBOARD",
+        "NOTIFIER_SELECTIONS"
+      ]
+    },
+    {
+      "moduleId": 240,
+      "kind": "controller",
+      "name": "$state",
+      "deps": [
+        "$log"
+      ]
+    },
+    {
+      "moduleId": 242,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$state",
+        "$stateParams",
+        "$filter",
+        "$timeout",
+        "$q",
+        "eventAggregator",
+        "sdkService",
+        "oscDisplayService",
+        "telemetryService",
+        "RECORDING_PATH_TYPES",
+        "KEYBOARD_EVENTS",
+        "HIGHLIGHTS_EVENTS",
+        "OSC_KEYBOARD",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "HIGHLIGHT_PERMISSIONS"
+      ]
+    },
+    {
+      "moduleId": 244,
+      "kind": "controller",
+      "name": "$q",
+      "deps": [
+        "$log",
+        "$scope",
+        "$state",
+        "$timeout",
+        "$filter",
+        "eventAggregator",
+        "shadowPlayService",
+        "$stateParams",
+        "broadcastService",
+        "keyboardService",
+        "nvCameraService",
+        "oscDisplayService",
+        "octoolService",
+        "KEYBOARD_EVENTS",
+        "OSC_KEYBOARD",
+        "NVCAMERA_EVENTS",
+        "COMMON_EVENTS",
+        "piplConfigService"
+      ]
+    },
+    {
+      "moduleId": 246,
+      "kind": "controller",
+      "name": "$scope",
+      "deps": [
+        "$state",
+        "$log",
+        "$stateParams",
+        "eventAggregator",
+        "COMMON_EVENTS",
+        "shadowPlayService",
+        "oscService",
+        "errorDialogService",
+        "coplayService",
+        "telemetryService",
+        "nvCameraService",
+        "octoolService",
+        "piplConfigService",
+        "KEYBOARD_EVENTS",
+        "OSC_CONFIG",
+        "OSC_KEYBOARD",
+        "AUDIO_STATE",
+        "VIDEO_STATE",
+        "TELEMETRY_OSC_PERF_ID",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "TELEMETRY_OSC_CAPTURE_TYPE"
+      ]
+    },
+    {
+      "moduleId": 248,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$state",
+        "eventAggregator",
+        "nvCameraService",
+        "telemetryService",
+        "KEYBOARD_EVENTS",
+        "OSC_KEYBOARD",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "TELEMETRY_OSC_MENU_TYPE",
+        "OSC_SETTINGS_CONTROL_TYPES",
+        "TELEMETRY_OSC_TOGGLE_STATE"
+      ]
+    },
+    {
+      "moduleId": 250,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$state",
+        "eventAggregator",
+        "oscNotificationService",
+        "telemetryService",
+        "nvCameraService",
+        "KEYBOARD_EVENTS",
+        "TELEMETRY_OSC_EVENT_NAMES",
+        "quietMode2Service",
+        "piplConfigService",
+        "COMMON_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 252,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$state",
+        "$stateParams",
+        "osdService",
+        "octoolService",
+        "eventAggregator",
+        "KEYBOARD_EVENTS",
+        "OSC_KEYBOARD",
+        "PERFTOOL_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 254,
+      "kind": "controller",
+      "name": "octoolService",
+      "deps": [
+        "$log",
+        "$scope",
+        "$state",
+        "eventAggregator",
+        "$timeout",
+        "KEYBOARD_EVENTS",
+        "shadowPlayService",
+        "keyboardService",
+        "RECORDING_PATH_TYPES"
+      ]
+    },
+    {
+      "moduleId": 256,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$state",
+        "$q",
+        "shadowPlayService",
+        "broadcastService",
+        "sdkService",
+        "eventAggregator",
+        "KEYBOARD_EVENTS",
+        "OSC_KEYBOARD",
+        "BROADCAST_STATES"
+      ]
+    },
+    {
+      "moduleId": 258,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$state",
+        "$q",
+        "shadowPlayService",
+        "sdkService",
+        "eventAggregator",
+        "RECORDING_PATH_TYPES",
+        "KEYBOARD_EVENTS"
+      ]
+    },
+    {
+      "moduleId": 260,
+      "kind": "controller",
+      "name": "$q",
+      "deps": [
+        "$scope",
+        "$state",
+        "$stateParams",
+        "$log",
+        "$filter",
+        "$document",
+        "hardwareService",
+        "eventAggregator",
+        "shadowPlayService",
+        "galleryService",
+        "RECORDING_PATH_TYPES",
+        "KEYBOARD_EVENTS",
+        "OSC_KEYBOARD"
+      ]
+    },
+    {
+      "moduleId": 261,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$state",
+        "shadowPlayService",
+        "eventAggregator",
+        "coplayService",
+        "KEYBOARD_EVENTS",
+        "OSC_KEYBOARD",
+        "COPLAY_STATE"
+      ]
+    },
+    {
+      "moduleId": 263,
+      "kind": "controller",
+      "name": "$log",
+      "deps": [
+        "$scope",
+        "$state",
+        "$stateParams",
+        "$timeout",
+        "$q",
+        "shadowPlayService",
+        "sdkService",
+        "eventAggregator",
+        "KEYBOARD_EVENTS",
+        "VIDEO_STATE",
+        "OSC_MODE"
+      ]
+    }
+  ]
+}

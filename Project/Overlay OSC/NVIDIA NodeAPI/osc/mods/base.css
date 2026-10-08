@@ -1,0 +1,46 @@
+.osc-bread-crumb {
+    display: none !important;
+}
+
+
+.osc-content.layout-row {
+    position: absolute !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    padding-left: 80px !important;
+    padding-right: 360px !important;
+    padding-bottom: 80px !important;
+}
+
+
+
+.gallery-central-div-broadcast{
+    
+    min-width: 100%!important;
+    max-width: 100%!important;
+}
+
+.confirmation-panel{
+
+    height:175px;
+    min-height: 0!important;
+    max-height: 100%!important;
+    min-width: 100%!important;
+    max-width: 100%!important;
+}
+
+.osc-central-div {
+    width: 100%  !important;
+    min-width: 100%;
+}
+
+.preferences-root-panel{
+    min-width: 0%;
+    max-width: 100%;
+    min-height: 0%;
+    max-height: 100%;
+}
+
+

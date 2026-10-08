@@ -26,6 +26,19 @@ page to function. The engine already implements a working subset
 Duluka state/actual, Hotkey, InstantReplay stubs, Broadcast stubs,
 Audio, Microphone, Highlights, DesktopCapture, SystemInfo, HardwareInfo).
 
+The local NodeAPI route floor must preserve the UI's actual read/write
+contracts: audio modes and microphone settings use their documented shapes;
+settings for replay, highlights, indicators, and custom-overlay slots round-trip
+through the settings file; custom-overlay support is the numeric capability
+value consumed by the UI. Broadcast preference uses `{provider}`, while
+Microphone count/settings and QuietMode2, NIS2, and DeepDVC report the field
+names expected by their controllers; unsupported hardware features are
+explicitly disabled. Game-dependent Highlights data reports
+`{games:[]}`/inactive when there is no active game instead of returning an
+empty object. The main menu `OSC/MainView` response includes the state keys its
+controller reads, and `Capture/PIDMode` returns the `valid` flag used to gate
+desktop capture. OAuth and live broadcast remain provider-dependent.
+
 ## 1. Keys / ids (osc/config.js — OSC_CONFIG)
 
 | Purpose | Key |

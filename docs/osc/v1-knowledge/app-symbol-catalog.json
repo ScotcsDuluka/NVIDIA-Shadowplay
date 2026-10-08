@@ -1,0 +1,1641 @@
+{
+  "angularModules": [
+    {
+      "name": "main",
+      "moduleId": 1
+    },
+    {
+      "name": "main.common",
+      "moduleId": 2
+    },
+    {
+      "name": "main.localSdk",
+      "moduleId": 17
+    },
+    {
+      "name": "main.localSdk.quietMode2Sdk",
+      "moduleId": 99
+    },
+    {
+      "name": "main.telemetry",
+      "moduleId": 102
+    },
+    {
+      "name": "main.localSdk.abHubSdk",
+      "moduleId": 196
+    },
+    {
+      "name": "main.localSdk.coplaySdk",
+      "moduleId": 197
+    },
+    {
+      "name": "main.localSdk.dvcSdk",
+      "moduleId": 198
+    },
+    {
+      "name": "main.localSdk.feedbackSdk",
+      "moduleId": 199
+    },
+    {
+      "name": "main.localSdk.gfeUpdatesSdk",
+      "moduleId": 200
+    },
+    {
+      "name": "main.localSdk.gfwslSdk",
+      "moduleId": 201
+    },
+    {
+      "name": "main.localSdk.hardwareSdk",
+      "moduleId": 202
+    },
+    {
+      "name": "main.localSdk.highlightsSdk",
+      "moduleId": 203
+    },
+    {
+      "name": "main.localSdk.nisSdk",
+      "moduleId": 204
+    },
+    {
+      "name": "main.localSdk.nvCameraSdk",
+      "moduleId": 205
+    },
+    {
+      "name": "main.piplConfigSdk",
+      "moduleId": 206
+    },
+    {
+      "name": "main.localSdk.settingsSdk",
+      "moduleId": 207
+    },
+    {
+      "name": "main.localSdk.shadowPlaySdk",
+      "moduleId": 208
+    },
+    {
+      "name": "main.constants",
+      "moduleId": 209
+    }
+  ],
+  "services": [
+    {
+      "name": "shadowPlayService",
+      "moduleId": 4
+    },
+    {
+      "name": "oscDisplayService",
+      "moduleId": 12
+    },
+    {
+      "name": "octoolService",
+      "moduleId": 22
+    },
+    {
+      "name": "oscNotificationService",
+      "moduleId": 23
+    },
+    {
+      "name": "hardwareService",
+      "moduleId": 25
+    },
+    {
+      "name": "telemetryService",
+      "moduleId": 26
+    },
+    {
+      "name": "broadcastService",
+      "moduleId": 32
+    },
+    {
+      "name": "coplayService",
+      "moduleId": 33
+    },
+    {
+      "name": "keyboardService",
+      "moduleId": 34
+    },
+    {
+      "name": "osdService",
+      "moduleId": 35
+    },
+    {
+      "name": "nvCameraService",
+      "moduleId": 40
+    },
+    {
+      "name": "errorDialogService",
+      "moduleId": 46
+    },
+    {
+      "name": "hotkeyService",
+      "moduleId": 47
+    },
+    {
+      "name": "ugcService",
+      "moduleId": 49
+    },
+    {
+      "name": "sdkService",
+      "moduleId": 60
+    },
+    {
+      "name": "settingsService",
+      "moduleId": 61
+    },
+    {
+      "name": "edgeDevKitService",
+      "moduleId": 89
+    },
+    {
+      "name": "gamepadService",
+      "moduleId": 91
+    },
+    {
+      "name": "gfwslService",
+      "moduleId": 92
+    },
+    {
+      "name": "quietMode2Service",
+      "moduleId": 93
+    },
+    {
+      "name": "webrtcP2PService",
+      "moduleId": 94
+    },
+    {
+      "name": "appService",
+      "moduleId": 135
+    },
+    {
+      "name": "gameProfileService",
+      "moduleId": 145
+    },
+    {
+      "name": "oscGalleryService",
+      "moduleId": 146
+    },
+    {
+      "name": "oscTargetService",
+      "moduleId": 147
+    },
+    {
+      "name": "piplConfigService",
+      "moduleId": 149
+    }
+  ],
+  "controllers": [
+    {
+      "name": "BroadcastMenuController",
+      "moduleId": 138
+    },
+    {
+      "name": "AccordionController",
+      "moduleId": 140
+    },
+    {
+      "name": "VirtualGridListController",
+      "moduleId": 150
+    },
+    {
+      "name": "BaseController",
+      "moduleId": 154
+    },
+    {
+      "name": "confirmationController",
+      "moduleId": 156
+    },
+    {
+      "name": "ErrorDialogController",
+      "moduleId": 158
+    },
+    {
+      "name": "MainTopBarController",
+      "moduleId": 161
+    },
+    {
+      "name": "nvChevronController",
+      "moduleId": 163
+    },
+    {
+      "name": "NvOauthDialogueController",
+      "moduleId": 165
+    },
+    {
+      "name": "NvOauthMenuController",
+      "moduleId": 166
+    },
+    {
+      "name": "OscNotifierController",
+      "moduleId": 168
+    },
+    {
+      "name": "CoPlayGuestControlsController",
+      "moduleId": 172
+    },
+    {
+      "name": "CoPlayInviteController",
+      "moduleId": 174
+    },
+    {
+      "name": "SettingsCustomizeController",
+      "moduleId": 176
+    },
+    {
+      "name": "EdgeDevKitController",
+      "moduleId": 178
+    },
+    {
+      "name": "DestinationPickerController",
+      "moduleId": 180
+    },
+    {
+      "name": "GalleryFilesMenuController",
+      "moduleId": 181
+    },
+    {
+      "name": "GalleryFilterMenuController",
+      "moduleId": 183
+    },
+    {
+      "name": "nvGalleryHistoryMenu",
+      "moduleId": 184
+    },
+    {
+      "name": "ImageEditorController",
+      "moduleId": 186
+    },
+    {
+      "name": "GalleryRemoveMenuController",
+      "moduleId": 188
+    },
+    {
+      "name": "GalleryUploadMenuController",
+      "moduleId": 190
+    },
+    {
+      "name": "VideoEditorController",
+      "moduleId": 192
+    },
+    {
+      "name": "VideoEditorGifController",
+      "moduleId": 193
+    },
+    {
+      "name": "MainMenuController",
+      "moduleId": 210
+    },
+    {
+      "name": "mdMenuBar",
+      "moduleId": 210
+    },
+    {
+      "name": "MicrophoneMenuController",
+      "moduleId": 212
+    },
+    {
+      "name": "ModsMenuController",
+      "moduleId": 216
+    },
+    {
+      "name": "NvCameraMenuController",
+      "moduleId": 218
+    },
+    {
+      "name": "OctoolMenuController",
+      "moduleId": 220
+    },
+    {
+      "name": "OsdCommentsController",
+      "moduleId": 222
+    },
+    {
+      "name": "osdController",
+      "moduleId": 224
+    },
+    {
+      "name": "OsdPerfStatsController",
+      "moduleId": 226
+    },
+    {
+      "name": "OsdShadowplayStatusController",
+      "moduleId": 228
+    },
+    {
+      "name": "OsdViewerCountController",
+      "moduleId": 230
+    },
+    {
+      "name": "OsdWebcamController",
+      "moduleId": 232
+    },
+    {
+      "name": "PreferencesAudioController",
+      "moduleId": 234
+    },
+    {
+      "name": "PreferencesBroadcastController",
+      "moduleId": 236
+    },
+    {
+      "name": "PreferencesConnectController",
+      "moduleId": 238
+    },
+    {
+      "name": "PreferencesHangoutController",
+      "moduleId": 240
+    },
+    {
+      "name": "PreferencesHighlightsController",
+      "moduleId": 242
+    },
+    {
+      "name": "PreferencesKeyboardShortcutsController",
+      "moduleId": 244
+    },
+    {
+      "name": "PreferencesMenuController",
+      "moduleId": 246
+    },
+    {
+      "name": "PreferencesModsController",
+      "moduleId": 248
+    },
+    {
+      "name": "PreferencesNotificationsController",
+      "moduleId": 250
+    },
+    {
+      "name": "PreferencesOverlaysController",
+      "moduleId": 252
+    },
+    {
+      "name": "PreferencesPerformanceController",
+      "moduleId": 254
+    },
+    {
+      "name": "PreferencesPrivacyControlController",
+      "moduleId": 256
+    },
+    {
+      "name": "PreferencesRecordingsController",
+      "moduleId": 258
+    },
+    {
+      "name": "FolderBrowserController",
+      "moduleId": 260
+    },
+    {
+      "name": "PreferencesStreamController",
+      "moduleId": 261
+    },
+    {
+      "name": "PreferencesVideoController",
+      "moduleId": 263
+    }
+  ],
+  "directives": [
+    {
+      "name": "hoverFocus",
+      "moduleId": 5
+    },
+    {
+      "name": "hoverFocusGallery",
+      "moduleId": 5
+    },
+    {
+      "name": "focus1",
+      "moduleId": 5
+    },
+    {
+      "name": "focus",
+      "moduleId": 5
+    },
+    {
+      "name": "focusOn",
+      "moduleId": 5
+    },
+    {
+      "name": "focusOnly",
+      "moduleId": 5
+    },
+    {
+      "name": "nvOscTile",
+      "moduleId": 6
+    },
+    {
+      "name": "nvSlider",
+      "moduleId": 14
+    },
+    {
+      "name": "nvFallbackSrc",
+      "moduleId": 90
+    },
+    {
+      "name": "nvOauthDialogue",
+      "moduleId": 95
+    },
+    {
+      "name": "nvProgressIndicator",
+      "moduleId": 96
+    },
+    {
+      "name": "destinationPicker",
+      "moduleId": 97
+    },
+    {
+      "name": "nvGalleryFilterMenu",
+      "moduleId": 98
+    },
+    {
+      "name": "nvFilterControl",
+      "moduleId": 100
+    },
+    {
+      "name": "nvPreferencesRecordingsFolderBrowser",
+      "moduleId": 101
+    },
+    {
+      "name": "nvBroadcastMenu",
+      "moduleId": 139
+    },
+    {
+      "name": "nvAccordion",
+      "moduleId": 141
+    },
+    {
+      "name": "nvAccordionPane",
+      "moduleId": 141
+    },
+    {
+      "name": "nvOverlay",
+      "moduleId": 148
+    },
+    {
+      "name": "nvVirtualGridList",
+      "moduleId": 151
+    },
+    {
+      "name": "nvVirtualGridListRepeat",
+      "moduleId": 151
+    },
+    {
+      "name": "nvVirtualGridListItem",
+      "moduleId": 151
+    },
+    {
+      "name": "nvBase",
+      "moduleId": 155
+    },
+    {
+      "name": "nvConfirmation",
+      "moduleId": 157
+    },
+    {
+      "name": "nvErrorDialog",
+      "moduleId": 159
+    },
+    {
+      "name": "nvMain",
+      "moduleId": 160
+    },
+    {
+      "name": "nvOscTopBar",
+      "moduleId": 162
+    },
+    {
+      "name": "nvChevron",
+      "moduleId": 164
+    },
+    {
+      "name": "nvOauthMenu",
+      "moduleId": 167
+    },
+    {
+      "name": "nvOscNotifier",
+      "moduleId": 170
+    },
+    {
+      "name": "nvWebrtcChat",
+      "moduleId": 171
+    },
+    {
+      "name": "nvCoplayGuestControls",
+      "moduleId": 173
+    },
+    {
+      "name": "nvCoplayInvite",
+      "moduleId": 175
+    },
+    {
+      "name": "getCustomizeWidth",
+      "moduleId": 176
+    },
+    {
+      "name": "settingsCustomize",
+      "moduleId": 177
+    },
+    {
+      "name": "edgeDevKit",
+      "moduleId": 179
+    },
+    {
+      "name": "nvGalleryFilesMenu",
+      "moduleId": 182
+    },
+    {
+      "name": "nvGalleryHistoryMenu",
+      "moduleId": 185
+    },
+    {
+      "name": "nvImageEditor",
+      "moduleId": 187
+    },
+    {
+      "name": "imageonload",
+      "moduleId": 187
+    },
+    {
+      "name": "nvGalleryRemoveMenu",
+      "moduleId": 189
+    },
+    {
+      "name": "nvGalleryUploadMenu",
+      "moduleId": 191
+    },
+    {
+      "name": "nvVideoGifEditor",
+      "moduleId": 194
+    },
+    {
+      "name": "nvVideoEditor",
+      "moduleId": 195
+    },
+    {
+      "name": "nvMainMenu",
+      "moduleId": 211
+    },
+    {
+      "name": "mdMenu",
+      "moduleId": 211
+    },
+    {
+      "name": "nvMicrophoneMenu",
+      "moduleId": 213
+    },
+    {
+      "name": "nvFilterEditbox",
+      "moduleId": 214
+    },
+    {
+      "name": "nvFilterSlider",
+      "moduleId": 215
+    },
+    {
+      "name": "modsMenu",
+      "moduleId": 217
+    },
+    {
+      "name": "nvCameraMenu",
+      "moduleId": 219
+    },
+    {
+      "name": "octoolMenu",
+      "moduleId": 221
+    },
+    {
+      "name": "nvOsdComments",
+      "moduleId": 223
+    },
+    {
+      "name": "nvOsd",
+      "moduleId": 225
+    },
+    {
+      "name": "nvOsdPerfStats",
+      "moduleId": 227
+    },
+    {
+      "name": "nvShadowplayStatus",
+      "moduleId": 229
+    },
+    {
+      "name": "nvOsdViewerCount",
+      "moduleId": 231
+    },
+    {
+      "name": "nvOsdWebcam",
+      "moduleId": 233
+    },
+    {
+      "name": "nvPreferencesAudio",
+      "moduleId": 235
+    },
+    {
+      "name": "nvPreferencesBroadcast",
+      "moduleId": 237
+    },
+    {
+      "name": "nvPreferencesConnect",
+      "moduleId": 239
+    },
+    {
+      "name": "nvPreferencesHangout",
+      "moduleId": 241
+    },
+    {
+      "name": "nvPreferencesHighlights",
+      "moduleId": 243
+    },
+    {
+      "name": "nvPreferencesKeyboardShortcuts",
+      "moduleId": 245
+    },
+    {
+      "name": "nvPreferencesMenu",
+      "moduleId": 247
+    },
+    {
+      "name": "nvPreferencesMods",
+      "moduleId": 249
+    },
+    {
+      "name": "nvPreferencesNotifications",
+      "moduleId": 251
+    },
+    {
+      "name": "nvPreferencesOverlays",
+      "moduleId": 253
+    },
+    {
+      "name": "nvPreferencesPerformance",
+      "moduleId": 255
+    },
+    {
+      "name": "nvPreferencesPrivacyControl",
+      "moduleId": 257
+    },
+    {
+      "name": "nvPreferencesRecordings",
+      "moduleId": 259
+    },
+    {
+      "name": "nvPreferencesStream",
+      "moduleId": 262
+    },
+    {
+      "name": "nvPreferencesVideo",
+      "moduleId": 264
+    }
+  ],
+  "providers": [
+    {
+      "name": "localSdk",
+      "moduleId": 17
+    },
+    {
+      "name": "socketService",
+      "moduleId": 20
+    },
+    {
+      "name": "oscService",
+      "moduleId": 48
+    },
+    {
+      "name": "quietMode2Endpoints",
+      "moduleId": 99
+    },
+    {
+      "name": "exceptionService",
+      "moduleId": 143
+    },
+    {
+      "name": "websocketService",
+      "moduleId": 153
+    },
+    {
+      "name": "abHubEndpoints",
+      "moduleId": 196
+    },
+    {
+      "name": "coplayEndpoints",
+      "moduleId": 197
+    },
+    {
+      "name": "dvcEndpoints",
+      "moduleId": 198
+    },
+    {
+      "name": "feedbackEndpoints",
+      "moduleId": 199
+    },
+    {
+      "name": "gfeUpdatesEndpoints",
+      "moduleId": 200
+    },
+    {
+      "name": "gfwslEndpoints",
+      "moduleId": 201
+    },
+    {
+      "name": "hardwareEndpoints",
+      "moduleId": 202
+    },
+    {
+      "name": "highlightsEndpoints",
+      "moduleId": 203
+    },
+    {
+      "name": "nisEndpoints",
+      "moduleId": 204
+    },
+    {
+      "name": "nvCameraEndpoints",
+      "moduleId": 205
+    },
+    {
+      "name": "piplConfigEndpoints",
+      "moduleId": 206
+    },
+    {
+      "name": "settingsEndpoints",
+      "moduleId": 207
+    },
+    {
+      "name": "shadowPlayEndpoints",
+      "moduleId": 208
+    }
+  ],
+  "endpoints": [
+    {
+      "moduleId": 99,
+      "url": "/support",
+      "method": "GET"
+    },
+    {
+      "moduleId": 99,
+      "url": "/state",
+      "method": "GET"
+    },
+    {
+      "moduleId": 99,
+      "url": "/state",
+      "method": "POST"
+    },
+    {
+      "moduleId": 196,
+      "url": "/Post",
+      "method": "POST"
+    },
+    {
+      "moduleId": 196,
+      "url": "/Add",
+      "method": "POST"
+    },
+    {
+      "moduleId": 196,
+      "url": "/Delete",
+      "method": "POST"
+    },
+    {
+      "moduleId": 196,
+      "url": "/Status",
+      "method": "GET"
+    },
+    {
+      "moduleId": 197,
+      "url": "/CreateSession",
+      "method": "POST"
+    },
+    {
+      "moduleId": 197,
+      "url": "/ConfigureControllerMapping",
+      "method": "PUT"
+    },
+    {
+      "moduleId": 197,
+      "url": "/ModifySession/:id",
+      "method": "PUT"
+    },
+    {
+      "moduleId": 197,
+      "url": "/Session/:id",
+      "method": "DELETE"
+    },
+    {
+      "moduleId": 197,
+      "url": "/FullScreenProcessId/:activeWindow",
+      "method": "GET"
+    },
+    {
+      "moduleId": 198,
+      "url": "/:cmsId/state",
+      "method": "GET"
+    },
+    {
+      "moduleId": 198,
+      "url": "/state",
+      "method": "POST"
+    },
+    {
+      "moduleId": 200,
+      "url": "autoGFEDownload/autoGFEbeta",
+      "method": "GET"
+    },
+    {
+      "moduleId": 203,
+      "url": "/Highlights/Active",
+      "method": "GET"
+    },
+    {
+      "moduleId": 203,
+      "url": "/Highlights/RecoverSpace",
+      "method": "POST"
+    },
+    {
+      "moduleId": 203,
+      "url": "/Highlights/GetConfig",
+      "method": "POST"
+    },
+    {
+      "moduleId": 203,
+      "url": "/Highlights/SetConfig",
+      "method": "POST"
+    },
+    {
+      "moduleId": 203,
+      "url": "/GetPermissions",
+      "method": "POST"
+    },
+    {
+      "moduleId": 203,
+      "url": "/SetPermissions",
+      "method": "POST"
+    },
+    {
+      "moduleId": 203,
+      "url": "/Highlights/Enable",
+      "method": "GET"
+    },
+    {
+      "moduleId": 203,
+      "url": "/Highlights/Enable",
+      "method": "POST"
+    },
+    {
+      "moduleId": 203,
+      "url": "/NotifyOverlayState",
+      "method": "POST"
+    },
+    {
+      "moduleId": 203,
+      "url": "/Highlights/GetRecent",
+      "method": "POST"
+    },
+    {
+      "moduleId": 203,
+      "url": "/Highlights/GetGamesConfig",
+      "method": "GET"
+    },
+    {
+      "moduleId": 203,
+      "url": "/Highlights/GetHighlights",
+      "method": "POST"
+    },
+    {
+      "moduleId": 204,
+      "url": "/:cmsId/state",
+      "method": "GET"
+    },
+    {
+      "moduleId": 204,
+      "url": "/state",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/GetAvailable",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Compatible",
+      "method": "GET"
+    },
+    {
+      "moduleId": 205,
+      "url": "/GetIntegration",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Capture/GetTypes",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Capture/Control",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/GetFilters",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/GameEngine",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Cancel",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Capture/GetResolutions/:type",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Camera/GetRange",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Camera/GetAdjust",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Camera/Adjust",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Filter",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Filter/Remove",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Filter/ResetStack",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Filter/:id/Attribute",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Filter/:id/SetFilterAndAttributes",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/SetFilterAndAttributesSupported",
+      "method": "GET"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Filter/GetInfo",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Filter/ResetAll",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Filter/Reset",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Language",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/IPC",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/EnableMods",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/uiReady",
+      "method": "GET"
+    },
+    {
+      "moduleId": 205,
+      "url": "/uiControlChanged",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/reportControlVisibility",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/GetProcessInfo",
+      "method": "GET"
+    },
+    {
+      "moduleId": 205,
+      "url": "/GridOfThirds",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/GetFreestyleSupport",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/GetNvCameraConfig",
+      "method": "GET"
+    },
+    {
+      "moduleId": 205,
+      "url": "/ReshadeSupported",
+      "method": "GET"
+    },
+    {
+      "moduleId": 205,
+      "url": "/Filter/setMultipleFiltersAndAttributes",
+      "method": "POST"
+    },
+    {
+      "moduleId": 205,
+      "url": "/SetMultipleFilterAPISupport",
+      "method": "GET"
+    },
+    {
+      "moduleId": 205,
+      "url": "/SetSharpnessForApp",
+      "method": "POST"
+    },
+    {
+      "moduleId": 206,
+      "url": "/data",
+      "method": "GET"
+    },
+    {
+      "moduleId": 207,
+      "url": "/Language",
+      "method": "GET"
+    },
+    {
+      "moduleId": 207,
+      "url": "/Language",
+      "method": "POST"
+    },
+    {
+      "moduleId": 207,
+      "url": "/beta",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Launch",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Launch",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/InstantReplay/Enable",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/InstantReplay/Running",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/InstantReplay/Enable",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/InstantReplay/Save",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/InstantReplay/Upload",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/InstantReplay/BufferLength",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/InstantReplay/Settings",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/InstantReplay/Settings",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Record/Enable",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Record/Running",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Record/Enable",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Record/Settings",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Record/Settings",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Record/Concurrency/Broadcast",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/GetHDRState",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Record/Concurrency/Gamestream",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Resolutions",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/FrameRates",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Resolutions/:quality",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Framerates/:quality",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/BitRates/:quality/:resolution",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/Support",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/Enable",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/Enable",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/Pause",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/SessionParam",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/SessionParam/:type",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/Settings",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/Settings",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/Title",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/Provider",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/Provider",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/IngestServer",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/IngestServer",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/Viewers/Max",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/Running",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CustomOverlay/Support",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CustomOverlay/Enable",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CustomOverlay/Enable",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CustomOverlay/Path",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CustomOverlay/Path",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CustomOverlay/Enable/:index",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CustomOverlay/Enable/:index",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CustomOverlay/Path/:index",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CustomOverlay/Path/:index",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CustomOverlay/DefaultPath",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CustomOverlay/Display",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/Viewers",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/2KSupport",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Broadcast/2KEnable",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Microphone/Present",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Microphone",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Microphone",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Microphone/PTT",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Microphone/Settings",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Microphone/:index/Settings",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Microphone/:index/Settings",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Audio",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Audio",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/AudioSettings",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/AudioSettings",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/4KSupport",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/8k60",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Webcam/Present",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Webcam/Enable",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Webcam/Enable",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Webcam/Toggle",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Webcam/Shown",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/DesktopCapture/Enable",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/DesktopCapture/Enable",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/DesktopCapture/Support",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/DesktopCapture/Support/Reason",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CoPlay/Enable",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CoPlay/Enable",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/CoPlay/Support",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Capture/State",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Capture/PIDMode",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Capture/ProcessInfo/:PID",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Webcam/Settings",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Webcam/Settings",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Indicator/:id/Support",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Indicator/:id/Settings",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Indicator/:id/Settings",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/RecordPaths",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/RecordPaths",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Hotkey/:hk",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Hotkey/:hk",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Hotkey/Monitor",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Hotkey/Monitor",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Screenshot/Support",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Screenshot/Capture",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Screenshot/NGXShot",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Screenshot/NGXCancelShot",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Osc",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Video/Trim",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Input",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/OSC/Init",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/OSC/MainView",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Hotkey/DynamicToggle",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Highlights/Customize",
+      "method": "GET"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Highlights/Customize",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Highlights/GalleryImport",
+      "method": "POST"
+    },
+    {
+      "moduleId": 208,
+      "url": "/Highlights/Session",
+      "method": "GET"
+    }
+  ],
+  "moduleCount": 487
+}

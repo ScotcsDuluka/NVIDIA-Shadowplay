@@ -1,0 +1,1456 @@
+{
+  "source": "01_SOURCE/osc/manifest.json",
+  "count": 290,
+  "entries": [
+    {
+      "id": 1,
+      "originalPath": "./crypto-js/core.js",
+      "reconstructedPath": "crypto-js/core.js"
+    },
+    {
+      "id": 2,
+      "originalPath": "./core-js/library/modules/_core.js",
+      "reconstructedPath": "core-js/library/modules/_core.js"
+    },
+    {
+      "id": 3,
+      "originalPath": "./crypto-js/cipher-core.js",
+      "reconstructedPath": "crypto-js/cipher-core.js"
+    },
+    {
+      "id": 4,
+      "originalPath": "./core-js/library/modules/_global.js",
+      "reconstructedPath": "core-js/library/modules/_global.js"
+    },
+    {
+      "id": 5,
+      "originalPath": "./core-js/library/modules/_wks.js",
+      "reconstructedPath": "core-js/library/modules/_wks.js"
+    },
+    {
+      "id": 6,
+      "originalPath": "./core-js/library/modules/_descriptors.js",
+      "reconstructedPath": "core-js/library/modules/_descriptors.js"
+    },
+    {
+      "id": 7,
+      "originalPath": "./core-js/library/modules/_an-object.js",
+      "reconstructedPath": "core-js/library/modules/_an-object.js"
+    },
+    {
+      "id": 8,
+      "originalPath": "./core-js/library/modules/_export.js",
+      "reconstructedPath": "core-js/library/modules/_export.js"
+    },
+    {
+      "id": 9,
+      "originalPath": "./core-js/library/modules/_object-dp.js",
+      "reconstructedPath": "core-js/library/modules/_object-dp.js"
+    },
+    {
+      "id": 10,
+      "originalPath": "./core-js/library/modules/_has.js",
+      "reconstructedPath": "core-js/library/modules/_has.js"
+    },
+    {
+      "id": 11,
+      "originalPath": "./core-js/library/modules/_hide.js",
+      "reconstructedPath": "core-js/library/modules/_hide.js"
+    },
+    {
+      "id": 12,
+      "originalPath": "./core-js/library/modules/_is-object.js",
+      "reconstructedPath": "core-js/library/modules/_is-object.js"
+    },
+    {
+      "id": 13,
+      "originalPath": "./core-js/library/modules/_to-iobject.js",
+      "reconstructedPath": "core-js/library/modules/_to-iobject.js"
+    },
+    {
+      "id": 14,
+      "originalPath": "./crypto-js/evpkdf.js",
+      "reconstructedPath": "crypto-js/evpkdf.js"
+    },
+    {
+      "id": 15,
+      "originalPath": "./core-js/library/modules/_fails.js",
+      "reconstructedPath": "core-js/library/modules/_fails.js"
+    },
+    {
+      "id": 16,
+      "originalPath": "./core-js/library/modules/_iterators.js",
+      "reconstructedPath": "core-js/library/modules/_iterators.js"
+    },
+    {
+      "id": 17,
+      "originalPath": "./core-js/library/modules/_object-keys.js",
+      "reconstructedPath": "core-js/library/modules/_object-keys.js"
+    },
+    {
+      "id": 18,
+      "originalPath": "./crypto-js/enc-base64.js",
+      "reconstructedPath": "crypto-js/enc-base64.js"
+    },
+    {
+      "id": 19,
+      "originalPath": "./crypto-js/md5.js",
+      "reconstructedPath": "crypto-js/md5.js"
+    },
+    {
+      "id": 20,
+      "originalPath": "./d3-dispatch/dist/d3-dispatch.js",
+      "reconstructedPath": "d3-dispatch/dist/d3-dispatch.js"
+    },
+    {
+      "id": 21,
+      "originalPath": "./d3-interpolate/dist/d3-interpolate.js",
+      "reconstructedPath": "d3-interpolate/dist/d3-interpolate.js"
+    },
+    {
+      "id": 22,
+      "originalPath": "./socket.io-client/node_modules/component-emitter/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/component-emitter/index.js"
+    },
+    {
+      "id": 23,
+      "originalPath": "./socket.io-client/node_modules/engine.io-parser/lib/browser.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-parser/lib/browser.js"
+    },
+    {
+      "id": 24,
+      "originalPath": "./angular/index.js",
+      "reconstructedPath": "angular/index.js"
+    },
+    {
+      "id": 25,
+      "originalPath": "./babel-runtime/core-js/json/stringify.js",
+      "reconstructedPath": "babel-runtime/core-js/json/stringify.js"
+    },
+    {
+      "id": 26,
+      "originalPath": "./babel-runtime/helpers/typeof.js",
+      "reconstructedPath": "babel-runtime/helpers/typeof.js"
+    },
+    {
+      "id": 27,
+      "originalPath": "./core-js/library/modules/_cof.js",
+      "reconstructedPath": "core-js/library/modules/_cof.js"
+    },
+    {
+      "id": 28,
+      "originalPath": "./core-js/library/modules/_library.js",
+      "reconstructedPath": "core-js/library/modules/_library.js"
+    },
+    {
+      "id": 29,
+      "originalPath": "./core-js/library/modules/_object-pie.js",
+      "reconstructedPath": "core-js/library/modules/_object-pie.js"
+    },
+    {
+      "id": 30,
+      "originalPath": "./d3-array/dist/d3-array.js",
+      "reconstructedPath": "d3-array/dist/d3-array.js"
+    },
+    {
+      "id": 31,
+      "originalPath": "./d3-selection/dist/d3-selection.js",
+      "reconstructedPath": "d3-selection/dist/d3-selection.js"
+    },
+    {
+      "id": 32,
+      "originalPath": "./socket.io-client/node_modules/debug/debug.js",
+      "reconstructedPath": "socket.io-client/node_modules/debug/debug.js"
+    },
+    {
+      "id": 33,
+      "originalPath": "./localforage/src/utils/promise.js",
+      "reconstructedPath": "localforage/src/utils/promise.js"
+    },
+    {
+      "id": 34,
+      "originalPath": "./component-inherit/index.js",
+      "reconstructedPath": "component-inherit/index.js"
+    },
+    {
+      "id": 35,
+      "originalPath": "./core-js/library/modules/_a-function.js",
+      "reconstructedPath": "core-js/library/modules/_a-function.js"
+    },
+    {
+      "id": 36,
+      "originalPath": "./core-js/library/modules/_ctx.js",
+      "reconstructedPath": "core-js/library/modules/_ctx.js"
+    },
+    {
+      "id": 37,
+      "originalPath": "./core-js/library/modules/_property-desc.js",
+      "reconstructedPath": "core-js/library/modules/_property-desc.js"
+    },
+    {
+      "id": 38,
+      "originalPath": "./core-js/library/modules/_set-to-string-tag.js",
+      "reconstructedPath": "core-js/library/modules/_set-to-string-tag.js"
+    },
+    {
+      "id": 39,
+      "originalPath": "./core-js/library/modules/_to-object.js",
+      "reconstructedPath": "core-js/library/modules/_to-object.js"
+    },
+    {
+      "id": 40,
+      "originalPath": "./core-js/library/modules/_uid.js",
+      "reconstructedPath": "core-js/library/modules/_uid.js"
+    },
+    {
+      "id": 41,
+      "originalPath": "./core-js/library/modules/es6.string.iterator.js",
+      "reconstructedPath": "core-js/library/modules/es6.string.iterator.js"
+    },
+    {
+      "id": 42,
+      "originalPath": "./core-js/library/modules/web.dom.iterable.js",
+      "reconstructedPath": "core-js/library/modules/web.dom.iterable.js"
+    },
+    {
+      "id": 43,
+      "originalPath": "./crypto-js/x64-core.js",
+      "reconstructedPath": "crypto-js/x64-core.js"
+    },
+    {
+      "id": 44,
+      "originalPath": "./d3-color/dist/d3-color.js",
+      "reconstructedPath": "d3-color/dist/d3-color.js"
+    },
+    {
+      "id": 45,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/node_modules/debug/browser.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/node_modules/debug/browser.js"
+    },
+    {
+      "id": 46,
+      "originalPath": "./localforage/src/utils/executeCallback.js",
+      "reconstructedPath": "localforage/src/utils/executeCallback.js"
+    },
+    {
+      "id": 47,
+      "originalPath": "./localforage/src/utils/serializer.js",
+      "reconstructedPath": "localforage/src/utils/serializer.js"
+    },
+    {
+      "id": 48,
+      "originalPath": "./core-js/library/modules/_classof.js",
+      "reconstructedPath": "core-js/library/modules/_classof.js"
+    },
+    {
+      "id": 49,
+      "originalPath": "./core-js/library/modules/_defined.js",
+      "reconstructedPath": "core-js/library/modules/_defined.js"
+    },
+    {
+      "id": 50,
+      "originalPath": "./core-js/library/modules/_dom-create.js",
+      "reconstructedPath": "core-js/library/modules/_dom-create.js"
+    },
+    {
+      "id": 51,
+      "originalPath": "./core-js/library/modules/_enum-bug-keys.js",
+      "reconstructedPath": "core-js/library/modules/_enum-bug-keys.js"
+    },
+    {
+      "id": 52,
+      "originalPath": "./core-js/library/modules/_new-promise-capability.js",
+      "reconstructedPath": "core-js/library/modules/_new-promise-capability.js"
+    },
+    {
+      "id": 53,
+      "originalPath": "./core-js/library/modules/_object-gops.js",
+      "reconstructedPath": "core-js/library/modules/_object-gops.js"
+    },
+    {
+      "id": 54,
+      "originalPath": "./core-js/library/modules/_shared-key.js",
+      "reconstructedPath": "core-js/library/modules/_shared-key.js"
+    },
+    {
+      "id": 55,
+      "originalPath": "./core-js/library/modules/_shared.js",
+      "reconstructedPath": "core-js/library/modules/_shared.js"
+    },
+    {
+      "id": 56,
+      "originalPath": "./core-js/library/modules/_to-integer.js",
+      "reconstructedPath": "core-js/library/modules/_to-integer.js"
+    },
+    {
+      "id": 57,
+      "originalPath": "./core-js/library/modules/_to-primitive.js",
+      "reconstructedPath": "core-js/library/modules/_to-primitive.js"
+    },
+    {
+      "id": 58,
+      "originalPath": "./core-js/library/modules/_wks-define.js",
+      "reconstructedPath": "core-js/library/modules/_wks-define.js"
+    },
+    {
+      "id": 59,
+      "originalPath": "./core-js/library/modules/_wks-ext.js",
+      "reconstructedPath": "core-js/library/modules/_wks-ext.js"
+    },
+    {
+      "id": 60,
+      "originalPath": "./crypto-js/hmac.js",
+      "reconstructedPath": "crypto-js/hmac.js"
+    },
+    {
+      "id": 61,
+      "originalPath": "./crypto-js/sha1.js",
+      "reconstructedPath": "crypto-js/sha1.js"
+    },
+    {
+      "id": 62,
+      "originalPath": "./d3-collection/dist/d3-collection.js",
+      "reconstructedPath": "d3-collection/dist/d3-collection.js"
+    },
+    {
+      "id": 63,
+      "originalPath": "./d3-drag/dist/d3-drag.js",
+      "reconstructedPath": "d3-drag/dist/d3-drag.js"
+    },
+    {
+      "id": 64,
+      "originalPath": "./d3-path/dist/d3-path.js",
+      "reconstructedPath": "d3-path/dist/d3-path.js"
+    },
+    {
+      "id": 65,
+      "originalPath": "./d3-time/dist/d3-time.js",
+      "reconstructedPath": "d3-time/dist/d3-time.js"
+    },
+    {
+      "id": 66,
+      "originalPath": "./d3-timer/dist/d3-timer.js",
+      "reconstructedPath": "d3-timer/dist/d3-timer.js"
+    },
+    {
+      "id": 67,
+      "originalPath": "./d3-transition/dist/d3-transition.js",
+      "reconstructedPath": "d3-transition/dist/d3-transition.js"
+    },
+    {
+      "id": 68,
+      "originalPath": "./isarray/index.js",
+      "reconstructedPath": "isarray/index.js"
+    },
+    {
+      "id": 69,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/lib/transport.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/lib/transport.js"
+    },
+    {
+      "id": 70,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/lib/xmlhttprequest.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/lib/xmlhttprequest.js"
+    },
+    {
+      "id": 71,
+      "originalPath": "./socket.io-client/node_modules/parseqs/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/parseqs/index.js"
+    },
+    {
+      "id": 72,
+      "originalPath": "./socket.io-client/node_modules/socket.io-parser/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/socket.io-parser/index.js"
+    },
+    {
+      "id": 73,
+      "originalPath": "./localforage/src/utils/createBlob.js",
+      "reconstructedPath": "localforage/src/utils/createBlob.js"
+    },
+    {
+      "id": 74,
+      "originalPath": "./localforage/src/utils/idb.js",
+      "reconstructedPath": "localforage/src/utils/idb.js"
+    },
+    {
+      "id": 75,
+      "originalPath": "./angular-animate/index.js",
+      "reconstructedPath": "angular-animate/index.js"
+    },
+    {
+      "id": 76,
+      "originalPath": "./angular-aria/index.js",
+      "reconstructedPath": "angular-aria/index.js"
+    },
+    {
+      "id": 77,
+      "originalPath": "./babel-runtime/core-js/object/get-own-property-names.js",
+      "reconstructedPath": "babel-runtime/core-js/object/get-own-property-names.js"
+    },
+    {
+      "id": 78,
+      "originalPath": "./babel-runtime/core-js/object/keys.js",
+      "reconstructedPath": "babel-runtime/core-js/object/keys.js"
+    },
+    {
+      "id": 79,
+      "originalPath": "./component-bind/index.js",
+      "reconstructedPath": "component-bind/index.js"
+    },
+    {
+      "id": 80,
+      "originalPath": "./core-js/library/modules/_html.js",
+      "reconstructedPath": "core-js/library/modules/_html.js"
+    },
+    {
+      "id": 81,
+      "originalPath": "./core-js/library/modules/_ie8-dom-define.js",
+      "reconstructedPath": "core-js/library/modules/_ie8-dom-define.js"
+    },
+    {
+      "id": 82,
+      "originalPath": "./core-js/library/modules/_iobject.js",
+      "reconstructedPath": "core-js/library/modules/_iobject.js"
+    },
+    {
+      "id": 83,
+      "originalPath": "./core-js/library/modules/_iter-define.js",
+      "reconstructedPath": "core-js/library/modules/_iter-define.js"
+    },
+    {
+      "id": 84,
+      "originalPath": "./core-js/library/modules/_object-create.js",
+      "reconstructedPath": "core-js/library/modules/_object-create.js"
+    },
+    {
+      "id": 85,
+      "originalPath": "./core-js/library/modules/_object-gopn-ext.js",
+      "reconstructedPath": "core-js/library/modules/_object-gopn-ext.js"
+    },
+    {
+      "id": 86,
+      "originalPath": "./core-js/library/modules/_object-gopn.js",
+      "reconstructedPath": "core-js/library/modules/_object-gopn.js"
+    },
+    {
+      "id": 87,
+      "originalPath": "./core-js/library/modules/_object-keys-internal.js",
+      "reconstructedPath": "core-js/library/modules/_object-keys-internal.js"
+    },
+    {
+      "id": 88,
+      "originalPath": "./core-js/library/modules/_object-sap.js",
+      "reconstructedPath": "core-js/library/modules/_object-sap.js"
+    },
+    {
+      "id": 89,
+      "originalPath": "./core-js/library/modules/_perform.js",
+      "reconstructedPath": "core-js/library/modules/_perform.js"
+    },
+    {
+      "id": 90,
+      "originalPath": "./core-js/library/modules/_promise-resolve.js",
+      "reconstructedPath": "core-js/library/modules/_promise-resolve.js"
+    },
+    {
+      "id": 91,
+      "originalPath": "./core-js/library/modules/_redefine.js",
+      "reconstructedPath": "core-js/library/modules/_redefine.js"
+    },
+    {
+      "id": 92,
+      "originalPath": "./core-js/library/modules/_species-constructor.js",
+      "reconstructedPath": "core-js/library/modules/_species-constructor.js"
+    },
+    {
+      "id": 93,
+      "originalPath": "./core-js/library/modules/_task.js",
+      "reconstructedPath": "core-js/library/modules/_task.js"
+    },
+    {
+      "id": 94,
+      "originalPath": "./core-js/library/modules/_to-length.js",
+      "reconstructedPath": "core-js/library/modules/_to-length.js"
+    },
+    {
+      "id": 95,
+      "originalPath": "./core-js/library/modules/core.get-iterator-method.js",
+      "reconstructedPath": "core-js/library/modules/core.get-iterator-method.js"
+    },
+    {
+      "id": 96,
+      "originalPath": "./core-js/library/modules/es6.object.to-string.js",
+      "reconstructedPath": "core-js/library/modules/es6.object.to-string.js"
+    },
+    {
+      "id": 97,
+      "originalPath": "./crypto-js/sha256.js",
+      "reconstructedPath": "crypto-js/sha256.js"
+    },
+    {
+      "id": 98,
+      "originalPath": "./crypto-js/sha512.js",
+      "reconstructedPath": "crypto-js/sha512.js"
+    },
+    {
+      "id": 99,
+      "originalPath": "./d3-dsv/dist/d3-dsv.js",
+      "reconstructedPath": "d3-dsv/dist/d3-dsv.js"
+    },
+    {
+      "id": 100,
+      "originalPath": "./d3-ease/dist/d3-ease.js",
+      "reconstructedPath": "d3-ease/dist/d3-ease.js"
+    },
+    {
+      "id": 101,
+      "originalPath": "./d3-format/dist/d3-format.js",
+      "reconstructedPath": "d3-format/dist/d3-format.js"
+    },
+    {
+      "id": 102,
+      "originalPath": "./d3-quadtree/dist/d3-quadtree.js",
+      "reconstructedPath": "d3-quadtree/dist/d3-quadtree.js"
+    },
+    {
+      "id": 103,
+      "originalPath": "./d3-time-format/dist/d3-time-format.js",
+      "reconstructedPath": "d3-time-format/dist/d3-time-format.js"
+    },
+    {
+      "id": 104,
+      "originalPath": "./indexof/index.js",
+      "reconstructedPath": "indexof/index.js"
+    },
+    {
+      "id": 105,
+      "originalPath": "./socket.io-client/lib/manager.js",
+      "reconstructedPath": "socket.io-client/lib/manager.js"
+    },
+    {
+      "id": 106,
+      "originalPath": "./socket.io-client/lib/on.js",
+      "reconstructedPath": "socket.io-client/lib/on.js"
+    },
+    {
+      "id": 107,
+      "originalPath": "./socket.io-client/lib/socket.js",
+      "reconstructedPath": "socket.io-client/lib/socket.js"
+    },
+    {
+      "id": 108,
+      "originalPath": "./socket.io-client/lib/url.js",
+      "reconstructedPath": "socket.io-client/lib/url.js"
+    },
+    {
+      "id": 109,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/lib/transports/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/lib/transports/index.js"
+    },
+    {
+      "id": 110,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/lib/transports/polling.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/lib/transports/polling.js"
+    },
+    {
+      "id": 111,
+      "originalPath": "./socket.io-client/node_modules/has-binary/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/has-binary/index.js"
+    },
+    {
+      "id": 112,
+      "originalPath": "./socket.io-client/node_modules/socket.io-parser/is-buffer.js",
+      "reconstructedPath": "socket.io-client/node_modules/socket.io-parser/is-buffer.js"
+    },
+    {
+      "id": 113,
+      "originalPath": "./localforage/src/drivers/indexeddb.js",
+      "reconstructedPath": "localforage/src/drivers/indexeddb.js"
+    },
+    {
+      "id": 114,
+      "originalPath": "./localforage/src/drivers/localstorage.js",
+      "reconstructedPath": "localforage/src/drivers/localstorage.js"
+    },
+    {
+      "id": 115,
+      "originalPath": "./localforage/src/drivers/websql.js",
+      "reconstructedPath": "localforage/src/drivers/websql.js"
+    },
+    {
+      "id": 116,
+      "originalPath": "./localforage/src/localforage.js",
+      "reconstructedPath": "localforage/src/localforage.js"
+    },
+    {
+      "id": 117,
+      "originalPath": "./localforage/src/utils/executeTwoCallbacks.js",
+      "reconstructedPath": "localforage/src/utils/executeTwoCallbacks.js"
+    },
+    {
+      "id": 118,
+      "originalPath": "./localforage/src/utils/isIndexedDBValid.js",
+      "reconstructedPath": "localforage/src/utils/isIndexedDBValid.js"
+    },
+    {
+      "id": 119,
+      "originalPath": "./localforage/src/utils/isLocalStorageValid.js",
+      "reconstructedPath": "localforage/src/utils/isLocalStorageValid.js"
+    },
+    {
+      "id": 120,
+      "originalPath": "./localforage/src/utils/isWebSQLValid.js",
+      "reconstructedPath": "localforage/src/utils/isWebSQLValid.js"
+    },
+    {
+      "id": 121,
+      "originalPath": "./nv-angular-account/dist/nv-angular-account.js",
+      "reconstructedPath": "nv-angular-account/dist/nv-angular-account.js"
+    },
+    {
+      "id": 122,
+      "originalPath": "./nv-angular-http-endpoint/dist/nv-angular-http-endpoint.js",
+      "reconstructedPath": "nv-angular-http-endpoint/dist/nv-angular-http-endpoint.js"
+    },
+    {
+      "id": 123,
+      "originalPath": "./nv-angular-jarvis/dist/nv-angular-jarvis.js",
+      "reconstructedPath": "nv-angular-jarvis/dist/nv-angular-jarvis.js"
+    },
+    {
+      "id": 124,
+      "originalPath": "./nv-angular-underscore/nv-angular-underscore.js",
+      "reconstructedPath": "nv-angular-underscore/nv-angular-underscore.js"
+    },
+    {
+      "id": 125,
+      "originalPath": "./nv-crimson-lib/dist/nv-crimson.js",
+      "reconstructedPath": "nv-crimson-lib/dist/nv-crimson.js"
+    },
+    {
+      "id": 126,
+      "originalPath": "./nv-db-service/dist/nv-db-service.js",
+      "reconstructedPath": "nv-db-service/dist/nv-db-service.js"
+    },
+    {
+      "id": 127,
+      "originalPath": "./nv-experience-control/dist/nv-experience-control.js",
+      "reconstructedPath": "nv-experience-control/dist/nv-experience-control.js"
+    },
+    {
+      "id": 128,
+      "originalPath": "./nv-js-events/dist/nv-js-events.js",
+      "reconstructedPath": "nv-js-events/dist/nv-js-events.js"
+    },
+    {
+      "id": 129,
+      "originalPath": "./nv-ugc-lib/dist/nv-ugc-lib.js",
+      "reconstructedPath": "nv-ugc-lib/dist/nv-ugc-lib.js"
+    },
+    {
+      "id": 130,
+      "originalPath": "./adobe-target/adobe-target.js",
+      "reconstructedPath": "adobe-target/adobe-target.js"
+    },
+    {
+      "id": 131,
+      "originalPath": "./angular-animate/angular-animate.js",
+      "reconstructedPath": "angular-animate/angular-animate.js"
+    },
+    {
+      "id": 132,
+      "originalPath": "./angular-aria/angular-aria.js",
+      "reconstructedPath": "angular-aria/angular-aria.js"
+    },
+    {
+      "id": 133,
+      "originalPath": "./angular-base64/angular-base64.js",
+      "reconstructedPath": "angular-base64/angular-base64.js"
+    },
+    {
+      "id": 134,
+      "originalPath": "./angular-event-aggregator/angular-event-aggregator.js",
+      "reconstructedPath": "angular-event-aggregator/angular-event-aggregator.js"
+    },
+    {
+      "id": 135,
+      "originalPath": "./angular-material/angular-material.js",
+      "reconstructedPath": "angular-material/angular-material.js"
+    },
+    {
+      "id": 136,
+      "originalPath": "./angular-material/index.js",
+      "reconstructedPath": "angular-material/index.js"
+    },
+    {
+      "id": 137,
+      "originalPath": "./angular-messages/angular-messages.js",
+      "reconstructedPath": "angular-messages/angular-messages.js"
+    },
+    {
+      "id": 138,
+      "originalPath": "./angular-messages/index.js",
+      "reconstructedPath": "angular-messages/index.js"
+    },
+    {
+      "id": 139,
+      "originalPath": "./angular-resource/angular-resource.js",
+      "reconstructedPath": "angular-resource/angular-resource.js"
+    },
+    {
+      "id": 140,
+      "originalPath": "./angular-resource/index.js",
+      "reconstructedPath": "angular-resource/index.js"
+    },
+    {
+      "id": 141,
+      "originalPath": "./angular-sanitize/angular-sanitize.js",
+      "reconstructedPath": "angular-sanitize/angular-sanitize.js"
+    },
+    {
+      "id": 142,
+      "originalPath": "./angular-sanitize/index.js",
+      "reconstructedPath": "angular-sanitize/index.js"
+    },
+    {
+      "id": 143,
+      "originalPath": "./angular-touch/angular-touch.js",
+      "reconstructedPath": "angular-touch/angular-touch.js"
+    },
+    {
+      "id": 144,
+      "originalPath": "./angular-touch/index.js",
+      "reconstructedPath": "angular-touch/index.js"
+    },
+    {
+      "id": 145,
+      "originalPath": "./angular-translate-loader-partial/angular-translate-loader-partial.js",
+      "reconstructedPath": "angular-translate-loader-partial/angular-translate-loader-partial.js"
+    },
+    {
+      "id": 146,
+      "originalPath": "./angular-translate-loader-static-files/angular-translate-loader-static-files.js",
+      "reconstructedPath": "angular-translate-loader-static-files/angular-translate-loader-static-files.js"
+    },
+    {
+      "id": 147,
+      "originalPath": "./angular-translate/dist/angular-translate.js",
+      "reconstructedPath": "angular-translate/dist/angular-translate.js"
+    },
+    {
+      "id": 148,
+      "originalPath": "./angular-ui-router/release/angular-ui-router.js",
+      "reconstructedPath": "angular-ui-router/release/angular-ui-router.js"
+    },
+    {
+      "id": 149,
+      "originalPath": "./angular/angular.js",
+      "reconstructedPath": "angular/angular.js"
+    },
+    {
+      "id": 150,
+      "originalPath": "./arraybuffer.slice/index.js",
+      "reconstructedPath": "arraybuffer.slice/index.js"
+    },
+    {
+      "id": 151,
+      "originalPath": "./babel-runtime/core-js/get-iterator.js",
+      "reconstructedPath": "babel-runtime/core-js/get-iterator.js"
+    },
+    {
+      "id": 152,
+      "originalPath": "./babel-runtime/core-js/is-iterable.js",
+      "reconstructedPath": "babel-runtime/core-js/is-iterable.js"
+    },
+    {
+      "id": 153,
+      "originalPath": "./babel-runtime/core-js/object/assign.js",
+      "reconstructedPath": "babel-runtime/core-js/object/assign.js"
+    },
+    {
+      "id": 154,
+      "originalPath": "./babel-runtime/core-js/object/define-property.js",
+      "reconstructedPath": "babel-runtime/core-js/object/define-property.js"
+    },
+    {
+      "id": 155,
+      "originalPath": "./babel-runtime/core-js/object/entries.js",
+      "reconstructedPath": "babel-runtime/core-js/object/entries.js"
+    },
+    {
+      "id": 156,
+      "originalPath": "./babel-runtime/core-js/promise.js",
+      "reconstructedPath": "babel-runtime/core-js/promise.js"
+    },
+    {
+      "id": 157,
+      "originalPath": "./babel-runtime/core-js/symbol.js",
+      "reconstructedPath": "babel-runtime/core-js/symbol.js"
+    },
+    {
+      "id": 158,
+      "originalPath": "./babel-runtime/core-js/symbol/iterator.js",
+      "reconstructedPath": "babel-runtime/core-js/symbol/iterator.js"
+    },
+    {
+      "id": 159,
+      "originalPath": "./babel-runtime/helpers/classCallCheck.js",
+      "reconstructedPath": "babel-runtime/helpers/classCallCheck.js"
+    },
+    {
+      "id": 160,
+      "originalPath": "./babel-runtime/helpers/createClass.js",
+      "reconstructedPath": "babel-runtime/helpers/createClass.js"
+    },
+    {
+      "id": 161,
+      "originalPath": "./babel-runtime/helpers/slicedToArray.js",
+      "reconstructedPath": "babel-runtime/helpers/slicedToArray.js"
+    },
+    {
+      "id": 162,
+      "originalPath": "./backo2/index.js",
+      "reconstructedPath": "backo2/index.js"
+    },
+    {
+      "id": 163,
+      "originalPath": "./base64-js/index.js",
+      "reconstructedPath": "base64-js/index.js"
+    },
+    {
+      "id": 164,
+      "originalPath": "./blob/index.js",
+      "reconstructedPath": "blob/index.js"
+    },
+    {
+      "id": 165,
+      "originalPath": "./buffer/index.js",
+      "reconstructedPath": "buffer/index.js"
+    },
+    {
+      "id": 166,
+      "originalPath": "./buffer/node_modules/isarray/index.js",
+      "reconstructedPath": "buffer/node_modules/isarray/index.js"
+    },
+    {
+      "id": 167,
+      "originalPath": "./core-js/library/fn/get-iterator.js",
+      "reconstructedPath": "core-js/library/fn/get-iterator.js"
+    },
+    {
+      "id": 168,
+      "originalPath": "./core-js/library/fn/is-iterable.js",
+      "reconstructedPath": "core-js/library/fn/is-iterable.js"
+    },
+    {
+      "id": 169,
+      "originalPath": "./core-js/library/fn/json/stringify.js",
+      "reconstructedPath": "core-js/library/fn/json/stringify.js"
+    },
+    {
+      "id": 170,
+      "originalPath": "./core-js/library/fn/object/assign.js",
+      "reconstructedPath": "core-js/library/fn/object/assign.js"
+    },
+    {
+      "id": 171,
+      "originalPath": "./core-js/library/fn/object/define-property.js",
+      "reconstructedPath": "core-js/library/fn/object/define-property.js"
+    },
+    {
+      "id": 172,
+      "originalPath": "./core-js/library/fn/object/entries.js",
+      "reconstructedPath": "core-js/library/fn/object/entries.js"
+    },
+    {
+      "id": 173,
+      "originalPath": "./core-js/library/fn/object/get-own-property-names.js",
+      "reconstructedPath": "core-js/library/fn/object/get-own-property-names.js"
+    },
+    {
+      "id": 174,
+      "originalPath": "./core-js/library/fn/object/keys.js",
+      "reconstructedPath": "core-js/library/fn/object/keys.js"
+    },
+    {
+      "id": 175,
+      "originalPath": "./core-js/library/fn/promise.js",
+      "reconstructedPath": "core-js/library/fn/promise.js"
+    },
+    {
+      "id": 176,
+      "originalPath": "./core-js/library/fn/symbol/index.js",
+      "reconstructedPath": "core-js/library/fn/symbol/index.js"
+    },
+    {
+      "id": 177,
+      "originalPath": "./core-js/library/fn/symbol/iterator.js",
+      "reconstructedPath": "core-js/library/fn/symbol/iterator.js"
+    },
+    {
+      "id": 178,
+      "originalPath": "./core-js/library/modules/_add-to-unscopables.js",
+      "reconstructedPath": "core-js/library/modules/_add-to-unscopables.js"
+    },
+    {
+      "id": 179,
+      "originalPath": "./core-js/library/modules/_an-instance.js",
+      "reconstructedPath": "core-js/library/modules/_an-instance.js"
+    },
+    {
+      "id": 180,
+      "originalPath": "./core-js/library/modules/_array-includes.js",
+      "reconstructedPath": "core-js/library/modules/_array-includes.js"
+    },
+    {
+      "id": 181,
+      "originalPath": "./core-js/library/modules/_enum-keys.js",
+      "reconstructedPath": "core-js/library/modules/_enum-keys.js"
+    },
+    {
+      "id": 182,
+      "originalPath": "./core-js/library/modules/_for-of.js",
+      "reconstructedPath": "core-js/library/modules/_for-of.js"
+    },
+    {
+      "id": 183,
+      "originalPath": "./core-js/library/modules/_invoke.js",
+      "reconstructedPath": "core-js/library/modules/_invoke.js"
+    },
+    {
+      "id": 184,
+      "originalPath": "./core-js/library/modules/_is-array-iter.js",
+      "reconstructedPath": "core-js/library/modules/_is-array-iter.js"
+    },
+    {
+      "id": 185,
+      "originalPath": "./core-js/library/modules/_is-array.js",
+      "reconstructedPath": "core-js/library/modules/_is-array.js"
+    },
+    {
+      "id": 186,
+      "originalPath": "./core-js/library/modules/_iter-call.js",
+      "reconstructedPath": "core-js/library/modules/_iter-call.js"
+    },
+    {
+      "id": 187,
+      "originalPath": "./core-js/library/modules/_iter-create.js",
+      "reconstructedPath": "core-js/library/modules/_iter-create.js"
+    },
+    {
+      "id": 188,
+      "originalPath": "./core-js/library/modules/_iter-detect.js",
+      "reconstructedPath": "core-js/library/modules/_iter-detect.js"
+    },
+    {
+      "id": 189,
+      "originalPath": "./core-js/library/modules/_iter-step.js",
+      "reconstructedPath": "core-js/library/modules/_iter-step.js"
+    },
+    {
+      "id": 190,
+      "originalPath": "./core-js/library/modules/_meta.js",
+      "reconstructedPath": "core-js/library/modules/_meta.js"
+    },
+    {
+      "id": 191,
+      "originalPath": "./core-js/library/modules/_microtask.js",
+      "reconstructedPath": "core-js/library/modules/_microtask.js"
+    },
+    {
+      "id": 192,
+      "originalPath": "./core-js/library/modules/_object-assign.js",
+      "reconstructedPath": "core-js/library/modules/_object-assign.js"
+    },
+    {
+      "id": 193,
+      "originalPath": "./core-js/library/modules/_object-dps.js",
+      "reconstructedPath": "core-js/library/modules/_object-dps.js"
+    },
+    {
+      "id": 194,
+      "originalPath": "./core-js/library/modules/_object-gopd.js",
+      "reconstructedPath": "core-js/library/modules/_object-gopd.js"
+    },
+    {
+      "id": 195,
+      "originalPath": "./core-js/library/modules/_object-gpo.js",
+      "reconstructedPath": "core-js/library/modules/_object-gpo.js"
+    },
+    {
+      "id": 196,
+      "originalPath": "./core-js/library/modules/_object-to-array.js",
+      "reconstructedPath": "core-js/library/modules/_object-to-array.js"
+    },
+    {
+      "id": 197,
+      "originalPath": "./core-js/library/modules/_redefine-all.js",
+      "reconstructedPath": "core-js/library/modules/_redefine-all.js"
+    },
+    {
+      "id": 198,
+      "originalPath": "./core-js/library/modules/_set-species.js",
+      "reconstructedPath": "core-js/library/modules/_set-species.js"
+    },
+    {
+      "id": 199,
+      "originalPath": "./core-js/library/modules/_string-at.js",
+      "reconstructedPath": "core-js/library/modules/_string-at.js"
+    },
+    {
+      "id": 200,
+      "originalPath": "./core-js/library/modules/_to-absolute-index.js",
+      "reconstructedPath": "core-js/library/modules/_to-absolute-index.js"
+    },
+    {
+      "id": 201,
+      "originalPath": "./core-js/library/modules/_user-agent.js",
+      "reconstructedPath": "core-js/library/modules/_user-agent.js"
+    },
+    {
+      "id": 202,
+      "originalPath": "./core-js/library/modules/core.get-iterator.js",
+      "reconstructedPath": "core-js/library/modules/core.get-iterator.js"
+    },
+    {
+      "id": 203,
+      "originalPath": "./core-js/library/modules/core.is-iterable.js",
+      "reconstructedPath": "core-js/library/modules/core.is-iterable.js"
+    },
+    {
+      "id": 204,
+      "originalPath": "./core-js/library/modules/es6.array.iterator.js",
+      "reconstructedPath": "core-js/library/modules/es6.array.iterator.js"
+    },
+    {
+      "id": 205,
+      "originalPath": "./core-js/library/modules/es6.object.assign.js",
+      "reconstructedPath": "core-js/library/modules/es6.object.assign.js"
+    },
+    {
+      "id": 206,
+      "originalPath": "./core-js/library/modules/es6.object.define-property.js",
+      "reconstructedPath": "core-js/library/modules/es6.object.define-property.js"
+    },
+    {
+      "id": 207,
+      "originalPath": "./core-js/library/modules/es6.object.get-own-property-names.js",
+      "reconstructedPath": "core-js/library/modules/es6.object.get-own-property-names.js"
+    },
+    {
+      "id": 208,
+      "originalPath": "./core-js/library/modules/es6.object.keys.js",
+      "reconstructedPath": "core-js/library/modules/es6.object.keys.js"
+    },
+    {
+      "id": 209,
+      "originalPath": "./core-js/library/modules/es6.promise.js",
+      "reconstructedPath": "core-js/library/modules/es6.promise.js"
+    },
+    {
+      "id": 210,
+      "originalPath": "./core-js/library/modules/es6.symbol.js",
+      "reconstructedPath": "core-js/library/modules/es6.symbol.js"
+    },
+    {
+      "id": 211,
+      "originalPath": "./core-js/library/modules/es7.object.entries.js",
+      "reconstructedPath": "core-js/library/modules/es7.object.entries.js"
+    },
+    {
+      "id": 212,
+      "originalPath": "./core-js/library/modules/es7.promise.finally.js",
+      "reconstructedPath": "core-js/library/modules/es7.promise.finally.js"
+    },
+    {
+      "id": 213,
+      "originalPath": "./core-js/library/modules/es7.promise.try.js",
+      "reconstructedPath": "core-js/library/modules/es7.promise.try.js"
+    },
+    {
+      "id": 214,
+      "originalPath": "./core-js/library/modules/es7.symbol.async-iterator.js",
+      "reconstructedPath": "core-js/library/modules/es7.symbol.async-iterator.js"
+    },
+    {
+      "id": 215,
+      "originalPath": "./core-js/library/modules/es7.symbol.observable.js",
+      "reconstructedPath": "core-js/library/modules/es7.symbol.observable.js"
+    },
+    {
+      "id": 216,
+      "originalPath": "./crypto-js/aes.js",
+      "reconstructedPath": "crypto-js/aes.js"
+    },
+    {
+      "id": 217,
+      "originalPath": "./crypto-js/enc-utf16.js",
+      "reconstructedPath": "crypto-js/enc-utf16.js"
+    },
+    {
+      "id": 218,
+      "originalPath": "./crypto-js/format-hex.js",
+      "reconstructedPath": "crypto-js/format-hex.js"
+    },
+    {
+      "id": 219,
+      "originalPath": "./crypto-js/index.js",
+      "reconstructedPath": "crypto-js/index.js"
+    },
+    {
+      "id": 220,
+      "originalPath": "./crypto-js/lib-typedarrays.js",
+      "reconstructedPath": "crypto-js/lib-typedarrays.js"
+    },
+    {
+      "id": 221,
+      "originalPath": "./crypto-js/mode-cfb.js",
+      "reconstructedPath": "crypto-js/mode-cfb.js"
+    },
+    {
+      "id": 222,
+      "originalPath": "./crypto-js/mode-ctr-gladman.js",
+      "reconstructedPath": "crypto-js/mode-ctr-gladman.js"
+    },
+    {
+      "id": 223,
+      "originalPath": "./crypto-js/mode-ctr.js",
+      "reconstructedPath": "crypto-js/mode-ctr.js"
+    },
+    {
+      "id": 224,
+      "originalPath": "./crypto-js/mode-ecb.js",
+      "reconstructedPath": "crypto-js/mode-ecb.js"
+    },
+    {
+      "id": 225,
+      "originalPath": "./crypto-js/mode-ofb.js",
+      "reconstructedPath": "crypto-js/mode-ofb.js"
+    },
+    {
+      "id": 226,
+      "originalPath": "./crypto-js/pad-ansix923.js",
+      "reconstructedPath": "crypto-js/pad-ansix923.js"
+    },
+    {
+      "id": 227,
+      "originalPath": "./crypto-js/pad-iso10126.js",
+      "reconstructedPath": "crypto-js/pad-iso10126.js"
+    },
+    {
+      "id": 228,
+      "originalPath": "./crypto-js/pad-iso97971.js",
+      "reconstructedPath": "crypto-js/pad-iso97971.js"
+    },
+    {
+      "id": 229,
+      "originalPath": "./crypto-js/pad-nopadding.js",
+      "reconstructedPath": "crypto-js/pad-nopadding.js"
+    },
+    {
+      "id": 230,
+      "originalPath": "./crypto-js/pad-zeropadding.js",
+      "reconstructedPath": "crypto-js/pad-zeropadding.js"
+    },
+    {
+      "id": 231,
+      "originalPath": "./crypto-js/pbkdf2.js",
+      "reconstructedPath": "crypto-js/pbkdf2.js"
+    },
+    {
+      "id": 232,
+      "originalPath": "./crypto-js/rabbit-legacy.js",
+      "reconstructedPath": "crypto-js/rabbit-legacy.js"
+    },
+    {
+      "id": 233,
+      "originalPath": "./crypto-js/rabbit.js",
+      "reconstructedPath": "crypto-js/rabbit.js"
+    },
+    {
+      "id": 234,
+      "originalPath": "./crypto-js/rc4.js",
+      "reconstructedPath": "crypto-js/rc4.js"
+    },
+    {
+      "id": 235,
+      "originalPath": "./crypto-js/ripemd160.js",
+      "reconstructedPath": "crypto-js/ripemd160.js"
+    },
+    {
+      "id": 236,
+      "originalPath": "./crypto-js/sha224.js",
+      "reconstructedPath": "crypto-js/sha224.js"
+    },
+    {
+      "id": 237,
+      "originalPath": "./crypto-js/sha3.js",
+      "reconstructedPath": "crypto-js/sha3.js"
+    },
+    {
+      "id": 238,
+      "originalPath": "./crypto-js/sha384.js",
+      "reconstructedPath": "crypto-js/sha384.js"
+    },
+    {
+      "id": 239,
+      "originalPath": "./crypto-js/tripledes.js",
+      "reconstructedPath": "crypto-js/tripledes.js"
+    },
+    {
+      "id": 240,
+      "originalPath": "./d3-axis/dist/d3-axis.js",
+      "reconstructedPath": "d3-axis/dist/d3-axis.js"
+    },
+    {
+      "id": 241,
+      "originalPath": "./d3-brush/dist/d3-brush.js",
+      "reconstructedPath": "d3-brush/dist/d3-brush.js"
+    },
+    {
+      "id": 242,
+      "originalPath": "./d3-chord/dist/d3-chord.js",
+      "reconstructedPath": "d3-chord/dist/d3-chord.js"
+    },
+    {
+      "id": 243,
+      "originalPath": "./d3-contour/dist/d3-contour.js",
+      "reconstructedPath": "d3-contour/dist/d3-contour.js"
+    },
+    {
+      "id": 244,
+      "originalPath": "./d3-fetch/dist/d3-fetch.js",
+      "reconstructedPath": "d3-fetch/dist/d3-fetch.js"
+    },
+    {
+      "id": 245,
+      "originalPath": "./d3-force/dist/d3-force.js",
+      "reconstructedPath": "d3-force/dist/d3-force.js"
+    },
+    {
+      "id": 246,
+      "originalPath": "./d3-geo/dist/d3-geo.js",
+      "reconstructedPath": "d3-geo/dist/d3-geo.js"
+    },
+    {
+      "id": 247,
+      "originalPath": "./d3-hierarchy/dist/d3-hierarchy.js",
+      "reconstructedPath": "d3-hierarchy/dist/d3-hierarchy.js"
+    },
+    {
+      "id": 248,
+      "originalPath": "./d3-polygon/dist/d3-polygon.js",
+      "reconstructedPath": "d3-polygon/dist/d3-polygon.js"
+    },
+    {
+      "id": 249,
+      "originalPath": "./d3-random/dist/d3-random.js",
+      "reconstructedPath": "d3-random/dist/d3-random.js"
+    },
+    {
+      "id": 250,
+      "originalPath": "./d3-scale-chromatic/dist/d3-scale-chromatic.js",
+      "reconstructedPath": "d3-scale-chromatic/dist/d3-scale-chromatic.js"
+    },
+    {
+      "id": 251,
+      "originalPath": "./d3-scale/dist/d3-scale.js",
+      "reconstructedPath": "d3-scale/dist/d3-scale.js"
+    },
+    {
+      "id": 252,
+      "originalPath": "./d3-shape/dist/d3-shape.js",
+      "reconstructedPath": "d3-shape/dist/d3-shape.js"
+    },
+    {
+      "id": 253,
+      "originalPath": "./d3-voronoi/dist/d3-voronoi.js",
+      "reconstructedPath": "d3-voronoi/dist/d3-voronoi.js"
+    },
+    {
+      "id": 254,
+      "originalPath": "./d3-zoom/dist/d3-zoom.js",
+      "reconstructedPath": "d3-zoom/dist/d3-zoom.js"
+    },
+    {
+      "id": 255,
+      "originalPath": "./d3/dist/d3.node.js",
+      "reconstructedPath": "d3/dist/d3.node.js"
+    },
+    {
+      "id": 256,
+      "originalPath": "./error-stack-parser/error-stack-parser.js",
+      "reconstructedPath": "error-stack-parser/error-stack-parser.js"
+    },
+    {
+      "id": 257,
+      "originalPath": "./global/index.js",
+      "reconstructedPath": "global/index.js"
+    },
+    {
+      "id": 258,
+      "originalPath": "./ieee754/index.js",
+      "reconstructedPath": "ieee754/index.js"
+    },
+    {
+      "id": 259,
+      "originalPath": "./immediate/lib/browser.js",
+      "reconstructedPath": "immediate/lib/browser.js"
+    },
+    {
+      "id": 260,
+      "originalPath": "./lie/lib/index.js",
+      "reconstructedPath": "lie/lib/index.js"
+    },
+    {
+      "id": 261,
+      "originalPath": "./lie/polyfill.js",
+      "reconstructedPath": "lie/polyfill.js"
+    },
+    {
+      "id": 262,
+      "originalPath": "./ms/index.js",
+      "reconstructedPath": "ms/index.js"
+    },
+    {
+      "id": 263,
+      "originalPath": "./ng-stats/dist/ng-stats.js",
+      "reconstructedPath": "ng-stats/dist/ng-stats.js"
+    },
+    {
+      "id": 264,
+      "originalPath": "./object-component/index.js",
+      "reconstructedPath": "object-component/index.js"
+    },
+    {
+      "id": 265,
+      "originalPath": "./process/browser.js",
+      "reconstructedPath": "process/browser.js"
+    },
+    {
+      "id": 266,
+      "originalPath": "./socket.io-client/index.js",
+      "reconstructedPath": "socket.io-client/index.js"
+    },
+    {
+      "id": 267,
+      "originalPath": "./socket.io-client/lib/index.js",
+      "reconstructedPath": "socket.io-client/lib/index.js"
+    },
+    {
+      "id": 268,
+      "originalPath": "./socket.io-client/node_modules/after/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/after/index.js"
+    },
+    {
+      "id": 269,
+      "originalPath": "./socket.io-client/node_modules/base64-arraybuffer/lib/base64-arraybuffer.js",
+      "reconstructedPath": "socket.io-client/node_modules/base64-arraybuffer/lib/base64-arraybuffer.js"
+    },
+    {
+      "id": 270,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/index.js"
+    },
+    {
+      "id": 271,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/lib/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/lib/index.js"
+    },
+    {
+      "id": 272,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/lib/socket.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/lib/socket.js"
+    },
+    {
+      "id": 273,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/lib/transports/polling-jsonp.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/lib/transports/polling-jsonp.js"
+    },
+    {
+      "id": 274,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/lib/transports/polling-xhr.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/lib/transports/polling-xhr.js"
+    },
+    {
+      "id": 275,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/lib/transports/websocket.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/lib/transports/websocket.js"
+    },
+    {
+      "id": 276,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/node_modules/debug/debug.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/node_modules/debug/debug.js"
+    },
+    {
+      "id": 277,
+      "originalPath": "./socket.io-client/node_modules/engine.io-client/node_modules/parseuri/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-client/node_modules/parseuri/index.js"
+    },
+    {
+      "id": 278,
+      "originalPath": "./socket.io-client/node_modules/engine.io-parser/lib/keys.js",
+      "reconstructedPath": "socket.io-client/node_modules/engine.io-parser/lib/keys.js"
+    },
+    {
+      "id": 279,
+      "originalPath": "./socket.io-client/node_modules/has-cors/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/has-cors/index.js"
+    },
+    {
+      "id": 280,
+      "originalPath": "./socket.io-client/node_modules/json3/lib/json3.js",
+      "reconstructedPath": "socket.io-client/node_modules/json3/lib/json3.js"
+    },
+    {
+      "id": 281,
+      "originalPath": "./socket.io-client/node_modules/parsejson/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/parsejson/index.js"
+    },
+    {
+      "id": 282,
+      "originalPath": "./socket.io-client/node_modules/parseuri/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/parseuri/index.js"
+    },
+    {
+      "id": 283,
+      "originalPath": "./socket.io-client/node_modules/socket.io-parser/binary.js",
+      "reconstructedPath": "socket.io-client/node_modules/socket.io-parser/binary.js"
+    },
+    {
+      "id": 284,
+      "originalPath": "./socket.io-client/node_modules/to-array/index.js",
+      "reconstructedPath": "socket.io-client/node_modules/to-array/index.js"
+    },
+    {
+      "id": 285,
+      "originalPath": "./socket.io-client/node_modules/ws/lib/browser.js",
+      "reconstructedPath": "socket.io-client/node_modules/ws/lib/browser.js"
+    },
+    {
+      "id": 286,
+      "originalPath": "./stackframe/stackframe.js",
+      "reconstructedPath": "stackframe/stackframe.js"
+    },
+    {
+      "id": 287,
+      "originalPath": "./underscore/underscore.js",
+      "reconstructedPath": "underscore/underscore.js"
+    },
+    {
+      "id": 288,
+      "originalPath": "./utf8/utf8.js",
+      "reconstructedPath": "utf8/utf8.js"
+    },
+    {
+      "id": 289,
+      "originalPath": "./webpack/buildin/module.js",
+      "reconstructedPath": "webpack/buildin/module.js"
+    },
+    {
+      "id": 290,
+      "originalPath": "./webpack/buildin/amd-options.js",
+      "reconstructedPath": "webpack/buildin/amd-options.js"
+    }
+  ]
+}

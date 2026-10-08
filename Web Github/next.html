@@ -1,0 +1,1555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>THE NEXT VERSION — NVIDIA ShadowPlay</title>
+  <meta name="description" content="The next version of NVIDIA ShadowPlay is coming — and it changes everything. The genuine chain, the Node backend, the real Alt+Z overlay.">
+
+  <link rel="icon" type="image/png" href="https://camo.githubusercontent.com/189f450c3c7997fd8f52d7b7278d18c04674aa747ff66745eaa21bb099ac2436/68747470733a2f2f63646e322e737465616d6772696464622e636f6d2f69636f6e2f65383835356233353238636230336431646566393830333232306264336362392f33322f34387834382e706e67">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    @font-face{
+      font-family:'GeForce';
+      src:url('Assets/GeForce-Bold-Alt.woff2') format('woff2');
+      font-weight:bold;font-style:normal;font-display:swap;
+    }
+    :root{
+      --green:#76B900;
+      --green-hi:#A3E635;
+      --black:#000;
+      --dark:#0A0A0A;
+      --panel:#101210;
+      --line:rgba(118,185,0,.35);
+      --line-dim:rgba(255,255,255,.09);
+      --txt:#fff;
+      --txt-dim:rgba(255,255,255,.55);
+      --ease:cubic-bezier(.16,1,.3,1);
+    }
+    *{margin:0;padding:0;box-sizing:border-box;border-radius:0!important}
+    html{scroll-behavior:smooth}
+    body{
+      background:var(--black);color:var(--txt);
+      font-family:'Inter',-apple-system,'Segoe UI',sans-serif;
+      overflow-x:hidden;line-height:1.6;
+      -webkit-tap-highlight-color:transparent;
+    }
+    ::selection{background:var(--green);color:#000}
+    ::-webkit-scrollbar{width:10px}
+    ::-webkit-scrollbar-track{background:#0c0e0c}
+    ::-webkit-scrollbar-thumb{background:var(--green)}
+    .scroll-progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:9999;
+      background:linear-gradient(90deg,var(--green),var(--green-hi));box-shadow:0 0 8px var(--green)}
+
+    /* ══════════ NAV ══════════ */
+    nav{position:fixed;top:0;left:0;right:0;z-index:900;
+      display:flex;align-items:center;justify-content:space-between;gap:1rem;
+      padding:.9rem 2rem;
+      background:rgba(0,0,0,.72);backdrop-filter:blur(10px);
+      border-bottom:1px solid var(--line-dim)}
+    .brand{font-family:'GeForce','Inter',sans-serif;font-size:1rem;letter-spacing:2px;
+      color:#fff;text-decoration:none;display:flex;align-items:center;gap:.7rem}
+    .brand b{color:var(--green)}
+    .brand .pill{font-family:'Inter';font-size:.55rem;font-weight:800;letter-spacing:1.6px;
+      background:var(--green);color:#000;padding:.2rem .5rem;
+      animation:blink 2.2s ease infinite}
+    .nav-links{display:flex;gap:1.6rem;align-items:center}
+    .nav-links a{color:var(--txt-dim);text-decoration:none;font-size:.78rem;
+      letter-spacing:1.2px;font-weight:600;transition:color .2s;white-space:nowrap}
+    .nav-links a:hover{color:var(--green)}
+    .nav-links a.hot{color:var(--green);font-weight:800}
+    @media(max-width:760px){
+      .nav-links a:not(.hot){display:none}
+      nav{padding:.8rem 1rem;gap:.6rem}
+      .brand{font-size:.8rem}
+      .brand .pill{font-size:.5rem;padding:.16rem .4rem}
+      .nav-links a.hot{font-size:.66rem;letter-spacing:.8px}
+    }
+
+    @keyframes blink{50%{opacity:.35}}
+
+    /* ══════════ HERO ══════════ */
+    .hero{position:relative;min-height:100vh;display:flex;flex-direction:column;
+      justify-content:center;align-items:center;text-align:center;
+      padding:7.5rem 1.5rem 4rem;overflow:hidden}
+    /* grid floor */
+    .grid-floor{position:absolute;left:-50%;right:-50%;bottom:-12%;height:62%;
+      background-image:
+        linear-gradient(rgba(118,185,0,.22) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(118,185,0,.22) 1px,transparent 1px);
+      background-size:64px 64px;
+      transform:translate(calc(var(--mx,0)*30px),0) perspective(620px) rotateX(64deg);
+      animation:floor 3.2s linear infinite;
+      mask-image:linear-gradient(to top,rgba(0,0,0,.9) 25%,transparent 92%);
+      -webkit-mask-image:linear-gradient(to top,rgba(0,0,0,.9) 25%,transparent 92%);
+      opacity:.5;pointer-events:none}
+    @keyframes floor{to{background-position:0 64px,0 0}}
+    /* glows */
+    .glow{position:absolute;pointer-events:none;filter:blur(90px)}
+    .glow.g1{width:60vw;height:40vh;top:-10%;left:50%;
+      transform:translate(calc(-50% + var(--mx,0)*44px),calc(var(--my,0)*22px));
+      background:radial-gradient(ellipse,rgba(118,185,0,.20),transparent 70%)}
+    .glow.g2{width:36vw;height:36vh;bottom:6%;left:-8%;
+      transform:translate(calc(var(--mx,0)*-38px),calc(var(--my,0)*-16px));
+      background:radial-gradient(ellipse,rgba(118,185,0,.12),transparent 70%)}
+    .glow.g3{width:36vw;height:36vh;bottom:12%;right:-8%;
+      transform:translate(calc(var(--mx,0)*-38px),calc(var(--my,0)*-16px));
+      background:radial-gradient(ellipse,rgba(118,185,0,.12),transparent 70%)}
+    #stars{position:absolute;inset:0;pointer-events:none;opacity:.7}
+
+    .hero-inner{position:relative;z-index:2;max-width:1200px;width:100%}
+    .hero-badge{display:inline-flex;align-items:center;gap:.6rem;
+      font-size:.68rem;font-weight:800;letter-spacing:3px;color:var(--green);
+      border:1px solid var(--line);padding:.5rem 1.1rem;margin-bottom:2.2rem;
+      background:rgba(118,185,0,.06);animation:fadeUp 1s var(--ease) both}
+    .hero-badge .dot{width:8px;height:8px;background:var(--green);
+      box-shadow:0 0 10px var(--green);animation:blink 1.6s ease infinite}
+
+    .t-line{font-family:'GeForce','Inter',sans-serif;line-height:.94;
+      text-transform:uppercase;margin:0}
+    .t-outline{
+      font-size:clamp(3.2rem,11vw,9.5rem);font-weight:800;letter-spacing:.01em;
+      color:transparent;
+      -webkit-text-stroke:1.5px rgba(255,255,255,.55)}
+    .t-outline .ltr{display:inline-block;white-space:pre;
+      opacity:0;transform:translateY(.45em);
+      animation:ltrIn .75s var(--ease) both}
+    .t-fill{
+      font-size:clamp(3.6rem,13.5vw,12rem);font-weight:800;letter-spacing:.01em;
+      filter:drop-shadow(0 0 26px rgba(118,185,0,.55)) drop-shadow(0 0 90px rgba(118,185,0,.28));
+      position:relative}
+    .t-fill .ltr{display:inline-block;white-space:pre;
+      background:linear-gradient(180deg,#d7ff7a 0%,var(--green) 55%,#3f7300 100%);
+      -webkit-background-clip:text;background-clip:text;color:transparent;
+      opacity:0;transform:translateY(.45em) scale(1.08);
+      animation:ltrIn .9s var(--ease) both}
+    .t-scan{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+    .t-scan::before{content:"";position:absolute;left:0;right:0;height:14%;top:-20%;
+      background:linear-gradient(180deg,transparent,rgba(255,255,255,.32),transparent);
+      animation:scan 3.4s ease-in-out infinite}
+    @keyframes scan{0%,18%{top:-22%}55%,100%{top:118%}}
+
+    .hero-sub{margin:2rem auto 0;max-width:720px;
+      animation:fadeUp 1.2s var(--ease) .42s both}
+    .hero-sub .big{font-size:clamp(1.05rem,2.4vw,1.5rem);font-weight:700;
+      letter-spacing:4px;text-transform:uppercase}
+    .hero-sub .big em{font-style:normal;color:var(--green);
+      text-shadow:0 0 18px rgba(118,185,0,.6)}
+    .hero-sub .th{margin-top:.55rem;font-size:clamp(.9rem,1.8vw,1.05rem);
+      color:var(--txt-dim)}
+
+    /* countdown */
+    .count{margin:3rem auto 0;max-width:860px;
+      border:1px solid var(--line);position:relative;
+      background:linear-gradient(145deg,rgba(118,185,0,.09),rgba(0,0,0,.85) 45%,rgba(118,185,0,.05));
+      box-shadow:0 0 60px rgba(118,185,0,.14),inset 0 0 46px rgba(118,185,0,.05);
+      animation:fadeUp 1.2s var(--ease) .56s both}
+    .count::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;
+      background:repeating-linear-gradient(90deg,var(--green) 0 26px,transparent 26px 52px);
+      background-size:52px 3px;animation:runway 2.6s linear infinite;opacity:.85}
+    @keyframes runway{to{background-position:52px 0}}
+    .count-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;
+      padding:1.15rem 1.5rem .35rem;text-align:left}
+    .count-tag{font-size:.62rem;font-weight:800;letter-spacing:2px;background:var(--green);
+      color:#000;padding:.2rem .55rem}
+    .count-title{font-family:'GeForce','Inter',sans-serif;font-size:1.05rem;
+      letter-spacing:1.5px;font-weight:700}
+    .count-live{margin-left:auto;color:var(--green);font-size:.66rem;font-weight:800;
+      letter-spacing:1.6px;animation:blink 2s ease infinite}
+    .count-cells{display:flex;align-items:stretch;gap:.45rem;padding:.9rem 1.5rem 1.15rem}
+    .cell{flex:1 1 0;min-width:0}
+    .cell .num{font-family:'GeForce','Inter',sans-serif;font-variant-numeric:tabular-nums;
+      font-size:clamp(1.9rem,5.4vw,3.4rem);font-weight:800;text-align:center;
+      padding:.3em .05em;color:var(--green);
+      background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.6));
+      border:1px solid rgba(118,185,0,.4);border-top:2px solid rgba(118,185,0,.6);
+      text-shadow:0 0 20px rgba(118,185,0,.65),0 0 52px rgba(118,185,0,.3);
+      transition:transform .16s ease,color .3s,text-shadow .3s;position:relative}
+    .cell .num::after{content:"";position:absolute;left:10%;right:10%;top:50%;height:1px;
+      background:rgba(118,185,0,.25)}
+    .cell .num.tick{transform:translateY(-4px);color:var(--green-hi);
+      text-shadow:0 0 30px rgba(118,185,0,1),0 0 80px rgba(118,185,0,.55);
+      border-top-color:var(--green-hi)}
+    .cell .lab{font-size:.58rem;letter-spacing:2.6px;color:rgba(255,255,255,.45);
+      text-align:center;margin-top:.4rem}
+    .colon{align-self:center;font-size:clamp(1.2rem,3vw,2rem);font-weight:800;
+      color:rgba(118,185,0,.7);padding-bottom:1.3rem;animation:blink 1s steps(1) infinite}
+    .count-foot{display:flex;justify-content:space-between;gap:.8rem;flex-wrap:wrap;
+      padding:0 1.5rem 1.05rem;font-size:.64rem;letter-spacing:1.4px;
+      color:rgba(255,255,255,.45)}
+    .count-foot b{color:rgba(118,185,0,.9)}
+
+    .hero-cta{margin-top:2.6rem;display:flex;gap:1.1rem;justify-content:center;
+      flex-wrap:wrap;animation:fadeUp 1.2s var(--ease) .7s both}
+    .btn{display:inline-flex;align-items:center;gap:.6rem;text-decoration:none;
+      font-family:'GeForce','Inter',sans-serif;font-weight:800;letter-spacing:1.6px;
+      font-size:.92rem;padding:1rem 1.9rem;transition:all .25s var(--ease)}
+    .btn-green{background:linear-gradient(135deg,#8ed311,#5c9400);color:#000;
+      position:relative;overflow:hidden;box-shadow:0 0 26px rgba(118,185,0,.4)}
+    .btn-green::after{content:"";position:absolute;top:0;left:-80%;width:50%;height:100%;
+      background:linear-gradient(100deg,transparent,rgba(255,255,255,.5),transparent);
+      transform:skewX(-18deg);animation:sheen 3.2s ease-in-out infinite}
+    @keyframes sheen{0%,55%{left:-80%}100%{left:140%}}
+    .btn-green:hover{transform:translateY(-3px);box-shadow:0 0 44px rgba(118,185,0,.65)}
+    .btn-ghost{background:rgba(118,185,0,.08);color:var(--green-hi);
+      border:1px solid var(--line)}
+    .btn-ghost:hover{background:rgba(118,185,0,.16);transform:translateY(-3px)}
+    .hero-hint{margin-top:2.4rem;color:rgba(255,255,255,.3);font-size:.72rem;
+      letter-spacing:3px;animation:bob 2.2s ease-in-out infinite}
+    @keyframes bob{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(7px);opacity:1}}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(34px)}to{opacity:1;transform:none}}
+
+    /* ══════════ MARQUEE ══════════ */
+    .marquee{border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+      background:rgba(118,185,0,.05);overflow:hidden;padding:.85rem 0;position:relative}
+    .marquee-track{display:flex;gap:3rem;width:max-content;
+      animation:mq 26s linear infinite;white-space:nowrap}
+    .marquee-track span{font-family:'GeForce','Inter',sans-serif;font-size:.92rem;
+      letter-spacing:3px;color:rgba(118,185,0,.85);text-transform:uppercase}
+    .marquee-track span i{font-style:normal;color:rgba(255,255,255,.35)}
+    @keyframes mq{to{transform:translateX(-50%)}}
+
+    /* ══════════ SECTIONS ══════════ */
+    section.blk{padding:7rem 1.5rem;position:relative}
+    .wrap{max-width:1240px;margin:0 auto}
+    .sec-head{text-align:center;margin-bottom:3.6rem}
+    .sec-label{display:inline-block;font-size:.66rem;font-weight:800;letter-spacing:3.4px;
+      color:var(--green);border:1px solid var(--line);padding:.35rem .9rem;margin-bottom:1.2rem;
+      background:rgba(118,185,0,.05)}
+    .sec-title{font-family:'GeForce','Inter',sans-serif;
+      font-size:clamp(2rem,5.4vw,3.6rem);letter-spacing:1px;line-height:1.08;
+      text-transform:uppercase}
+    .sec-title span{color:var(--green);
+      filter:drop-shadow(0 0 16px rgba(118,185,0,.45))}
+    .sec-sub{color:var(--txt-dim);max-width:680px;margin:1.1rem auto 0;font-size:.98rem}
+
+    .reveal{opacity:0;transform:translateY(36px);
+      transition:opacity .8s var(--ease),transform .8s var(--ease)}
+    .reveal.on{opacity:1;transform:none}
+
+    /* stats */
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;
+      background:var(--line-dim);border:1px solid var(--line-dim)}
+    .stat{background:var(--black);padding:2.2rem 1rem;text-align:center}
+    .stat .v{font-family:'GeForce','Inter',sans-serif;font-size:clamp(2rem,4.6vw,3.2rem);
+      font-weight:800;color:var(--green);
+      text-shadow:0 0 22px rgba(118,185,0,.5);font-variant-numeric:tabular-nums}
+    .stat .v small{font-size:.45em;letter-spacing:1px;color:rgba(118,185,0,.75)}
+    .stat .k{margin-top:.5rem;font-size:.66rem;letter-spacing:2.4px;color:var(--txt-dim)}
+    @media(max-width:820px){.stats{grid-template-columns:repeat(2,1fr)}}
+
+    /* change cards */
+    .cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+    @media(max-width:1000px){.cards{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:640px){.cards{grid-template-columns:1fr}}
+    .card{position:relative;background:linear-gradient(160deg,var(--panel),#050605);
+      border:1px solid var(--line-dim);padding:2rem 1.7rem;overflow:hidden;
+      transition:transform .3s var(--ease),border-color .3s,box-shadow .3s}
+    .card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;
+      background:linear-gradient(90deg,var(--green),transparent 70%);
+      opacity:0;transition:opacity .3s}
+    .card:hover{transform:translateY(-6px);border-color:var(--line);
+      box-shadow:0 18px 50px rgba(0,0,0,.6),0 0 34px rgba(118,185,0,.12)}
+    .card:hover::before{opacity:1}
+    .card .no{font-family:'GeForce','Inter',sans-serif;font-size:2.4rem;font-weight:800;
+      color:transparent;-webkit-text-stroke:1px rgba(118,185,0,.5);line-height:1}
+    .card .ic{font-size:1.5rem;color:var(--green);margin:.9rem 0 .4rem;display:block;
+      text-shadow:0 0 14px rgba(118,185,0,.55)}
+    .card h3{font-family:'GeForce','Inter',sans-serif;font-size:1.12rem;
+      letter-spacing:1px;text-transform:uppercase;margin-bottom:.6rem}
+    .card p{font-size:.9rem;color:var(--txt-dim)}
+    .card p b{color:#fff;font-weight:700}
+    .card .tagline{display:inline-block;margin-top:1rem;font-size:.6rem;font-weight:800;
+      letter-spacing:1.8px;color:var(--green-hi);border:1px solid rgba(118,185,0,.3);
+      padding:.22rem .55rem;background:rgba(118,185,0,.07)}
+
+    /* milestones */
+    .miles{max-width:860px;margin:0 auto;border:1px solid var(--line-dim);
+      background:linear-gradient(160deg,var(--panel),#050605)}
+    .mile{display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:1.2rem;
+      padding:1.35rem 1.6rem;border-bottom:1px solid var(--line-dim)}
+    .mile:last-child{border-bottom:0}
+    .mile .bullet{width:14px;height:14px;justify-self:center;position:relative}
+    .mile.done .bullet{background:var(--green);box-shadow:0 0 14px rgba(118,185,0,.8)}
+    .mile.wip .bullet{background:transparent;border:2px solid var(--green);animation:blink 1.4s ease infinite}
+    .mile.todo .bullet{background:transparent;border:2px solid rgba(255,255,255,.25)}
+    .mile .nm{font-weight:700;font-size:1rem;letter-spacing:.4px}
+    .mile .ds{font-size:.8rem;color:var(--txt-dim)}
+    .mile .st{font-size:.62rem;font-weight:800;letter-spacing:2px;padding:.32rem .7rem}
+    .mile.done .st{background:var(--green);color:#000}
+    .mile.wip .st{border:1px solid var(--green);color:var(--green-hi);animation:blink 1.4s ease infinite}
+    .mile.todo .st{border:1px solid rgba(255,255,255,.22);color:rgba(255,255,255,.45)}
+
+    /* timeline */
+    .evo{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;align-items:stretch}
+    @media(max-width:900px){.evo{grid-template-columns:1fr}}
+    .era{position:relative;border:1px solid var(--line-dim);padding:2.1rem 1.8rem;
+      background:linear-gradient(160deg,var(--panel),#050605);transition:all .3s var(--ease)}
+    .era .step{font-size:.6rem;font-weight:800;letter-spacing:2.6px;color:var(--txt-dim)}
+    .era h3{font-family:'GeForce','Inter',sans-serif;font-size:1.5rem;margin:.5rem 0 .2rem;
+      letter-spacing:.5px}
+    .era .when{font-size:.7rem;letter-spacing:1.6px;color:var(--txt-dim);margin-bottom:1rem}
+    .era p{font-size:.88rem;color:var(--txt-dim)}
+    .era .flag{position:absolute;top:-1px;right:-1px;font-size:.58rem;font-weight:800;
+      letter-spacing:1.8px;padding:.3rem .65rem}
+    .era.past{opacity:.72}
+    .era.past .flag{background:rgba(255,255,255,.12);color:rgba(255,255,255,.6)}
+    .era.now{border-color:rgba(118,185,0,.5)}
+    .era.now .flag{background:var(--green);color:#000}
+    .era.next{border-color:var(--green);
+      background:linear-gradient(150deg,rgba(118,185,0,.13),rgba(0,0,0,.9) 55%);
+      box-shadow:0 0 46px rgba(118,185,0,.16);animation:pulse 3s ease-in-out infinite}
+    .era.next .flag{background:#fff;color:#000}
+    .era.next h3{color:var(--green-hi);
+      text-shadow:0 0 18px rgba(118,185,0,.6)}
+    @keyframes pulse{0%,100%{box-shadow:0 0 30px rgba(118,185,0,.12)}50%{box-shadow:0 0 62px rgba(118,185,0,.3)}}
+    .era .arrowline{position:absolute;left:0;bottom:0;height:2px;width:0;
+      background:linear-gradient(90deg,var(--green),transparent);transition:width .8s var(--ease)}
+    .era:hover .arrowline{width:100%}
+
+    /* wait / download */
+    .wait{border:1px solid var(--line);background:
+      linear-gradient(145deg,rgba(118,185,0,.10),rgba(0,0,0,.9) 45%,rgba(118,185,0,.05));
+      box-shadow:0 0 60px rgba(118,185,0,.14),inset 0 0 46px rgba(118,185,0,.05);
+      padding:3.4rem 2rem;text-align:center;position:relative;overflow:hidden}
+    .wait::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;
+      background:repeating-linear-gradient(90deg,var(--green) 0 26px,transparent 26px 52px);
+      background-size:52px 3px;animation:runway 2.6s linear infinite;opacity:.85}
+    .wait h3{font-family:'GeForce','Inter',sans-serif;font-size:clamp(1.5rem,3.6vw,2.4rem);
+      letter-spacing:1px;text-transform:uppercase}
+    .wait p{color:var(--txt-dim);max-width:640px;margin:.9rem auto 1.8rem;font-size:.95rem}
+    .wait .row{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+    .wait .corner{position:absolute;width:18px;height:18px;border:2px solid var(--green);z-index:2}
+    .wait .c1{top:-1px;left:-1px;border-right:0;border-bottom:0}
+    .wait .c2{top:-1px;right:-1px;border-left:0;border-bottom:0}
+    .wait .c3{bottom:-1px;left:-1px;border-right:0;border-top:0}
+    .wait .c4{bottom:-1px;right:-1px;border-left:0;border-top:0}
+
+    /* footer */
+    footer{border-top:1px solid var(--line-dim);padding:2.6rem 1.5rem;text-align:center;
+      color:rgba(255,255,255,.4);font-size:.78rem;letter-spacing:.5px}
+    footer b{color:var(--green)}
+    footer .links{margin-top:.6rem;display:flex;gap:1.6rem;justify-content:center;flex-wrap:wrap}
+    footer a{color:rgba(255,255,255,.5);text-decoration:none}
+    footer a:hover{color:var(--green)}
+  </style>
+
+  <style>
+    /* ══════════ CINEMATIC LAYER ══════════ */
+    @keyframes ltrIn{to{opacity:1;transform:none}}
+
+    /* energy rings behind the title */
+    .rings{position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);
+      width:min(82vw,900px);aspect-ratio:1;pointer-events:none;z-index:1;opacity:.5}
+    .rings i{position:absolute;inset:0;border:1px solid rgba(118,185,0,.32);
+      border-radius:50%!important;animation:ringSpin 26s linear infinite}
+    .rings i:nth-child(2){inset:11%;border-color:rgba(118,185,0,.2);
+      animation-duration:40s;animation-direction:reverse}
+    .rings i:nth-child(3){inset:24%;border-style:dashed;
+      border-color:rgba(118,185,0,.16);animation-duration:56s}
+    @keyframes ringSpin{to{transform:rotate(360deg)}}
+
+    /* one-shot shockwaves */
+    .shock{position:absolute;top:44%;left:50%;width:12px;height:12px;
+      border:2px solid rgba(163,230,53,.9);border-radius:50%!important;
+      transform:translate(-50%,-50%);opacity:0;pointer-events:none;z-index:1;
+      animation:shock 1.5s cubic-bezier(.16,1,.3,1) 1.05s forwards}
+    .shock.s2{animation-delay:1.4s;border-color:rgba(118,185,0,.7)}
+    @keyframes shock{0%{opacity:.85;width:12px;height:12px}
+      70%{opacity:.3}100%{opacity:0;width:1150px;height:1150px}}
+
+    /* load flash */
+    .flash{position:fixed;inset:0;z-index:9998;pointer-events:none;opacity:0;
+      background:radial-gradient(ellipse at center,rgba(118,185,0,.3),transparent 62%);
+      animation:flash 1.1s ease .5s forwards}
+    @keyframes flash{0%{opacity:1}100%{opacity:0}}
+
+    /* kinetic statement */
+    .statement{text-align:center;background:linear-gradient(180deg,#000,#0A0A0A)}
+    .stmt{font-family:'GeForce','Inter',sans-serif;text-transform:uppercase;line-height:1.04}
+    .stmt span{display:inline-block;font-size:clamp(2.2rem,6.6vw,5.4rem);font-weight:800;
+      color:transparent;-webkit-text-stroke:1.5px rgba(255,255,255,.5)}
+    .stmt.big span{-webkit-text-stroke:0;color:#fff;font-size:clamp(2.7rem,8.6vw,7rem)}
+    .stmt.big em{font-style:normal;color:var(--green);
+      text-shadow:0 0 30px rgba(118,185,0,.65),0 0 100px rgba(118,185,0,.3)}
+
+    /* traveling pulse divider */
+    .pulse-divider{height:1px;max-width:1240px;margin:0 auto;
+      background:rgba(118,185,0,.16);position:relative;overflow:hidden}
+    .pulse-divider::after{content:"";position:absolute;top:-1px;left:-140px;width:140px;height:3px;
+      background:linear-gradient(90deg,transparent,var(--green),transparent);
+      box-shadow:0 0 18px rgba(118,185,0,.85);animation:pulseRun 3.4s linear infinite}
+    @keyframes pulseRun{to{left:100%}}
+
+    /* real source panel */
+    .source{margin-top:2.6rem;border:1px solid var(--line);
+      background:linear-gradient(160deg,#050705,#0A0C08);
+      box-shadow:0 0 46px rgba(118,185,0,.12),inset 0 0 40px rgba(118,185,0,.04)}
+    .source-bar{display:flex;align-items:center;gap:.55rem;padding:.75rem 1.1rem;
+      border-bottom:1px solid var(--line-dim);background:rgba(118,185,0,.05)}
+    .source-bar i{width:9px;height:9px;background:rgba(118,185,0,.55);display:inline-block}
+    .source-bar i:nth-child(2){opacity:.6}.source-bar i:nth-child(3){opacity:.3}
+    .source-bar span{margin-left:.5rem;font-family:'Consolas','Courier New',monospace;
+      font-size:.72rem;letter-spacing:.5px;color:var(--txt-dim)}
+    .source-bar b{margin-left:auto;font-size:.6rem;font-weight:800;letter-spacing:2px;
+      color:var(--green-hi)}
+    .source-body{display:grid;grid-template-columns:1.4fr 1fr;gap:0}
+    @media(max-width:820px){.source-body{grid-template-columns:1fr}}
+    .source-code{padding:1.2rem 1.4rem;font-family:'Consolas','Courier New',monospace;
+      font-size:clamp(.72rem,1.6vw,.86rem);line-height:1.9;color:#B7E36B;overflow-x:auto}
+    .source-code b{color:#fff;font-weight:700}
+    .source-code .ok{color:var(--green)}
+    .source-side{border-left:1px solid var(--line-dim);padding:1.2rem 1.4rem}
+    @media(max-width:820px){.source-side{border-left:0;border-top:1px solid var(--line-dim)}}
+    .source-side h4{font-size:.62rem;letter-spacing:2.6px;color:var(--txt-dim);
+      text-transform:uppercase;margin-bottom:.7rem}
+    .source-side li{list-style:none;font-family:'Consolas','Courier New',monospace;
+      font-size:.8rem;color:#B7E36B;padding:.22rem 0}
+    .source-side li b{color:#fff;font-weight:700}
+    .cursor-blink::after{content:"▊";color:var(--green);animation:blink 1s steps(1) infinite}
+
+    /* countdown tick flash */
+    .cell .num{transition:transform .16s ease,color .3s,text-shadow .3s,background .3s}
+    .cell .num.tick{background:linear-gradient(180deg,rgba(118,185,0,.3),rgba(0,0,0,.6))}
+
+    /* footer ghost text */
+    footer{position:relative;overflow:hidden}
+    footer .ghost{position:absolute;left:50%;top:50%;z-index:0;
+      transform:translate(-50%,-52%);
+      font-family:'GeForce','Inter',sans-serif;font-weight:800;
+      font-size:clamp(6rem,20vw,17rem);letter-spacing:.04em;line-height:1;
+      color:transparent;-webkit-text-stroke:1px rgba(118,185,0,.15);
+      white-space:nowrap;pointer-events:none;
+      animation:ghostDrift 16s ease-in-out infinite alternate}
+    @keyframes ghostDrift{to{transform:translate(-44%,-52%)}}
+    footer > div{position:relative;z-index:1}
+    footer .links, footer div:last-child{position:relative;z-index:1}
+
+    /* #snap mode — deterministic rendering for full-page captures */
+    html.snap .hero{min-height:0;padding-top:7.5rem;padding-bottom:4rem}
+    html.snap .reveal{opacity:1!important;transform:none!important;transition:none!important}
+    html.snap .flash, html.snap .shock{display:none}
+    html.snap .ltr{opacity:1!important;transform:none!important;animation:none!important}
+  </style>
+
+  <style>
+    /* ══════════ MAXIMUM LAYER ══════════ */
+
+    /* ── BOOT INTRO ── */
+    html.booting{overflow:hidden}
+    html.booting .ltr{animation-play-state:paused!important}
+    #boot{position:fixed;inset:0;z-index:10000;background:#020302;
+      display:flex;align-items:center;justify-content:center;
+      transition:opacity .6s ease,visibility .6s}
+    #boot.done{opacity:0;visibility:hidden;pointer-events:none}
+    .bootbox{width:min(880px,92vw);font-family:'Consolas','Courier New',monospace}
+    .boothead{display:flex;align-items:center;gap:.7rem;font-size:.72rem;letter-spacing:2.4px;
+      color:var(--green-hi);border:1px solid var(--line);padding:.65rem 1rem;
+      background:rgba(118,185,0,.05)}
+    .boothead .bdot{width:9px;height:9px;background:var(--green);
+      box-shadow:0 0 12px var(--green);animation:blink 1.2s ease infinite}
+    .boothead .bver{margin-left:auto;color:var(--txt-dim);letter-spacing:1.5px}
+    .bootlines{min-height:13.2em;padding:1rem 1.1rem;font-size:clamp(.72rem,1.7vw,.86rem);
+      line-height:1.85;color:#B7E36B;border:1px solid var(--line-dim);border-top:0;
+      white-space:pre-wrap;word-break:break-all}
+    .bootlines .ok{color:var(--green-hi);font-weight:700}
+    .bootlines .cur::after{content:"▊";animation:blink 1s steps(1) infinite}
+    .bootbar{height:4px;background:rgba(118,185,0,.12);margin-top:-1px;border:1px solid var(--line-dim);border-top:0}
+    .bootbar i{display:block;height:100%;width:0;background:repeating-linear-gradient(90deg,var(--green) 0 14px,var(--green-hi) 14px 18px);
+      box-shadow:0 0 12px rgba(118,185,0,.8);transition:width .18s linear}
+    .boothint{text-align:center;margin-top:.8rem;font-size:.6rem;letter-spacing:3px;color:var(--txt-dim)}
+    @media(max-width:640px){.bootlines{min-height:11em;font-size:.68rem}}
+
+    /* ── CRT SCANLINES + VIGNETTE ── */
+    .crt{position:fixed;inset:0;z-index:9100;pointer-events:none;opacity:.5;
+      background:
+        radial-gradient(ellipse at center,transparent 58%,rgba(0,0,0,.42) 100%),
+        repeating-linear-gradient(0deg,rgba(0,0,0,.14) 0 1px,transparent 1px 3px)}
+
+    /* ── CUSTOM CURSOR ── */
+    #cur,#curRing{position:fixed;top:0;left:0;pointer-events:none;z-index:9600;display:none}
+    body.cur-on #cur,body.cur-on #curRing{display:block}
+    body.cur-on,body.cur-on *{cursor:none!important}
+    #cur{width:6px;height:6px;margin:-3px 0 0 -3px;background:var(--green-hi);
+      box-shadow:0 0 10px var(--green)}
+    #curRing{width:34px;height:34px;margin:-17px 0 0 -17px;border:1px solid rgba(118,185,0,.65);
+      transition:width .18s,height .18s,margin .18s,border-color .18s,background .18s}
+    #curRing.big{width:56px;height:56px;margin:-28px 0 0 -28px;border-color:var(--green-hi);
+      background:rgba(118,185,0,.08)}
+
+    /* ── SECTION HUD RAIL ── */
+    .hud{position:fixed;right:20px;top:50%;transform:translateY(-50%);z-index:9200;
+      display:flex;flex-direction:column;gap:15px;align-items:flex-end}
+    .hud a{display:flex;align-items:center;gap:9px;text-decoration:none;
+      color:rgba(255,255,255,.32);font-size:.56rem;font-weight:800;letter-spacing:2.2px}
+    .hud a i{width:7px;height:7px;border:1px solid rgba(255,255,255,.3);order:2}
+    .hud a span{opacity:0;transform:translateX(8px);transition:.25s var(--ease)}
+    .hud a:hover span,.hud a.cur span{opacity:1;transform:none}
+    .hud a:hover{color:var(--txt-dim)}
+    .hud a.cur{color:var(--green-hi)}
+    .hud a.cur i{background:var(--green);border-color:var(--green);box-shadow:0 0 12px var(--green)}
+    .hudsys{position:fixed;left:20px;bottom:18px;z-index:9200;display:flex;gap:1rem;
+      font-family:'Consolas','Courier New',monospace;font-size:.6rem;letter-spacing:1.6px;
+      color:rgba(255,255,255,.4)}
+    .hudsys b{color:rgba(118,185,0,.85);font-weight:700}
+    @media(max-width:900px){.hud,.hudsys{display:none}}
+
+    /* ── SOUND TOGGLE ── */
+    .sndbtn{position:fixed;right:20px;bottom:18px;z-index:9300;
+      font-family:'Consolas','Courier New',monospace;font-size:.6rem;font-weight:700;
+      letter-spacing:2px;color:var(--txt-dim);background:rgba(0,0,0,.6);
+      border:1px solid var(--line-dim);padding:.5rem .85rem;cursor:pointer;transition:.25s}
+    .sndbtn:hover{border-color:var(--green);color:var(--green-hi)}
+    .sndbtn.on{background:var(--green);color:#020302;border-color:var(--green);
+      box-shadow:0 0 18px rgba(118,185,0,.5)}
+
+    /* ── GLITCH + TEAR ── */
+    .glitch-on .t-fill{animation:glitchShift .36s steps(3) both;
+      filter:drop-shadow(-3px 0 rgba(255,0,60,.55)) drop-shadow(3px 0 rgba(0,240,255,.5))
+             drop-shadow(0 0 26px rgba(118,185,0,.55))}
+    @keyframes glitchShift{
+      0%{transform:none}20%{transform:translate(-5px,2px) skewX(3deg)}
+      40%{transform:translate(4px,-2px) skewX(-2deg)}
+      60%{transform:translate(-3px,1px)}80%{transform:translate(2px,-1px)}
+      100%{transform:none}}
+    .tear{position:absolute;left:0;right:0;top:-20%;height:90px;z-index:2;
+      pointer-events:none;opacity:0;
+      background:linear-gradient(180deg,transparent,
+        rgba(118,185,0,.12) 42%,rgba(255,0,60,.16) 50%,rgba(0,240,255,.12) 58%,transparent);
+      mix-blend-mode:screen;animation:tearDrop 7s ease-in-out 3s infinite}
+    @keyframes tearDrop{0%,16%{top:-22%;opacity:0}
+      22%{opacity:.9}44%{top:118%;opacity:0}100%{top:118%;opacity:0}}
+
+    /* ── FLIP COUNTDOWN CELLS ── */
+    .cell{perspective:420px}
+    .cell .num{transform-origin:50% 100%;backface-visibility:hidden}
+    .cell .num.tick{animation:flipIn .32s var(--ease)}
+    @keyframes flipIn{0%{transform:rotateX(-72deg);filter:brightness(2.2)}
+      100%{transform:none;filter:none}}
+
+    /* ── ERA CONNECTOR ── */
+    .evo{position:relative;margin-top:30px}
+    .evo::before{content:"";position:absolute;top:-24px;left:4%;right:4%;height:1px;
+      background:linear-gradient(90deg,transparent,rgba(118,185,0,.55) 12%,rgba(118,185,0,.55) 88%,transparent)}
+    .evo::after{content:"▶";position:absolute;top:-31px;left:4%;color:var(--green);
+      font-size:.7rem;text-shadow:0 0 10px var(--green);
+      animation:eraRun 4.2s linear infinite}
+    @keyframes eraRun{from{left:4%}to{left:95%}}
+
+    /* ── CARD GLARE + TILT ── */
+    .card{transform-style:preserve-3d;will-change:transform}
+    .card::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;
+      transition:opacity .3s;background:radial-gradient(260px at var(--gx,50%) var(--gy,50%),
+        rgba(163,230,53,.15),transparent 62%)}
+    .card:hover::after{opacity:1}
+    .era{transform-style:preserve-3d;will-change:transform}
+
+    /* ── PROOF FRAME ── */
+    .pframe{position:relative;border:1px solid var(--line);
+      background:linear-gradient(160deg,#050605,#0A0C08);padding:.55rem;
+      box-shadow:0 0 60px rgba(118,185,0,.13),inset 0 0 40px rgba(118,185,0,.04);
+      transition:transform .35s var(--ease),box-shadow .35s}
+    .pframe:hover{transform:translateY(-5px);
+      box-shadow:0 24px 70px rgba(0,0,0,.65),0 0 80px rgba(118,185,0,.22)}
+    .pframe img{display:block;width:100%;height:auto}
+    .pframe .corner{position:absolute;width:18px;height:18px;border:2px solid var(--green);z-index:2}
+    .pframe .c1{top:-1px;left:-1px;border-right:0;border-bottom:0}
+    .pframe .c2{top:-1px;right:-1px;border-left:0;border-bottom:0}
+    .pframe .c3{bottom:-1px;left:-1px;border-right:0;border-top:0}
+    .pframe .c4{bottom:-1px;right:-1px;border-left:0;border-top:0}
+    .pcap{display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;
+      padding:.6rem .5rem .2rem;font-family:'Consolas','Courier New',monospace;
+      font-size:.62rem;letter-spacing:1.6px;color:var(--txt-dim)}
+    .pcap b{color:var(--green-hi)}
+
+    /* ── ROUTE RAIN (drawn into #stars canvas) ── */
+
+    /* ── ACCESSIBILITY ── */
+    @media (prefers-reduced-motion:reduce){
+      *,*::before,*::after{animation:none!important;transition:none!important}
+      .reveal{opacity:1!important;transform:none!important}
+      #boot{display:none}
+    }
+
+    /* ── FULL INVENTORY ── */
+    .inv-nums{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--line-dim);
+      border:1px solid var(--line-dim);margin-bottom:1.6rem}
+    .inum{background:#050705;padding:1.3rem .6rem;text-align:center}
+    .inum b{display:block;font-family:'GeForce','Inter',sans-serif;font-size:clamp(1.5rem,3.4vw,2.4rem);
+      color:var(--green);text-shadow:0 0 18px rgba(118,185,0,.5);font-variant-numeric:tabular-nums}
+    .inum span{font-size:.58rem;letter-spacing:2.2px;color:var(--txt-dim)}
+    @media(max-width:900px){.inv-nums{grid-template-columns:repeat(3,1fr)}}
+    .inv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line-dim);
+      border:1px solid var(--line-dim);margin-bottom:2.6rem}
+    @media(max-width:1100px){.inv-grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:620px){.inv-grid{grid-template-columns:1fr}}
+    .invmod{background:#050705;padding:1.1rem 1.2rem}
+    .invmod b{font-family:'Consolas','Courier New',monospace;color:#fff;font-size:.92rem;font-weight:700}
+    .invmod em{display:inline-block;margin-left:.6rem;font-style:normal;font-size:.62rem;font-weight:800;
+      letter-spacing:1.6px;color:var(--green-hi);border:1px solid rgba(118,185,0,.3);
+      padding:.1rem .45rem;background:rgba(118,185,0,.06)}
+    .invmod p{margin-top:.4rem;font-size:.76rem;color:var(--txt-dim);line-height:1.5}
+    .routepanel{border:1px solid var(--line);background:linear-gradient(160deg,#050705,#0A0C08);
+      box-shadow:0 0 46px rgba(118,185,0,.12),inset 0 0 40px rgba(118,185,0,.04)}
+    .routefilter{padding:.9rem 1.2rem;border-bottom:1px solid var(--line-dim)}
+    .routefilter input{width:100%;background:rgba(118,185,0,.05);border:1px solid var(--line-dim);
+      color:var(--green-hi);font-family:'Consolas','Courier New',monospace;font-size:.85rem;
+      padding:.7rem .9rem;outline:none;transition:border-color .2s}
+    .routefilter input:focus{border-color:var(--green)}
+    .routefilter input::placeholder{color:rgba(255,255,255,.28)}
+    .fams{max-height:560px;overflow-y:auto;padding:1rem 1.2rem 1.3rem}
+    .fam{margin-bottom:1.4rem}
+    .fam-h{display:flex;align-items:center;gap:.7rem;margin-bottom:.45rem;
+      font-family:'Consolas','Courier New',monospace;font-size:.8rem;color:#fff}
+    .fam-h b{color:var(--green);font-weight:700}
+    .fam-h em{font-style:normal;font-size:.56rem;font-weight:800;letter-spacing:1.6px;
+      color:var(--txt-dim);border:1px solid var(--line-dim);padding:.08rem .4rem}
+    .fam ul{list-style:none;columns:2;column-gap:2rem}
+    @media(max-width:760px){.fam ul{columns:1}}
+    .fam li{font-family:'Consolas','Courier New',monospace;font-size:clamp(.68rem,1.5vw,.8rem);
+      color:#B7E36B;padding:.14rem 0;break-inside:avoid;white-space:nowrap;overflow:hidden;
+      text-overflow:ellipsis}
+    .fam li mark{background:rgba(163,230,53,.28);color:#fff;padding:0 1px}
+    .fam.nomatch{display:none}
+
+    /* ── SNAP EXTENSIONS ── */
+    html.snap #boot,html.snap .crt,html.snap .hud,html.snap .hudsys,
+    html.snap .sndbtn,html.snap #cur,html.snap #curRing,html.snap .tear{display:none!important}
+    html.snap .evo::after,html.snap .evo::before{display:none}
+    html.snap .fams{max-height:none;overflow:visible}
+  </style>
+  <script>
+  /* snapshot mode (#snap): force-reveal everything, kill the flash — for full-page captures */
+  if (location.hash === '#snap') document.documentElement.classList.add('snap');
+  </script>
+</head>
+<body>
+  <div class="scroll-progress" id="scrollProgress"></div>
+  <div class="flash" aria-hidden="true"></div>
+  <div class="crt" aria-hidden="true"></div>
+  <div id="cur" aria-hidden="true"></div>
+  <div id="curRing" aria-hidden="true"></div>
+
+  <!-- BOOT INTRO -->
+  <div id="boot" aria-hidden="true">
+    <div class="bootbox">
+      <div class="boothead"><span class="bdot"></span> SECURE BOOT — GENUINE CHAIN <span class="bver">NEXT / 2026</span></div>
+      <div class="bootlines" id="bootLines"></div>
+      <div class="bootbar"><i id="bootBar"></i></div>
+      <div class="boothint">CLICK TO SKIP</div>
+    </div>
+  </div>
+
+  <!-- SECTION HUD -->
+  <aside class="hud" id="hud" aria-hidden="true"></aside>
+  <div class="hudsys" aria-hidden="true"><span>SYS <b id="hudClock">--:--:--</b></span><span>SCROLL <b id="hudPct">0%</b></span></div>
+  <button class="sndbtn" id="sndBtn" type="button">SOUND · OFF</button>
+
+  <!-- NAV -->
+  <nav>
+    <a class="brand" href="index.html">NVIDIA <b>SHADOWPLAY</b>
+      <span class="pill">NEXT</span>
+    </a>
+    <div class="nav-links">
+      <a href="#changes">What Changes</a>
+      <a href="#inventory">Arsenal</a>
+      <a href="#milestones">Milestones</a>
+      <a href="#evolution">Evolution</a>
+      <a href="obt3.html">OBT-3 Report</a>
+      <a class="hot" href="#wait">GET OBT-3 NOW &#8594;</a>
+    </div>
+  </nav>
+
+  <!-- ══════════ HERO ══════════ -->
+  <header class="hero">
+    <canvas id="stars"></canvas>
+    <div class="glow g1"></div><div class="glow g2"></div><div class="glow g3"></div>
+    <div class="grid-floor"></div>
+    <div class="rings" aria-hidden="true"><i></i><i></i><i></i></div>
+    <span class="shock" aria-hidden="true"></span>
+    <span class="shock s2" aria-hidden="true"></span>
+    <div class="tear" aria-hidden="true"></div>
+
+    <div class="hero-inner">
+      <div class="hero-badge"><span class="dot"></span> IN DEVELOPMENT &middot; THE REBUILD &middot; 2026</div>
+
+      <h1 class="t-line">
+        <span class="t-outline">THE NEXT</span><br>
+        <span class="t-fill">VERSION<span class="t-scan"></span></span>
+      </h1>
+
+      <div class="hero-sub">
+        <div class="big">IS COMING — AND IT CHANGES <em>EVERYTHING</em></div>
+        <div class="th">เวอร์ชันใหม่ กำลังจะมาเปลี่ยนทุกอย่าง — โซ่แท้ บนโครงสร้างใหม่ทั้งหมด</div>
+      </div>
+
+      <!-- COUNTDOWN -->
+      <div class="count" id="countdown">
+        <div class="count-head">
+          <span class="count-tag">T-MINUS</span>
+          <span class="count-title">COUNTING DOWN TO LAUNCH DAY</span>
+          <span class="count-live">LIVE</span>
+        </div>
+        <div class="count-cells">
+          <div class="cell"><div class="num" id="cd-d">00</div><div class="lab">DAYS</div></div>
+          <div class="colon">:</div>
+          <div class="cell"><div class="num" id="cd-h">00</div><div class="lab">HOURS</div></div>
+          <div class="colon">:</div>
+          <div class="cell"><div class="num" id="cd-m">00</div><div class="lab">MINUTES</div></div>
+          <div class="colon">:</div>
+          <div class="cell"><div class="num" id="cd-s">00</div><div class="lab">SECONDS</div></div>
+        </div>
+        <div class="count-foot">
+          <span>STATUS: <b>ENGINE REBUILD IN PROGRESS</b></span>
+          <span id="targetEcho"></span>
+        </div>
+      </div>
+
+      <div class="hero-cta">
+        <a class="btn btn-green" href="#changes">&#10022; SEE WHAT'S CHANGING</a>
+        <a class="btn btn-ghost" href="#wait">CANT WAIT? GET OBT-3</a>
+      </div>
+
+      <div class="hero-hint">SCROLL &#9660;</div>
+    </div>
+  </header>
+
+  <!-- MARQUEE -->
+  <div class="marquee">
+    <div class="marquee-track" id="mqTrack">
+      <span>FROM THE DEV LOG <i>&#10022;</i> BACKEND BOOT 22/22 &mdash; ZERO 404S <i>&#10022;</i> MODULEMAP REGISTRY: FIXED <i>&#10022;</i> ALT+Z DEFAULT BINDING [18,90] <i>&#10022;</i> CONTROL TEST ALT+X: ZERO TRACE <i>&#10022;</i> OSC D3D11 RENDERER: 1680&times;1050 <i>&#10022;</i> NVENC P4 &middot; CBR <i>&#10022;</i> </span>
+    </div>
+  </div>
+
+  <!-- ══════════ STATS ══════════ -->
+  <section class="blk" style="padding-top:4.5rem;padding-bottom:4.5rem">
+    <div class="wrap">
+      <div class="stats reveal" id="stats">
+        <div class="stat"><div class="v" data-count="252">0</div><div class="k">API ENDPOINTS — COUNTED FROM SOURCE</div></div>
+        <div class="stat"><div class="v" data-count="22">0<small>/22</small></div><div class="k">BACKEND ROUTES BOOTED</div></div>
+        <div class="stat"><div class="v" data-count="0">0<small>.000s</small></div><div class="k">A/V OFFSET — ONE QPC CLOCK</div></div>
+        <div class="stat"><div class="v" data-count="0">0<small> B</small></div><div class="k">BYTES LOST ON STOP</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="pulse-divider" aria-hidden="true"></div>
+
+  <!-- ══════════ KINETIC STATEMENT ══════════ -->
+  <section class="blk statement">
+    <div class="wrap">
+      <div class="stmt"><span class="reveal">NOT A PATCH.</span></div>
+      <div class="stmt"><span class="reveal">NOT A SKIN.</span></div>
+      <div class="stmt big"><span class="reveal">A <em>FULL REBUILD.</em></span></div>
+    </div>
+  </section>
+
+  <div class="pulse-divider" aria-hidden="true"></div>
+
+  <!-- ══════════ WHAT CHANGES ══════════ -->
+  <section class="blk" id="changes" style="background:linear-gradient(180deg,#000,#0A0A0A 50%,#000)">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="sec-label">UNDER THE HOOD</span>
+        <h2 class="sec-title">SIX PILLARS OF <span>THE REBUILD</span></h2>
+        <p class="sec-sub">Every layer of the old stack is being rebuilt to run the genuine
+        ShadowPlay chain — verified with real logs, not assumptions.</p>
+      </div>
+
+      <div class="cards">
+        <div class="card reveal">
+          <div class="no">01</div><span class="ic">&#9678;</span>
+          <h3>The Genuine Chain</h3>
+          <p>The full production stack, dissected and proven on real hardware:
+          <b>NvContainer</b> &rarr; <b>nvsphelper64</b> &rarr; <b>Node backend</b> &rarr; <b>OSC frontend</b>.
+          Every hop verified by logs — MessageBus, hotkey plugin, socket.io push.</p>
+          <span class="tagline">PROVEN, NOT GUESSED</span>
+        </div>
+        <div class="card reveal">
+          <div class="no">02</div><span class="ic">&#9881;</span>
+          <h3>Node Backend API</h3>
+          <p>A real backend boots on <b>port 59001</b> running the genuine
+          <b>NvShadowPlayAPI.js</b> — the full route table registered, and the very
+          first boot came up clean.</p>
+          <span class="tagline">ALREADY ANSWERING</span>
+        </div>
+        <div class="card reveal">
+          <div class="no">03</div><span class="ic">&#8635;</span>
+          <h3>Real Alt+Z Overlay</h3>
+          <p>The actual <b>Alt+Z</b> chain, traced end-to-end: helper catches WMHK &rarr; MessageBus &rarr;
+          node &rarr; socket.io &rarr; frontend toggle. Overlay with <b>click-through</b>,
+          <b>DPI awareness</b> and a present-cap CPU optimizer.</p>
+          <span class="tagline">HOTKEY &rarr; WINDOW, PROVEN</span>
+        </div>
+        <div class="card reveal">
+          <div class="no">04</div><span class="ic">&#9635;</span>
+          <h3>Capture Core</h3>
+          <p><b>ddagrab</b> capture piped straight into <b>NVENC</b> — p4 preset, CBR,
+          native resolution, guaranteed IDR at session start and verified FPS authority.
+          WGC capture module alongside.</p>
+          <span class="tagline">DDAGRAB + NVENC</span>
+        </div>
+        <div class="card reveal">
+          <div class="no">05</div><span class="ic">&#9211;</span>
+          <h3>A/V Timeline</h3>
+          <p>Inherited from OBT-3 and kept as law: <b>one common QPC clock</b> for WASAPI
+          and a drain-until-empty stop. No tail loss. Ever.</p>
+          <span class="tagline">MEASURED, NOT MARKETED</span>
+        </div>
+        <div class="card reveal">
+          <div class="no">06</div><span class="ic">&#9662;</span>
+          <h3>The Foundation</h3>
+          <p>A modular three-layer architecture with our own <b>CaptureEngine</b> as the final
+          layer — presentation, hooks and capture under our control, on a foundation that
+          finally mirrors the real thing.</p>
+          <span class="tagline">BUILT TO LAST</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- REAL SOURCE PANEL -->
+    <div class="source reveal" aria-label="Real route table excerpt from NvShadowPlayAPI.js">
+      <div class="source-bar">
+        <i></i><i></i><i></i>
+        <span>NvShadowPlayAPI.js — route table excerpt &middot; nvnode :59001</span>
+        <b>252 ENDPOINTS IN SOURCE</b>
+      </div>
+      <div class="source-body">
+        <div class="source-code cursor-blink">
+<b>»</b> /ShadowPlay/v.1.0/Hotkey<br>
+<b>»</b> /ShadowPlay/v.1.0/Capture/State<br>
+<b>»</b> /ShadowPlay/v.1.0/InstantReplay/Save<br>
+<b>»</b> /ShadowPlay/v.1.0/InstantReplay/BufferLength<br>
+<b>»</b> /ShadowPlay/v.1.0/8k60<br>
+<b>»</b> /ShadowPlay/v.1.0/4KSupport<br>
+<b>»</b> /ShadowPlay/v.1.0/Broadcast/Running<br>
+<b>»</b> /ShadowPlay/v.1.0/CustomOverlay/Enable<br>
+<b>»</b> /SDK/v.1.0/NotifyOverlayState<br>
+<span class="ok">…and 243 more — straight from the real source file</span>
+        </div>
+        <div class="source-side">
+          <h4>Native modules, real files</h4>
+          <ul>
+            <li><b>11×</b> .node native modules</li>
+            <li>nvsphelper64<b>.exe</b></li>
+            <li>nvsphelperplugin64<b>.dll</b></li>
+            <li>NVGalleryAPINode<b>.node</b></li>
+            <li>NvABHubAPI<b>.node</b></li>
+            <li>Downloader<b>.node</b></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ FULL INVENTORY / ARSENAL ══════════ -->
+  <section class="blk" id="inventory">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="sec-label">THE FULL ARSENAL</span>
+        <h2 class="sec-title">EVERYTHING IN THE <span>SOURCE TREE</span></h2>
+        <p class="sec-sub">No highlights. The whole inventory of Project/ — every module, every native
+        binary, and every single endpoint in the backend source. Counted, not claimed.</p>
+      </div>
+
+      <div class="inv-nums reveal">
+        <div class="inum"><b>3,796</b><span>FILES IN THE TREE</span></div>
+        <div class="inum"><b>13</b><span>MODULES</span></div>
+        <div class="inum"><b>11</b><span>NATIVE .NODE</span></div>
+        <div class="inum"><b>18</b><span>API JS FILES</span></div>
+        <div class="inum"><b>252</b><span>ENDPOINTS</span></div>
+      </div>
+
+      <div class="inv-grid reveal">
+        <div class="invmod"><b>OscProvision</b><em>1,219 files</em><p>OSC frontend provisioning — Payload · Registry · PATH-MANIFEST</p></div>
+        <div class="invmod"><b>NvOverlay</b><em>870 files</em><p>in-game overlay UI — Cef + WinForm layers</p></div>
+        <div class="invmod"><b>ShadowPlay</b><em>782 files</em><p>capture engine — FFmpeg · NvCapture · NvCapServices · WgcCapture.dll · genuine/nvsphelper64.exe</p></div>
+        <div class="invmod"><b>NvShadowPlayAPI</b><em>502 files</em><p>Node backend — 11 native .node · 18 API js · Web Helper</p></div>
+        <div class="invmod"><b>Launcher.Cef</b><em>97 files</em><p>CEF launcher shell — bootstrap vcxproj · deploy scripts</p></div>
+        <div class="invmod"><b>Launcher.exe</b><em>88 files</em><p>launcher host</p></div>
+        <div class="invmod"><b>NvBackend</b><em>74 files</em><p>backend service — NvBackend.exe</p></div>
+        <div class="invmod"><b>NvContainer</b><em>63 files</em><p>container runtime — NvContainer.exe (MessageBus broker)</p></div>
+        <div class="invmod"><b>NvGallery</b><em>58 files</em><p>gallery module — WinForm</p></div>
+        <div class="invmod"><b>Resources</b><em>31 files</em><p>Fonts · Languages</p></div>
+        <div class="invmod"><b>Docs ShadowPlay - Real</b><em>11 files</em><p>genuine reference docs</p></div>
+        <div class="invmod"><b>Flags</b><em>1 files</em><p>feature flags</p></div>
+        <div class="invmod"><b>Data</b><em>0 files</em><p>reserved</p></div>
+      </div>
+
+      <div class="routepanel reveal">
+        <div class="source-bar">
+          <i></i><i></i><i></i>
+          <span>NvShadowPlayAPI/NvAPI/*.js — complete endpoint registry</span>
+          <b><span id="routeCount">252</span>/252 SHOWN</b>
+        </div>
+        <div class="routefilter"><input id="routeFilter" type="text" placeholder="filter endpoints…  try: replay, broadcast, 8k, hotkey" autocomplete="off"></div>
+        <div class="fams" id="routeFams"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ MILESTONES ══════════ -->
+  <section class="blk" id="milestones">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="sec-label">LIVE STATUS</span>
+        <h2 class="sec-title">HOW FAR <span>ALONG</span></h2>
+        <p class="sec-sub">Honest accounting — the same standard we hold our builds to.</p>
+      </div>
+      <div class="miles reveal">
+        <div class="mile done">
+          <span class="bullet"></span>
+          <span><span class="nm">Genuine backend boot</span><br><span class="ds">NvShadowPlayAPI.js boots clean — ModuleMap registry verified</span></span>
+          <span class="st">DONE</span>
+        </div>
+        <div class="mile done">
+          <span class="bullet"></span>
+          <span><span class="nm">Alt+Z hotkey chain</span><br><span class="ds">WMHK 7 → MessageBus → node → frontend — control test: Alt+X leaves zero trace</span></span>
+          <span class="st">DONE</span>
+        </div>
+        <div class="mile done">
+          <span class="bullet"></span>
+          <span><span class="nm">Overlay core</span><br><span class="ds">nv-osc gate reopened — offscreen D3D11 renderer initialized</span></span>
+          <span class="st">DONE</span>
+        </div>
+        <div class="mile wip">
+          <span class="bullet"></span>
+          <span><span class="nm">Presentation / in-game hook layer</span><br><span class="ds">the final layer — our own CaptureEngine taking over composition</span></span>
+          <span class="st">IN PROGRESS</span>
+        </div>
+        <div class="mile todo">
+          <span class="bullet"></span>
+          <span><span class="nm">Launch</span><br><span class="ds">the day everything changes</span></span>
+          <span class="st">COMING</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="pulse-divider" aria-hidden="true"></div>
+
+  <!-- ══════════ EVOLUTION ══════════ -->
+  <section class="blk" id="evolution" style="background:linear-gradient(180deg,#000,#0A0A0A 50%,#000)">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="sec-label">EVOLUTION</span>
+        <h2 class="sec-title">FROM HERE <span>TO THERE</span></h2>
+      </div>
+      <div class="evo">
+        <div class="era past reveal">
+          <span class="flag">PAST</span>
+          <div class="step">GEN 1</div>
+          <h3>3.3.2057.1-BETA</h3>
+          <div class="when">THE FIRST STABLE LINE</div>
+          <p>Where it all started — the original capture implementation that proved the project could stand on its own.</p>
+          <div class="arrowline"></div>
+        </div>
+        <div class="era now reveal">
+          <span class="flag">NOW &middot; RELEASED</span>
+          <div class="step">GEN 2</div>
+          <h3>OBT-3</h3>
+          <div class="when">CURRENT FLAGSHIP &middot; RELEASE-OBT-3</div>
+          <p>The audio-timeline rebuild. A/V 0.000s on one QPC clock, zero bytes lost on stop,
+          verified FPS authority. Downloadable today from <b style="color:#fff">Release-OBT-3</b>.</p>
+          <div class="arrowline"></div>
+        </div>
+        <div class="era next reveal">
+          <span class="flag">COMING</span>
+          <div class="step">GEN 3</div>
+          <h3>THE NEXT VERSION</h3>
+          <div class="when">IN DEVELOPMENT &middot; THE REBUILD</div>
+          <p>The genuine chain. The Node backend. The real Alt+Z overlay. The new engine
+          <b style="color:#fff">is already booting.</b></p>
+          <div class="arrowline"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ WAIT / DOWNLOAD ══════════ -->
+  <section class="blk" id="wait" style="padding-top:4rem">
+    <div class="wrap">
+      <div class="wait reveal">
+        <span class="corner c1"></span><span class="corner c2"></span>
+        <span class="corner c3"></span><span class="corner c4"></span>
+        <h3>CANT WAIT? <span style="color:var(--green)">OBT-3 IS OUT NOW</span></h3>
+        <p>The current flagship build is available today — the audio-timeline rebuild with
+        measured, not marketed, numbers. Grab it while the next version finishes cooking.</p>
+        <div class="row">
+          <a class="btn btn-green" href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/Release-OBT-3/NVIDIA.ShadowPlay.OBT3.exe">&#8595; DOWNLOAD OBT-3 EXE</a>
+          <a class="btn btn-ghost" href="obt3.html">OBT-3 VS STABLE REPORT &#8594;</a>
+          <a class="btn btn-ghost" href="index.html">&#8592; BACK TO MAIN SITE</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ PROOF — REAL CAPTURE ══════════ -->
+  <section class="blk" id="proof" style="padding-top:4rem">
+    <div class="wrap">
+      <div class="sec-head reveal">
+        <span class="sec-label">PROOF, NOT PROMISES</span>
+        <h2 class="sec-title">CAPTURED WITH <span>THE REAL THING</span></h2>
+        <p class="sec-sub">A frame grabbed live during the engine test session — while the Alt+Z chain
+        was being proven layer by layer on this machine.</p>
+      </div>
+      <div class="pframe reveal">
+        <span class="corner c1"></span><span class="corner c2"></span>
+        <span class="corner c3"></span><span class="corner c4"></span>
+        <img src="Assets/proof-capture.jpg" alt="Real capture — Minecraft Dungeons, grabbed by the capture stack during the live test session" loading="lazy">
+        <div class="pcap">
+          <span>SOURCE: <b>Dungeons Screenshot 2026.09.26 — 20.55.10</b></span>
+          <span>SESSION: <b>LIVE ALT+Z TEST</b> &middot; GAME RUNNING</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="ghost" aria-hidden="true">NEXT</div>
+    <div>NVIDIA SHADOWPLAY — <b>SEE YOU AT LAUNCH</b></div>
+    <div class="links">
+      <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" target="_blank">GitHub Repo</a>
+      <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases" target="_blank">Releases</a>
+      <a href="https://discord.gg/v5qUGVD3jZ" target="_blank">Discord</a>
+      <a href="index.html">Main Site</a>
+    </div>
+    <div style="margin-top:.8rem">&copy; <span id="year"></span> ScotcsDuluka | Inspired by NVIDIA ShadowPlay&trade;</div>
+  </footer>
+
+  <script>
+  /* ── CONFIG: launch target for the countdown (GMT+7).
+     Set the real launch date here; if the moment passes, the page
+     switches to LAUNCH WINDOW OPEN automatically. ── */
+  var LAUNCH_TARGET = new Date('2026-10-24T21:00:00+07:00');
+
+  (function(){
+    /* year */
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    /* split hero titles into letters for the stagger entrance */
+    document.querySelectorAll('.t-outline, .t-fill').forEach(function(el){
+      var scan = el.querySelector('.t-scan');
+      var txt = el.textContent;
+      el.textContent = '';
+      Array.prototype.forEach.call(txt, function(ch, i){
+        var s = document.createElement('span');
+        s.className = 'ltr';
+        s.textContent = ch;
+        s.style.animationDelay = (0.18 + i * 0.05).toFixed(2) + 's';
+        el.appendChild(s);
+      });
+      if (scan) el.appendChild(scan);
+    });
+
+    /* mouse parallax — hero drifts with the cursor */
+    var heroEl = document.querySelector('.hero');
+    if (heroEl && matchMedia('(hover:hover) and (pointer:fine)').matches) {
+      addEventListener('mousemove', function(e){
+        var x = e.clientX / innerWidth - .5, y = e.clientY / innerHeight - .5;
+        heroEl.style.setProperty('--mx', x.toFixed(3));
+        heroEl.style.setProperty('--my', y.toFixed(3));
+      }, {passive:true});
+    }
+
+    /* marquee: duplicate track for seamless loop */
+    var mq = document.getElementById('mqTrack');
+    mq.innerHTML += mq.innerHTML;
+
+    /* scroll progress */
+    var bar = document.getElementById('scrollProgress');
+    addEventListener('scroll', function(){
+      var h = document.documentElement;
+      var p = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
+      bar.style.width = (p * 100) + '%';
+    }, {passive:true});
+
+    /* reveal on scroll */
+    var io = new IntersectionObserver(function(es){
+      es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('on'); io.unobserve(e.target);} });
+    }, {threshold:.12});
+    document.querySelectorAll('.reveal').forEach(function(el,i){
+      el.style.transitionDelay = (i % 3) * 90 + 'ms';
+      io.observe(el);
+    });
+
+    /* stat count-up */
+    var so = new IntersectionObserver(function(es){
+      es.forEach(function(e){
+        if(!e.isIntersecting) return;
+        so.unobserve(e.target);
+        e.target.querySelectorAll('[data-count]').forEach(function(v){
+          var end = +v.getAttribute('data-count'), suffix = '', t0 = null;
+          var small = v.querySelector('small');
+          if(small){ suffix = small.textContent; small.remove(); }
+          function step(ts){
+            if(!t0) t0 = ts;
+            var p = Math.min((ts - t0) / 1400, 1);
+            v.textContent = Math.round(end * (1 - Math.pow(1 - p, 3))) + (p === 1 ? suffix : '');
+            if(p < 1) requestAnimationFrame(step);
+          }
+          requestAnimationFrame(step);
+        });
+      });
+    }, {threshold:.4});
+    so.observe(document.getElementById('stats'));
+
+    /* countdown */
+    var dEl=document.getElementById('cd-d'), hEl=document.getElementById('cd-h'),
+        mEl=document.getElementById('cd-m'), sEl=document.getElementById('cd-s'),
+        head=document.querySelector('.count-title'), tag=document.querySelector('.count-tag');
+    function pad(n){ return (n<10?'0':'')+n; }
+    function setCell(el, txt){
+      if(el.textContent !== txt){
+        el.textContent = txt;
+        el.classList.add('tick');
+        setTimeout(function(){ el.classList.remove('tick'); }, 170);
+      }
+    }
+    function tick(){
+      var diff = LAUNCH_TARGET - new Date();
+      if(diff <= 0){
+        document.querySelectorAll('.cell .num').forEach(function(n){ n.textContent='00'; });
+        tag.textContent = 'LIVE';
+        head.textContent = 'THE NEXT VERSION — LAUNCH WINDOW OPEN';
+        return;
+      }
+      var s = Math.floor(diff/1000);
+      setCell(dEl, pad(Math.floor(s/86400)));
+      setCell(hEl, pad(Math.floor(s/3600)%24));
+      setCell(mEl, pad(Math.floor(s/60)%60));
+      setCell(sEl, pad(s%60));
+    }
+    /* target echo — show the configured launch moment under the countdown */
+    var te = document.getElementById('targetEcho');
+    if (te) {
+      var p2 = function(n){ return (n<10?'0':'')+n; };
+      var MON = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+      te.textContent = 'TARGET \u00B7 ' + p2(LAUNCH_TARGET.getDate()) + ' ' +
+        MON[LAUNCH_TARGET.getMonth()] + ' ' + LAUNCH_TARGET.getFullYear() +
+        ' \u00B7 ' + p2(LAUNCH_TARGET.getHours()) + ':' + p2(LAUNCH_TARGET.getMinutes()) + ' GMT+7';
+    }
+    tick(); setInterval(tick, 1000);
+
+    /* hero starfield — drifting green particles */
+    var cv = document.getElementById('stars'), cx = cv.getContext('2d'), P = [];
+    function size(){
+      cv.width = cv.offsetWidth * devicePixelRatio;
+      cv.height = cv.offsetHeight * devicePixelRatio;
+    }
+    function seed(){
+      P = [];
+      var n = Math.min(140, Math.floor(cv.offsetWidth / 9));
+      for(var i=0;i<n;i++) P.push({
+        x:Math.random()*cv.width, y:Math.random()*cv.height,
+        r:(Math.random()*1.6+.4)*devicePixelRatio,
+        vy:-(Math.random()*.25+.06)*devicePixelRatio,
+        a:Math.random()*.55+.15, tw:Math.random()*Math.PI*2
+      });
+    }
+    function draw(){
+      cx.clearRect(0,0,cv.width,cv.height);
+      for(var i=0;i<P.length;i++){
+        var p = P[i];
+        p.y += p.vy; p.tw += .03;
+        if(p.y < -4){ p.y = cv.height + 4; p.x = Math.random()*cv.width; }
+        var a = p.a * (0.65 + 0.35*Math.sin(p.tw));
+        cx.beginPath();
+        cx.fillStyle = 'rgba(140,220,20,' + a.toFixed(3) + ')';
+        cx.shadowColor = 'rgba(118,185,0,.9)';
+        cx.shadowBlur = 6 * devicePixelRatio;
+        cx.arc(p.x, p.y, p.r, 0, 7);
+        cx.fill();
+      }
+      /* green comets */
+      for(var c = comets.length - 1; c >= 0; c--){
+        var m = comets[c];
+        m.x += m.vx; m.y += m.vy; m.life -= .011;
+        if(m.life <= 0 || m.y > cv.height + 60){ comets.splice(c,1); continue; }
+        var tX = m.x - m.vx * 10, tY = m.y - m.vy * 10;
+        var gr = cx.createLinearGradient(m.x, m.y, tX, tY);
+        gr.addColorStop(0, 'rgba(163,230,53,' + (0.9 * m.life).toFixed(3) + ')');
+        gr.addColorStop(1, 'rgba(118,185,0,0)');
+        cx.shadowBlur = 0;
+        cx.strokeStyle = gr;
+        cx.lineWidth = 2 * devicePixelRatio;
+        cx.beginPath(); cx.moveTo(m.x, m.y); cx.lineTo(tX, tY); cx.stroke();
+      }
+      /* route rain — real endpoints rising through the dark */
+      for(var rr = rain.length - 1; rr >= 0; rr--){
+        var q = rain[rr];
+        q.y -= q.v;
+        if(q.y < -60){ rain.splice(rr,1); continue; }
+        cx.shadowBlur = 0;
+        cx.font = (11 * devicePixelRatio) + 'px Consolas, monospace';
+        cx.fillStyle = 'rgba(118,185,0,' + q.a + ')';
+        cx.fillText(q.txt, q.x, q.y);
+      }
+      cx.shadowBlur = 0;
+      requestAnimationFrame(draw);
+    }
+    var comets = [];
+    setInterval(function(){
+      if(document.hidden) return;
+      var dir = Math.random() < .5 ? -1 : 1;
+      comets.push({ x: Math.random()*cv.width, y: -30,
+        vx: dir * (Math.random()*3 + 2.2) * devicePixelRatio,
+        vy: (Math.random()*3.2 + 3.8) * devicePixelRatio,
+        life: 1 });
+    }, 2400);
+    var ROUTES = ['/ShadowPlay/v.1.0/Hotkey','/ShadowPlay/v.1.0/Capture/State',
+      '/ShadowPlay/v.1.0/InstantReplay/Save','/ShadowPlay/v.1.0/InstantReplay/BufferLength',
+      '/ShadowPlay/v.1.0/8k60','/ShadowPlay/v.1.0/4KSupport','/ShadowPlay/v.1.0/Broadcast/Running',
+      '/ShadowPlay/v.1.0/CustomOverlay/Enable','/SDK/v.1.0/NotifyOverlayState'];
+    var rain = [];
+    setInterval(function(){
+      if(document.hidden || rain.length > 7) return;
+      rain.push({ x: Math.random()*cv.width*.82, y: cv.height + 30,
+        v: (Math.random()*1.1 + .6) * devicePixelRatio,
+        txt: ROUTES[Math.floor(Math.random()*ROUTES.length)],
+        a: Math.random()*.22 + .1 });
+    }, 1500);
+    size(); seed(); draw();
+    addEventListener('resize', function(){ size(); seed(); }, {passive:true});
+
+
+    /* ── FULL ROUTE REGISTRY (all endpoints from NvShadowPlayAPI/NvAPI/*.js) ── */
+var FULL_ROUTES=["/7z.exe","/Account/v.1.0/PrivacySettings","/Account/v.1.0/RefreshPrivacySettings",
+"/Account/v.1.0/UserToken","/Add","/AppCollector/v.1.0/Add","/AppCollector/v.1.0/AppsList",
+"/AppCollector/v.1.0/Edit","/AppCollector/v.1.0/Remove","/ApplicationSettingsTranslation/v.1.0/",
+"/Applications/v.1.0/","/Applications/v.1.0/LauncherPID",
+"/Applications/v.1.0/SetLocalizedEndpoints","/Applications/v.1.0/lastRefreshTime",
+"/Applications/v.1.0/refresh","/Applications/v.1.0/refreshStates","/Applications/v.1.0/setUrls",
+"/Applications/v.1.0/state","/Backend/v.1.0/health","/DeepDVC/v.1.0/state","/Delete",
+"/DriverInstall/v.0.1/ProgressUpdate","/DriverInstall/v.0.1/ShowForm","/DriverUpdates/v.1.0/",
+"/DriverUpdates/v.1.0/AutomaticDriverDownloadEnabled",
+"/DriverUpdates/v.1.0/GetDriverTypePreference","/DriverUpdates/v.1.0/SetDriverTypePreference",
+"/DriverUpdates/v.1.0/refresh","/Feedback/v.0.1/","/FramerateLimiter/v.0.1/state",
+"/FramerateLimiter/v.0.1/support","/FramerateLimiter2/v.1.0/state",
+"/FramerateLimiter2/v.1.0/support","/Gallery/v.1.0/CopyFile","/Gallery/v.1.0/EnumerateDrives",
+"/Gallery/v.1.0/GetFileMetaData","/Gallery/v.1.0/GetFolderCRC",
+"/Gallery/v.1.0/GetImageFileDimensions","/Gallery/v.1.0/GetStats","/Gallery/v.1.0/GetThumbnail",
+"/Gallery/v.1.0/IsDirectoryWritable","/Gallery/v.1.0/Recent/Clear","/Gallery/v.1.0/Remove",
+"/Gallery/v.1.0/TranscodeMediaFile","/Gallery/v.1.0/TranscodeVideoToGIF",
+"/Gallery/v.1.0/Upload/History","/Gallery/v.1.0/Upload/History/Clear",
+"/Gallery/v.1.0/Upload/History/Remove","/Gallery/v.1.0/WriteEncryptedBmp",
+"/Gallery/v.1.2/GetFolderListing","/GameShare/v.1.0/ConfigureControllerMapping",
+"/GameShare/v.1.0/CreateSession","/GameShare/v.1.0/SessionUpdate",
+"/GameStream/v.1.0/Notification","/GameStream/v.1.0/PairedDevices",
+"/GameStream/v.1.0/ServerStatus","/GameStream/v.1.0/WebServiceAuthTokens",
+"/HardwareInformation/v.0.1/","/HardwareInformation/v.0.2/","/HardwareInformation/v.0.2/generic",
+"/Nis2/v.1.0/state","/NvBackend/v.1.0/ready","/NvCamera/v.1.0","/NvCamera/v.1.0/Camera/Adjust",
+"/NvCamera/v.1.0/Camera/GetAdjust","/NvCamera/v.1.0/Camera/GetRange","/NvCamera/v.1.0/Cancel",
+"/NvCamera/v.1.0/Capture/Control","/NvCamera/v.1.0/Capture/GetControl",
+"/NvCamera/v.1.0/Capture/GetTypes","/NvCamera/v.1.0/Compatible","/NvCamera/v.1.0/EnableMods",
+"/NvCamera/v.1.0/Filter","/NvCamera/v.1.0/Filter/GetInfo","/NvCamera/v.1.0/Filter/GetStackInfo",
+"/NvCamera/v.1.0/Filter/Insert","/NvCamera/v.1.0/Filter/Remove","/NvCamera/v.1.0/Filter/Reorder",
+"/NvCamera/v.1.0/Filter/Reset","/NvCamera/v.1.0/Filter/ResetAll",
+"/NvCamera/v.1.0/Filter/ResetStack","/NvCamera/v.1.0/Filter/SetMultipleFiltersAndAttributes",
+"/NvCamera/v.1.0/GameEngine","/NvCamera/v.1.0/GetAvailable","/NvCamera/v.1.0/GetFilters",
+"/NvCamera/v.1.0/GetFreestyleSupport","/NvCamera/v.1.0/GetIntegration",
+"/NvCamera/v.1.0/GetNvCameraConfig","/NvCamera/v.1.0/GetProcessInfo",
+"/NvCamera/v.1.0/GridOfThirds","/NvCamera/v.1.0/IPC","/NvCamera/v.1.0/Language",
+"/NvCamera/v.1.0/Notifications","/NvCamera/v.1.0/ReshadeSupported",
+"/NvCamera/v.1.0/SetFilterAndAttributesSupported","/NvCamera/v.1.0/SetMultipleFilterAPISupport",
+"/NvCamera/v.1.0/SetSharpnessForApp","/NvCamera/v.1.0/StyleTransfer",
+"/NvCamera/v.1.0/StyleTransfer/GetDirectory","/NvCamera/v.1.0/StyleTransfer/GetModels",
+"/NvCamera/v.1.0/StyleTransfer/GetStatus","/NvCamera/v.1.0/StyleTransfer/Model",
+"/NvCamera/v.1.0/StyleTransfer/Style","/NvCamera/v.1.0/reportControlVisibility",
+"/NvCamera/v.1.0/uiControlChanged","/NvCamera/v.1.0/uiReady","/OOTB/v.1.0/finished",
+"/OOTB/v.1.0/started","/PerformanceMode/v.1.0/state","/PerformanceMode/v.1.0/support",
+"/PiplConfig/v.1.0/data","/PiplConfig/v.1.0/update","/Post","/QuietMode/v.1.0/state",
+"/QuietMode/v.1.0/support","/QuietMode2/v.1.0/state","/QuietMode2/v.1.0/support",
+"/Rewards/v.1.0/refresh","/SDK/v.1.0/GetPermissions","/SDK/v.1.0/Highlights/Active",
+"/SDK/v.1.0/Highlights/Delete","/SDK/v.1.0/Highlights/DeleteGroup",
+"/SDK/v.1.0/Highlights/Enable","/SDK/v.1.0/Highlights/Get","/SDK/v.1.0/Highlights/GetAll",
+"/SDK/v.1.0/Highlights/GetConfig","/SDK/v.1.0/Highlights/GetCount",
+"/SDK/v.1.0/Highlights/GetGamesConfig","/SDK/v.1.0/Highlights/GetHighlights",
+"/SDK/v.1.0/Highlights/GetRecent","/SDK/v.1.0/Highlights/RecoverSpace",
+"/SDK/v.1.0/Highlights/Save","/SDK/v.1.0/Highlights/SetConfig",
+"/SDK/v.1.0/Highlights/UpdatePath","/SDK/v.1.0/Instance","/SDK/v.1.0/Notification",
+"/SDK/v.1.0/NotifyOverlayState","/SDK/v.1.0/SetPermissions","/SearchPaths/v.1.0/",
+"/SearchPaths/v.1.0/add","/SearchPaths/v.1.0/remove","/Settings/v.1.0/EditorPreviewMode",
+"/Settings/v.1.0/Language","/Settings/v.1.0/RewardsNotificationPreference",
+"/Settings/v.1.0/globalConfig","/ShadowPlay/v.1.0/4KSupport","/ShadowPlay/v.1.0/8k60",
+"/ShadowPlay/v.1.0/Audio","/ShadowPlay/v.1.0/AudioSettings",
+"/ShadowPlay/v.1.0/Broadcast/2KEnable","/ShadowPlay/v.1.0/Broadcast/2KSupport",
+"/ShadowPlay/v.1.0/Broadcast/Enable","/ShadowPlay/v.1.0/Broadcast/FBLiveSupport",
+"/ShadowPlay/v.1.0/Broadcast/IngestServer","/ShadowPlay/v.1.0/Broadcast/LastProvider",
+"/ShadowPlay/v.1.0/Broadcast/Pause","/ShadowPlay/v.1.0/Broadcast/Provider",
+"/ShadowPlay/v.1.0/Broadcast/Running","/ShadowPlay/v.1.0/Broadcast/SessionEvent",
+"/ShadowPlay/v.1.0/Broadcast/SessionParam","/ShadowPlay/v.1.0/Broadcast/Settings",
+"/ShadowPlay/v.1.0/Broadcast/Support","/ShadowPlay/v.1.0/Broadcast/Title",
+"/ShadowPlay/v.1.0/Broadcast/Viewers","/ShadowPlay/v.1.0/Broadcast/Viewers/Max",
+"/ShadowPlay/v.1.0/Capture/PIDMode","/ShadowPlay/v.1.0/Capture/State",
+"/ShadowPlay/v.1.0/CoPlay/Enable","/ShadowPlay/v.1.0/CoPlay/Support",
+"/ShadowPlay/v.1.0/CustomOverlay/DefaultPath","/ShadowPlay/v.1.0/CustomOverlay/Display",
+"/ShadowPlay/v.1.0/CustomOverlay/Enable","/ShadowPlay/v.1.0/CustomOverlay/Path",
+"/ShadowPlay/v.1.0/CustomOverlay/Support","/ShadowPlay/v.1.0/DesktopCapture/Enable",
+"/ShadowPlay/v.1.0/DesktopCapture/Support","/ShadowPlay/v.1.0/DesktopCapture/Support/Reason",
+"/ShadowPlay/v.1.0/DisplayOscNotification","/ShadowPlay/v.1.0/DisplayOscPreferences",
+"/ShadowPlay/v.1.0/DisplayOscState","/ShadowPlay/v.1.0/Framerates",
+"/ShadowPlay/v.1.0/GetHDRState","/ShadowPlay/v.1.0/GetSupported",
+"/ShadowPlay/v.1.0/Highlights/Customize","/ShadowPlay/v.1.0/Highlights/GalleryImport",
+"/ShadowPlay/v.1.0/Highlights/Session","/ShadowPlay/v.1.0/Hotkey","/ShadowPlay/v.1.0/Input",
+"/ShadowPlay/v.1.0/InstantReplay/BufferLength","/ShadowPlay/v.1.0/InstantReplay/Enable",
+"/ShadowPlay/v.1.0/InstantReplay/Running","/ShadowPlay/v.1.0/InstantReplay/Save",
+"/ShadowPlay/v.1.0/InstantReplay/Settings","/ShadowPlay/v.1.0/InstantReplay/Started",
+"/ShadowPlay/v.1.0/Launch","/ShadowPlay/v.1.0/Microphone","/ShadowPlay/v.1.0/Microphone/PTT",
+"/ShadowPlay/v.1.0/Microphone/Present","/ShadowPlay/v.1.0/Microphone/Settings",
+"/ShadowPlay/v.1.0/Notification","/ShadowPlay/v.1.0/OSC/Init","/ShadowPlay/v.1.0/OSC/MainView",
+"/ShadowPlay/v.1.0/OpenOsc","/ShadowPlay/v.1.0/OpenOscPreferences",
+"/ShadowPlay/v.1.0/OpenOscState","/ShadowPlay/v.1.0/Osc","/ShadowPlay/v.1.0/OscNotification",
+"/ShadowPlay/v.1.0/Record/Enable","/ShadowPlay/v.1.0/Record/Running",
+"/ShadowPlay/v.1.0/Record/Settings","/ShadowPlay/v.1.0/RecordPaths",
+"/ShadowPlay/v.1.0/Resolutions","/ShadowPlay/v.1.0/Screenshot/Capture",
+"/ShadowPlay/v.1.0/Screenshot/NGXCancelShot","/ShadowPlay/v.1.0/Screenshot/NGXShot",
+"/ShadowPlay/v.1.0/Screenshot/Support","/ShadowPlay/v.1.0/Video/Trim",
+"/ShadowPlay/v.1.0/Webcam/Enable","/ShadowPlay/v.1.0/Webcam/Present",
+"/ShadowPlay/v.1.0/Webcam/Settings","/ShadowPlay/v.1.0/Webcam/Shown",
+"/ShadowPlay/v.1.0/Webcam/Toggle","/ShadowPlay/v.1.0/WindowState",
+"/ShadowPlay/v1.0/OSC/GetCustomize/Broadcast","/ShadowPlay/v1.0/OSC/GetCustomize/InstantReplay",
+"/ShadowPlay/v1.0/OSC/GetCustomize/Record","/ShieldController/v.0.1/Notification",
+"/ShieldController/v.0.1/UpdateFirmware","/SignedGPUID/v.1.0/","/Status",
+"/SupportedApplications/v.1.0/","/TrayIcon/v.1.0/DriverUpdateNotification","/VisualOPS/v.1.0/",
+"/WhisperMode2.1/v.1.0/state","/WhisperMode2.1/v.1.0/support","/abHubAPI/v.0.1/Add",
+"/abHubAPI/v.0.1/Delete","/abHubAPI/v.0.1/Post","/abHubAPI/v.0.1/Status",
+"/api/1/authentication/client/login","/api/1/profile/user/privacy","/beta",
+"/download/v.0.1/checkforGFEUpdate","/download/v.0.1/postProcessingDone",
+"/download/v.0.1/postProcessingFailed","/download/v.0.1/postProcessingStarted",
+"/download/v.0.1/status","/gfeupdate/autoGFENewVersion/","/manifest.json","/threadpool","/up",
+"/version"];
+    (function(){
+      var famsEl = document.getElementById('routeFams');
+      if (!famsEl) return;
+      var famMap = {}, order = [];
+      FULL_ROUTES.forEach(function(r){
+        var p = r.split('/').filter(Boolean);
+        var fam = (p[0] || 'ROOT').toUpperCase();
+        if (!famMap[fam]) { famMap[fam] = []; order.push(fam); }
+        famMap[fam].push(r);
+      });
+      order.sort(function(a,b){ return famMap[b].length - famMap[a].length; });
+      order.forEach(function(fam){
+        var d = document.createElement('div');
+        d.className = 'fam';
+        var h = document.createElement('div');
+        h.className = 'fam-h';
+        h.innerHTML = '<b>/' + fam + '</b><em>' + famMap[fam].length + ' endpoints</em>';
+        var ul = document.createElement('ul');
+        famMap[fam].forEach(function(r){
+          var li = document.createElement('li');
+          li.setAttribute('data-route', r.toLowerCase());
+          li.textContent = r;
+          ul.appendChild(li);
+        });
+        d.appendChild(h); d.appendChild(ul);
+        famsEl.appendChild(d);
+      });
+      var input = document.getElementById('routeFilter');
+      var countEl = document.getElementById('routeCount');
+      if (!input) return;
+      input.addEventListener('input', function(){
+        var q = input.value.trim().toLowerCase();
+        var shown = 0;
+        famsEl.querySelectorAll('.fam').forEach(function(fam){
+          var famShown = 0;
+          fam.querySelectorAll('li').forEach(function(li){
+            var hit = !q || li.getAttribute('data-route').indexOf(q) !== -1;
+            li.style.display = hit ? '' : 'none';
+            if (hit) famShown++;
+            if (q && hit) {
+              var txt = li.getAttribute('data-route');
+              var i = txt.indexOf(q);
+              li.innerHTML = txt.slice(0, i) + '<mark>' + txt.slice(i, i + q.length) + '</mark>' + txt.slice(i + q.length);
+            } else li.textContent = li.getAttribute('data-route');
+          });
+          fam.classList.toggle('nomatch', famShown === 0);
+          shown += famShown;
+        });
+        countEl.textContent = shown;
+      });
+    })();
+
+    /* ── BOOT SEQUENCE ── */
+    var bootEl = document.getElementById('boot');
+    var snapMode = document.documentElement.classList.contains('snap');
+    var reduceMotion = matchMedia('(prefers-reduced-motion:reduce)').matches;
+    if (!snapMode && !reduceMotion && bootEl) {
+      document.documentElement.classList.add('booting');
+      var LINES = [
+        ['nvcontainer', 'MessageBus broker online'],
+        ['nvsphelper64', 'spawn ok — joined System:Hotkey'],
+        ['nvnode', 'listening :59001 — NvShadowPlayAPI.js'],
+        ['ModuleMap', 'registry verified'],
+        ['routes', '252 endpoints registered'],
+        ['hotkey', 'OSC default binding [18,90] = Alt+Z'],
+        ['osc', 'offscreen D3D11 renderer init'],
+        ['engine', 'ddagrab + NVENC p4 · CBR armed'],
+        ['qpc', 'A/V clock locked — 0.000s'],
+        ['REBUILD', 'READY — THE NEXT VERSION IS COMING.']
+      ];
+      var bl = document.getElementById('bootLines'), bb = document.getElementById('bootBar');
+      var li = 0, bootDone = false;
+      function endBoot(){
+        if (bootDone) return; bootDone = true;
+        bootEl.classList.add('done');
+        document.documentElement.classList.remove('booting');
+        document.body.classList.add('glitch-on');
+        setTimeout(function(){ document.body.classList.remove('glitch-on'); }, 380);
+        var fl = document.querySelector('.flash');
+        if (fl){ fl.style.animation = 'none'; void fl.offsetWidth; fl.style.animation = ''; }
+      }
+      bootEl.addEventListener('click', endBoot);
+      (function nextLine(){
+        if (bootDone) return;
+        if (li >= LINES.length){ setTimeout(endBoot, 560); return; }
+        var d = document.createElement('div');
+        d.innerHTML = '<span class="ok">[ OK ]</span> ' + LINES[li][0] + ' :: ' + LINES[li][1];
+        bl.appendChild(d);
+        bb.style.width = Math.round(((li + 1) / LINES.length) * 100) + '%';
+        li++;
+        setTimeout(nextLine, 120 + Math.random()*140);
+      })();
+      setTimeout(endBoot, 4200);
+    } else if (bootEl) { bootEl.classList.add('done'); }
+
+    /* ── PERIODIC GLITCH ── */
+    setInterval(function(){
+      if (document.hidden || document.documentElement.classList.contains('booting')) return;
+      document.body.classList.add('glitch-on');
+      setTimeout(function(){ document.body.classList.remove('glitch-on'); }, 380);
+    }, 9000);
+
+    /* ── CUSTOM CURSOR ── */
+    var cur = document.getElementById('cur'), ring = document.getElementById('curRing');
+    if (cur && matchMedia('(hover:hover) and (pointer:fine)').matches) {
+      var px = 0, py = 0, rxp = 0, ryp = 0, curOn = false;
+      addEventListener('mousemove', function(e){
+        px = e.clientX; py = e.clientY;
+        if (!curOn){ document.body.classList.add('cur-on'); curOn = true; }
+        cur.style.transform = 'translate(' + px + 'px,' + py + 'px)';
+        var t = e.target;
+        var hot = t.closest && t.closest('a,button,.card,.era,.cell,.stat');
+        ring.classList.toggle('big', !!hot);
+      }, {passive:true});
+      (function ringLoop(){
+        rxp += (px - rxp) * .16; ryp += (py - ryp) * .16;
+        ring.style.transform = 'translate(' + rxp + 'px,' + ryp + 'px)';
+        requestAnimationFrame(ringLoop);
+      })();
+    }
+
+    /* ── SECTION HUD ── */
+    var hud = document.getElementById('hud');
+    var SECS = [['#hero','TOP'],['#changes','PILLARS'],['#inventory','ARSENAL'],['#milestones','STATUS'],
+      ['#evolution','EVOLUTION'],['#proof','PROOF'],['#wait','OBT-3']];
+    if (hud && !snapMode) {
+      SECS.forEach(function(s){
+        if (!document.querySelector(s[0])) return;
+        var a = document.createElement('a');
+        a.href = s[0]; a.dataset.for = s[0];
+        a.innerHTML = '<span>' + s[1] + '</span><i></i>';
+        hud.appendChild(a);
+      });
+      var hio = new IntersectionObserver(function(es){
+        es.forEach(function(e){
+          if (!e.isIntersecting) return;
+          hud.querySelectorAll('a').forEach(function(a){
+            a.classList.toggle('cur', a.dataset.for === '#' + e.target.id);
+          });
+        });
+      }, {threshold:.25});
+      SECS.forEach(function(s){ var el = document.querySelector(s[0]); if (el) hio.observe(el); });
+      addEventListener('scroll', function(){
+        var h = document.documentElement;
+        var pct = h.scrollTop / (h.scrollHeight - h.clientHeight || 1);
+        var hp = document.getElementById('hudPct');
+        if (hp) hp.textContent = Math.round(pct * 100) + '%';
+      }, {passive:true});
+      setInterval(function(){
+        var d = new Date(), z = function(n){ return (n < 10 ? '0' : '') + n; };
+        var hc = document.getElementById('hudClock');
+        if (hc) hc.textContent = z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds());
+      }, 1000);
+    }
+
+    /* ── CARD TILT + GLARE ── */
+    if (matchMedia('(hover:hover) and (pointer:fine)').matches) {
+      document.querySelectorAll('.card,.era').forEach(function(card){
+        card.addEventListener('mousemove', function(e){
+          var r = card.getBoundingClientRect();
+          var x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+          card.style.transform = 'perspective(900px) rotateX(' + ((y - .5) * -4).toFixed(2) +
+            'deg) rotateY(' + ((x - .5) * 5).toFixed(2) + 'deg) translateY(-4px)';
+          card.style.setProperty('--gx', (x * 100).toFixed(1) + '%');
+          card.style.setProperty('--gy', (y * 100).toFixed(1) + '%');
+        });
+        card.addEventListener('mouseleave', function(){ card.style.transform = ''; });
+      });
+    }
+
+    /* ── SOUND ENGINE (opt-in) ── */
+    var sndBtn = document.getElementById('sndBtn');
+    var AC = null, ambient = null;
+    function audioOn(){ return sndBtn && sndBtn.classList.contains('on'); }
+    function ensureAC(){
+      if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+      if (AC.state === 'suspended') AC.resume();
+      return AC;
+    }
+    function startAmbient(){
+      var ac = ensureAC();
+      ambient = { gain: ac.createGain(), oscs: [] };
+      ambient.gain.gain.value = 0.04;
+      ambient.gain.connect(ac.destination);
+      [55, 110.4, 220.8].forEach(function(f, i){
+        var o = ac.createOscillator(), g = ac.createGain();
+        o.type = i ? 'sine' : 'triangle'; o.frequency.value = f;
+        g.gain.value = i ? .18 : .3;
+        o.connect(g); g.connect(ambient.gain); o.start();
+        ambient.oscs.push(o);
+      });
+      var lfo = ac.createOscillator(), lg = ac.createGain();
+      lfo.frequency.value = .07; lg.gain.value = .018;
+      lfo.connect(lg); lg.connect(ambient.gain.gain); lfo.start();
+      ambient.oscs.push(lfo);
+    }
+    function stopAmbient(){
+      if (!ambient || !AC) return;
+      var a = ambient;
+      a.gain.gain.setTargetAtTime(0.0001, AC.currentTime, .2);
+      setTimeout(function(){
+        a.oscs.forEach(function(o){ try{ o.stop(); }catch(e){} });
+        try{ a.gain.disconnect(); }catch(e){}
+      }, 700);
+      ambient = null;
+    }
+    function blip(freq, vol, dur){
+      if (!audioOn()) return;
+      try {
+        var ac = ensureAC();
+        var o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'square'; o.frequency.value = freq;
+        g.gain.setValueAtTime(vol || .05, ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + (dur || .12));
+        o.connect(g); g.connect(ac.destination); o.start();
+        o.stop(ac.currentTime + (dur || .12) + .02);
+      } catch(e){}
+    }
+    if (sndBtn) {
+      sndBtn.addEventListener('click', function(){
+        var on = sndBtn.classList.toggle('on');
+        sndBtn.textContent = 'SOUND · ' + (on ? 'ON' : 'OFF');
+        if (on){ startAmbient(); blip(1300, .06); } else stopAmbient();
+      });
+    }
+    document.addEventListener('click', function(e){
+      if (e.target.closest && e.target.closest('a,.btn')) blip(1500, .05);
+    });
+  })();
+  </script>
+</body>
+</html>

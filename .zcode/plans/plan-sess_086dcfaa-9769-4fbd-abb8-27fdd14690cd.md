@@ -1,18 +1,32 @@
-# ขั้น 1: index.js boot จน :59001 route ครบจริง (layer โดดเดี่ยว)
+# NVIDIA OSC Native — host C++ เหมือน Share.exe แท้ทุกประเภท
 
-## กติกา (ตามที่คุณกำหนด)
-- ไม่แตะ CaptureEngine/Hotkey เข้ามาปนในขั้นนี้ — Node Backend ต้องสมบูรณ์ก่อน
-- ไม่เอา runtime กลับไป NvOverlay\Cef\ (ตรงนั้น = host/source ของ CEF/OSC/NvShim)
+## หลักการ (เลียนของแท้จากหลักฐาน import + log)
+- Native C++ เรียก libcef ตรง ๆ (ไม่มี .NET/WPF ในทาง render)
+- **GPU raster เปิด** (`nv-gpu-accel=true` คือค่าแท้)
+- Offscreen rendering → composite ขึ้น **layered window** (UpdateLayeredWindow/AlphaBlend เหมือน import ของแท้)
+- เรนเดอร์ที่ scale ต่ำกว่าจอแล้วขยาย (เหมือน OSD scale factor 1.14 ของแท้)
+- ซ่อน = หยุดวาด (WasHidden) → CPU ~0
 
-## ขั้นตอน
-1. Kill node/Web Helper เก่า (เคลียร์ port 59001)
-2. `node index.js` จาก `Project\NvShadowPlayAPI\NvAPI\` (node v24 + bypass + shims ที่แก้ไว้)
-3. ตรวจ boot: log จน "Initialization complete" + :59001 LISTENING
-4. ทดสอบ route ครบชุดที่หน้าใช้จริง (17 endpoints จาก capture + Hotkey/:hk GETs + OSC/MainView) — ทุกเส้นต้องไม่ 404
-5. เจอ error ไหนแก้ไฟล์นั้นทันที (layer โดดเดี่ยว = รู้ทันทีว่าผิดที่ Node)
-6. จบขั้น 1 = :59001 ตอบครบทุก route
+## ที่ยืมจากของเดิมได้เลย (Launcher.Cef)
+cefQuery router + query handler / loopback HTTP server (จะเสิร์ฟ osc ที่ :3000) / Win32 window code / JSON config / deploy script / โครง vcxproj
 
-## ขั้นต่อไป (หลังขั้น 1 ผ่าน — ไม่ทำในขั้นนี้)
-Genuine Share.exe ↔ Node → nvsphelper64 ↔ Node → Hotkey → Record → CaptureEngine → FILE
+## ของใหม่ที่ต้องเขียน (ส่วน "Share.exe แท้")
+1. `CefRenderHandler` (GetViewRect ตาม scale, OnPaint, popup)
+2. Compositor: buffer → premultiply → UpdateLayeredWindow (+ทาง D3D11 readback ถ้าได้ shared texture)
+3. Input forwarding: WndProc mouse/key → SendMouseEvent/SendKeyEvent (หน้าที่ของ offscreen_window ของแท้)
+4. Query handler ชุดคำสั่ง OSC: QUERY_OSC_REGISTER_CLOSE_EVENT(persistent)/FULLSCREEN_STATE/WIN_CLOSE_OSC/WIN_OPEN_OSC/SET_DISPLAY_RECTS/SET_EXPERIMENTAL
+5. Toggle listener :59003 + ยิง close-event success ตอนซ่อน
 
-## เก็บ: commit หลังขั้น 1 ผ่าน
+## Phase
+- **A. รากฐาน**: ดาวน์โหลด CEF binary รุ่นใหม่ (Chromium 120+) → cef-sdk → build libcef_dll_wrapper → โปรเจกต์ใหม่ "NVIDIA OSC Native" (clone vcxproj) เปิดหน้า osc แบบ windowed ให้ได้ก่อน (พิสูจน์ toolchain + หน้าเว็บรันบน Chromium ใหม่)
+- **B. แท้ลักษณะ**: สลับเป็น OSR + layered compositor + input forwarding + โปร่งใส per-pixel
+- **C. ต่อระบบ**: page server :3000, toggle :59003, cefQuery ชุด OSC, อ่าน NvConfig\nvidia-osc.json, แม่ (NvContainer-USERS) spawn ตัว native แทน CefSharp
+- **D. วัดผล + สลับขั้นสุดท้าย**: เทียบ CPU native vs CefSharp, เก็บ CefSharp WPF เป็น fallback
+
+## ผลลัพธ์สุดท้าย
+`build\...\Overlay OSC\NVIDIA OSC\NVIDIA OSC.exe` เป็น native C++ (หน้าตา/พฤติกรรม/สถาปัตยกรรม = Share.exe แท้) — แม่ของเรา spawn, CefSharp เก็บไว้ fallback
+
+## เดิมพัน/ความเสี่ยง
+- build wrapper CEF + vcxproj ปรับหลายจุด (cmake + MSBuild) — Phase A เสี่ยงสุด
+- ถ้า Chromium ใหม่โหลด bundle ไม่ได้จะเห็นทันทีใน Phase A (แก้ที่ bundle ได้ เพราะเป็นสำเนาของเรา)
+- input forwarding OSR ต้องละเอียด (drag/wheel/key) — ทำเป็นชุดย่อยก่อน แล้วเติม

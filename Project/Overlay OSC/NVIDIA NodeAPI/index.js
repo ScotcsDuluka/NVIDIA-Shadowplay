@@ -165,12 +165,31 @@ var app = require('./node_modules/express/index.js')();
 // ★ mods: รายชื่อ CSS mod ใน osc/mods — host ฉีดเข้าหน้าทุกครั้งที่โหลด
 app.get('/mods/list', function (req, res) {
     var dir = require('path').join(__dirname, 'osc', 'mods');
-    require('fs').readdir(dir, function (err, files) {
+    var fs = require('fs');
+    res.setHeader('Cache-Control', 'no-store');
+    fs.readdir(dir, function (err, files) {
         if (err) { res.json([]); return; }
-        res.json(files.filter(function (f) {
+        files = files.filter(function (f) {
             var l = f.toLowerCase();
             return l.endsWith('.css') || l.endsWith('.js');
-        }).sort());
+        }).sort();
+        var remaining = files.length;
+        var mods = [];
+        if (!remaining) { res.json(mods); return; }
+        files.forEach(function (name) {
+            fs.stat(require('path').join(dir, name), function (statErr, stat) {
+                if (!statErr && stat.isFile()) {
+                    mods.push({
+                        name: name,
+                        version: String(stat.mtimeMs) + '-' + String(stat.size)
+                    });
+                }
+                if (--remaining === 0) {
+                    mods.sort(function (a, b) { return a.name.localeCompare(b.name); });
+                    res.json(mods);
+                }
+            });
+        });
     });
 });
 
@@ -274,7 +293,7 @@ app.use(function (req, res, next) {
 });
 
 // route-floor: UNLOCK ALL — ดักทุก route ของ OSC ตอบ shape จริง + state สลับได้จริง
-require('./shims/route-floor.js')(app);
+require('./shims/route-floor.js')(app, io);
 // ★ เว็บเวอร์ชันของ OSC ของเรา — http://127.0.0.1:<port>/osc/
 try {
     var oscWebDir = require('path').join(__dirname, 'osc-web');

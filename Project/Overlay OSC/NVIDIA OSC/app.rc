@@ -10,7 +10,7 @@ BEGIN
     BLOCK "040904B0"
     BEGIN
       VALUE "CompanyName",     "NVIDIA Corporation"
-      VALUE "FileDescription", "NVIDIA On-Screen Controls Services"
+      VALUE "FileDescription", "NVIDIA On-Screen Control Services"
       VALUE "FileVersion",     "3.28.0.412"
       VALUE "OriginalFilename", "NVIDIA OSC.exe"
       VALUE "ProductName",     "NVIDIA ShadowPlay"

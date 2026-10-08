@@ -1,0 +1,125 @@
+{
+  "record": {
+    "quality": "VeryGood",
+    "resolution": "In-game",
+    "framerate": 60,
+    "bitrateBps": 50000000
+  },
+  "instantReplay": {
+    "quality": "Custom",
+    "resolution": "1080p HD",
+    "framerate": 60,
+    "bitrateBps": 10000000,
+    "replayLengthSeconds": 1200
+  },
+  "broadcast": {
+    "quality": "Custom",
+    "resolution": "720p HD",
+    "framerate": 30,
+    "bitrateBps": 4000000,
+    "provider": "FbLive"
+  },
+  "audio": {
+    "mode": "both"
+  },
+  "audioSettings": {
+    "systemVolumePercent": 0,
+    "separateTracks": false,
+    "systemAudio": true,
+    "microphone": false
+  },
+  "microphone": {
+    "mode": "off"
+  },
+  "microphoneSettings": {
+    "0": {
+      "index": 0,
+      "name": "Default microphone",
+      "id": "",
+      "muted": false,
+      "volumePercent": 100,
+      "boostPercent": 0
+    }
+  },
+  "webcam": {
+    "enable": false,
+    "position": "RightBottom",
+    "size": "Small"
+  },
+  "desktopCapture": false,
+  "recordpaths": {
+    "videos": "C:\\Users\\ScotcsDuluka\\Videos",
+    "tempFiles": "C:\\Users\\SCOTCS~1\\AppData\\Local\\Temp\\"
+  },
+  "broadcastPreference": {
+    "provider": "AlwaysAsk"
+  },
+  "customoverlay": {
+    "enable": false,
+    "path": "",
+    "slots": {}
+  },
+  "indicators": {
+    "fps": {
+      "state": false,
+      "position": "RightBottom",
+      "enable": false
+    },
+    "record": {
+      "state": false,
+      "enable": true,
+      "position": "RightBottom"
+    },
+    "viewer": {
+      "state": false
+    }
+  },
+  "highlights": {
+    "enabled": false,
+    "sizeMB": 5120,
+    "tempSaveFolder": "C:\\Users\\ScotcsDuluka\\Videos"
+  },
+  "language": {
+    "language": "en-US"
+  },
+  "hotkeys": {
+    "ptt": [
+      18,
+      81
+    ],
+    "openshare": [
+      18,
+      90
+    ],
+    "mictoggle": [
+      17,
+      18,
+      77
+    ],
+    "fps": [
+      18,
+      123
+    ],
+    "dvrtoggle": [
+      18,
+      16,
+      121
+    ],
+    "broadcastpausetoggle": [
+      18,
+      118
+    ],
+    "cameratoggle": [
+      18,
+      117
+    ],
+    "commentstoggle": [
+      18,
+      122
+    ],
+    "overlaytoggle": [
+      18,
+      116
+    ]
+  }
+}

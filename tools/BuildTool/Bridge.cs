@@ -5,6 +5,22 @@ using System.Text.Json;
 
 namespace BuildTool;
 
+/// <summary>หา repo root จาก marker (Directory.Build.props) — รันจาก Build\ หรือ bin\Debug ก็ถูกทั้งคู่</summary>
+public static class RootLocator
+{
+    public static string Find()
+    {
+        try
+        {
+            for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+                if (File.Exists(Path.Combine(dir.FullName, "Directory.Build.props")))
+                    return dir.FullName;
+        }
+        catch { }
+        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, ".."));
+    }
+}
+
 public class VersionCfg
 {
     public bool hardcore { get; set; }
@@ -28,6 +44,7 @@ public class Bridge
     private readonly List<string> _log = new();
     private Process _proc;
     private volatile bool _running;
+    private bool _cancel;
     private int _exit = -1;
 
     public Bridge(string root)
@@ -124,9 +141,9 @@ public class Bridge
             while (ver.Contains("..")) ver = ver.Replace("..", ".");
             ver = ver.Trim('.');
             if (ver.Length == 0) continue;
-            var nm = p.Key.Replace("&", "&amp;").Replace("'", "&apos;");
+            var nm = XmlEsc(p.Key);
             sb.AppendLine($"  <PropertyGroup Condition=\"'$(MSBuildProjectName)' == '{nm}'\">");
-            sb.AppendLine($"    <_Bl1ProjectVersion>{ver}</_Bl1ProjectVersion>");
+            sb.AppendLine($"    <_Bl1ProjectVersion>{XmlEsc(ver)}</_Bl1ProjectVersion>");
             sb.AppendLine("  </PropertyGroup>");
         }
         sb.AppendLine("</Project>");
@@ -160,11 +177,11 @@ public class Bridge
                 exit = _running ? (int?)null : _exit,
                 procs = new[]
                 {
-                    new { name = "NvContainer",  up = UpOurs("NvContainer") },
-                    new { name = "nvsphelper64", up = UpOurs("nvsphelper64") },
-                    new { name = "NvBackend",    up = UpOurs("NvBackend") },
-                    new { name = "NvShadowPlay", up = UpOurs("NvShadowPlay") },
-                    new { name = "NvNotifier",   up = UpOurs("NvNotifier") },
+                    new { name = "NvContainer",      up = UpOurs("NvContainer") },
+                    new { name = "nvsphelper64",     up = UpOurs("nvsphelper64") },
+                    new { name = "NvBackend",        up = UpOurs("NvBackend") },
+                    new { name = "NVIDIA Web Helper", up = UpOurs("NVIDIA Web Helper") },
+                    new { name = "NVIDIA Share",     up = UpOurs("NVIDIA Share") },
                 }
             });
         }
@@ -183,9 +200,10 @@ public class Bridge
 
             _log.Clear();
             _running = true;
+            _cancel = false;
             _exit = -1;
 
-            var no = ReadCounter() + 1;
+            var no = ReadCounter() + 1;   // เลขที่ build รอบนี้จะได้เมื่อสำเร็จ
             _proc = new Process
             {
                 StartInfo = new ProcessStartInfo
@@ -208,16 +226,50 @@ public class Bridge
                 {
                     _running = false;
                     _exit = _proc.ExitCode;
-                    if (_exit == 0)
+                    if (_cancel)
+                        Log("[Build.exe] BUILD CANCELLED — counter stays " + ReadCounter());
+                    else if (_exit == 0)
+                    {
                         WriteCounter(ReadCounter() + 1);
-                    Log("[Build.exe] BUILD OK - counter -> " + ReadCounter());
+                        Log("[Build.exe] BUILD OK — counter -> " + ReadCounter());
+                    }
+                    else
+                        Log("[Build.exe] BUILD FAILED (exit " + _exit + ") — counter stays " + ReadCounter());
                 }
             };
             _proc.Start();
             _proc.BeginOutputReadLine();
             _proc.BeginErrorReadLine();
         }
-        return JsonSerializer.Serialize(new { ok = true, no = ReadCounter() });
+        return JsonSerializer.Serialize(new { ok = true, no });
+    }
+
+    /// <summary>build กำลังรันอยู่ไหม (ให้ UI ใช้ยืนยันก่อนปิดแอป)</summary>
+    public bool IsRunning { get { lock (_lock) return _running; } }
+
+    public string CancelBuild()
+    {
+        lock (_lock)
+        {
+            if (!_running || _proc == null)
+                return JsonSerializer.Serialize(new { ok = false, error = "no build running" });
+            _cancel = true;
+            try { _proc.Kill(entireProcessTree: true); }
+            catch (Exception ex) { _cancel = false; return JsonSerializer.Serialize(new { ok = false, error = ex.Message }); }
+            Log("[Build.exe] CANCEL — killing build process tree");
+            return JsonSerializer.Serialize(new { ok = true });
+        }
+    }
+
+    /// <summary>ตอนปิดแอป — ฆ่า build ที่ค้างกัน orphan powershell (เงียบ ๆ)</summary>
+    public void KillIfRunning()
+    {
+        lock (_lock)
+        {
+            if (!_running || _proc == null) return;
+            _cancel = true;
+            try { _proc.Kill(entireProcessTree: true); } catch { }
+        }
     }
 
     public string GetLog(int since)
@@ -420,8 +472,12 @@ public class Bridge
         File.WriteAllText(Path.Combine(_buildDir, "build.txt"), n.ToString());
     }
 
+    private string _gitCache = "unknown";
+    private DateTime _gitAt = DateTime.MinValue;
     private string GitShort()
     {
+        // GetStatus โดน poll ทุก 5 วิ — cache ไว้ 60 วิ กัน spawn git รัว ๆ
+        if ((DateTime.UtcNow - _gitAt).TotalSeconds < 60) return _gitCache;
         try
         {
             var psi = new ProcessStartInfo
@@ -436,9 +492,11 @@ public class Bridge
             using var p = Process.Start(psi);
             var outp = p.StandardOutput.ReadToEnd().Trim();
             p.WaitForExit();
-            return outp.Length > 0 ? outp : "unknown";
+            _gitCache = outp.Length > 0 ? outp : "unknown";
+            _gitAt = DateTime.UtcNow;
         }
-        catch { return "unknown"; }
+        catch { }
+        return _gitCache;
     }
 
     private bool UpOurs(string name)
