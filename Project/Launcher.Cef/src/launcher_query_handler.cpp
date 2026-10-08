@@ -4,6 +4,7 @@
 #include <shellapi.h>
 
 #include <sstream>
+#include <thread>
 
 #include "include/cef_browser.h"
 #include "include/cef_frame.h"
@@ -67,43 +68,14 @@ bool LauncherQueryHandler::OnQuery(CefRefPtr<CefBrowser> browser,
   }
 
   if (cmd == "LAUNCHER_SET_OVERLAY") {
-    // USER toggle only — config.json is the single source of truth; the
-    // NVIDIA API hub enforces the value every second (Main.vb contract:
-    // the launcher toggle itself never starts/kills the overlay stack).
-    // CEF lane override: the hub's UseOverlayEnabled contract belongs to
-    // the WINFORM overlay — writing true here would make the hub spawn
-    // the WinForm NVIDIA ShadowPlay.exe on the CEF lane. In CEF mode the
-    // toggle drives the GENUINE overlay through the node instead, and
-    // UseOverlayEnabled is forced back to false.
-    const bool value = launcherjson::GetBool(req, "value");
-    bool ok = true;
-    if (supervisor_ &&
-        launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode",
-                                     false)) {
-      if (value) {
-        ok = supervisor_->SendOpenOverlay();  // node -> WindowState -> open
-      }
-      launcherutil::WriteConfigBool(L"Overlay", L"UseOverlayEnabled", false);
-    } else {
-      ok = launcherutil::WriteConfigBool(
-          L"Overlay", L"UseOverlayEnabled", value);
-    }
-    RespondOk(callback, ok ? "{\"ok\":true}" : "{\"ok\":false}");
-    return true;
-  }
-
-  if (cmd == "LAUNCHER_SET_ENGINE_OVERLAY") {
-    // Overlay Mode switch: false = WINFORM lane (hub-managed family),
-    // true = CEF lane (NvContainer -> Web Helper -> :59001 ->
-    // NvOverlay\Cef NVIDIA Share.exe). Both directions act, so the mode
-    // switch is real: CEF ON brings the chain up, CEF OFF stops the CEF
-    // overlay host (path-deduped; the WinForm family is hub-managed).
+    // Power toggle for the complete selected overlay engine. The WinForm
+    // hub or NvContainer owns starting/stopping its engine's service family.
     const bool value = launcherjson::GetBool(req, "value");
     const bool ok = launcherutil::WriteConfigBool(
-        L"Overlay", L"EngineOverlayMode", value);
-    if (ok && supervisor_) {
+        L"Overlay", L"UseOverlayEnabled", value);
+    if (ok && supervisor_ &&
+        launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode", false)) {
       if (value) {
-        // The :59001 wait must never sit inside the CEF UI thread.
         supervisor_->StartEngineOverlayChainAsync();
       } else {
         supervisor_->StopCefOverlay();
@@ -113,11 +85,34 @@ bool LauncherQueryHandler::OnQuery(CefRefPtr<CefBrowser> browser,
     return true;
   }
 
+  if (cmd == "LAUNCHER_SET_ENGINE_OVERLAY") {
+    // Overlay Mode switch: false = WINFORM lane (hub-managed family),
+    // true = CEF lane (NvContainer -> Web Helper :59011 -> NVIDIA OSC,
+    // toggle :59013). NvContainer owns the helper and presenter; mode
+    // changes prepare services but never show the overlay.
+    const bool value = launcherjson::GetBool(req, "value");
+    const bool ok = launcherutil::WriteConfigBool(
+        L"Overlay", L"EngineOverlayMode", value);
+    if (ok && supervisor_) {
+      if (value &&
+          launcherutil::ReadConfigBool(L"Overlay", L"UseOverlayEnabled", false)) {
+        // Power is already on: prepare the newly selected engine without
+        // showing the overlay. Power-off mode selection starts no services.
+        supervisor_->StartEngineOverlayChainAsync();
+      } else if (!value) {
+        supervisor_->StopCefOverlay();
+      }
+    }
+    RespondOk(callback, ok ? "{\"ok\":true}" : "{\"ok\":false}");
+    return true;
+  }
+
   if (cmd == "LAUNCHER_OPEN_OVERLAY") {
-    const bool ok = supervisor_ && supervisor_->SendOpenOverlay();
-    std::ostringstream o;
-    o << "{\"ok\":" << (ok ? "true" : "false") << "}";
-    RespondOk(callback, o.str());
+    auto* supervisor = supervisor_;
+    std::thread([supervisor, callback]() {
+      const bool ok = supervisor && supervisor->SendOpenOverlay();
+      RespondOk(callback, ok ? "{\"ok\":true}" : "{\"ok\":false}");
+    }).detach();
     return true;
   }
 

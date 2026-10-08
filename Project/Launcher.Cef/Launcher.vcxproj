@@ -5,9 +5,8 @@
   bridge (LAUNCHER_* command namespace), the process supervisor (Main.vb
   contract port), the loopback UI static server and the state-push
   pipeline. It links the CEF 73 wrapper built for the OSC host. The root
-  Launcher.exe (Bootstrap project) loads this DLL from
-  NvOverlay\Cef\ — the shared CEF runtime slot of the osc NVIDIA Share.exe
-  lane, so libcef.dll / cef.pak / locales are never duplicated.
+  Launcher.exe (Bootstrap project) loads this DLL from NvLauncher\Cef\;
+  both hosts load the one CEF runtime staged beside NVIDIA OSC.exe.
 -->
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <!-- BL-1 C++ lane: _Bl1CppStamp (root Directory.Build.targets) regenerates
@@ -46,7 +45,7 @@
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup>
-    <CefSdk Condition="'$(CefSdk)'==''">C:\My Project\cef-sdk\cef73\</CefSdk>
+    <CefSdk Condition="'$(CefSdk)'==''">$(CEF_ROOT)\</CefSdk>
     <OutDir>$(ProjectDir)bin\$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(ProjectDir)obj\$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <TargetName>Launcher</TargetName>

@@ -20,7 +20,7 @@ try { native = require('../NvUtil.node'); } catch (e) { native = null; }
 
 function dataDir() {
   // Keep runtime state inside our product tree.
-  return path.join(__dirname, '..', '..', 'NvConfig', 'nvnode');
+  return path.join(__dirname, '..', '..', '..', 'NvConfig', 'nvnode');
 }
 
 module.exports = {

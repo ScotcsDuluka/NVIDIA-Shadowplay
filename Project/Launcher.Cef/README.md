@@ -1,4 +1,4 @@
-# Launcher.Cef — CEF launcher lane (root Launcher.exe + NvOverlay\Cef\Launcher.dll)
+# Launcher.Cef — CEF launcher lane (root Launcher.exe + NvLauncher\Cef\Launcher.dll)
 
 UI style (owner call 2026-09-25 "ขอแนว Web Github"): mirrors the
 github.io site design language — sharp 90° corners everywhere, corner
@@ -9,43 +9,50 @@ feature-card hover grammar, green-on-black palette from
 
 The NEW Launcher replaces the WinForm `Launcher.exe` (VB,
 `Project\Launcher.exe\`) with a native CEF host and a GFE-styled web UI.
-Layout follows the owner's "ลงที่เดียวกับ osc" call:
+Launcher and NVIDIA OSC use one shared CEF 73 runtime directory. The
+Launcher keeps its own host DLL, UI bundle, and browser profile, while
+loading CEF runtime binaries/resources from the OSC runtime slot:
 
 ```
 <NVIDIA ShadowPlay>\                     (product root)
 ├── Launcher.exe                         ← thin bootstrap (root slot)
-└── NvOverlay\Cef\
-    ├── Launcher.dll                     ← host body (THIS lane's build)
-    ├── NVIDIA Share.exe / .dll          ← osc lane (unchanged)
-    ├── libcef.dll + cef.pak + locales\  ← ONE CEF runtime, shared
-    └── Resources\launcher\              ← the launcher web UI bundle
+├── NvLauncher\Cef\
+│   ├── Launcher.dll                     ← host body (THIS lane's build)
+│   ├── Resources\launcher\              ← the launcher web UI bundle
+│   └── Data\                            ← Launcher-only browser profile
+└── Overlay OSC\NVIDIA OSC\
+    ├── NVIDIA OSC.exe                   ← OSC host
+    ├── libcef.dll + cef.pak + locales\  ← single shared CEF 73 runtime
+    └── swiftshader\                     ← shared CEF software-rendering assets
 ```
 
-The bootstrap resolves `NvOverlay\Cef\Launcher.dll` by ABSOLUTE path (CWD
-independent), `SetDllDirectoryW`'s the shared CEF slot so the body's
-libcef.dll import resolves there, and calls the `NvLauncherCefMain`
-export — which implements the whole CEF process split (subprocess
-relaunches of the root Launcher.exe re-enter the same export). The pinned
-CEF 73 runtime of the osc lane is reused; no second copy on disk.
+The bootstrap resolves `NvLauncher\Cef\Launcher.dll` by ABSOLUTE path (CWD
+independent), sets the DLL search directory to
+`Overlay OSC\NVIDIA OSC` so the body's `libcef.dll` import resolves from the
+same runtime as OSC, and calls the `NvLauncherCefMain` export — which
+implements the whole CEF process split (subprocess relaunches of the root
+Launcher.exe re-enter the same export). CEF resources and locales also load
+from that shared OSC runtime directory; the Launcher cache and user data
+remain under `NvLauncher\Cef\Data`.
 
 ## Build + stage
 
 ```
-powershell -File Project\Launcher.Cef\deploy-launcher.ps1            # build + stage
-powershell -File Project\Launcher.Cef\deploy-launcher.ps1 -NoBuild   # stage bin only
-powershell -File Project\Launcher.Cef\deploy-launcher.ps1 -Dest <path>
+$env:CEF_ROOT = '<CEF 73 SDK directory>'
+powershell -File Scripts\build-dev.ps1
+powershell -File Project\Launcher.Cef\deploy-launcher.ps1 -NoBuild
 ```
 
-The deploy script verifies the shared CEF runtime before staging and stops
-only `Launcher.exe` instances whose full image path is the selected product
-root; unrelated applications with the same process name are left alone.
-
-MSBuild path + CEF SDK default to the repo convention
-(`C:\Visual Studio\MSBuild`, `C:\My Project\cef-sdk\cef73`).
+The deploy script is a compatibility wrapper for the canonical Project-only
+Build Tree script. It does not stop running processes; `-NoBuild` stages
+existing Project outputs and `-Dest <path>` selects an alternate output root.
+Set `CEF_ROOT` to the CEF 73 SDK directory. MSBuild is discovered through
+Visual Studio Build Tools or the `MSBUILD_EXE` environment variable.
 The OSC lane's CEF 73 wrapper library must be built at
 `Project\Overlay OSC\NVIDIA OSC\obj\wrapper73\libcef_dll_wrapper73.lib`;
-the launcher links that same version instead of rebuilding or shipping a
-second CEF wrapper/runtime.
+the launcher links that same wrapper instead of rebuilding a second copy.
+The build stages CEF DLLs/resources/locales once into
+`Overlay OSC\NVIDIA OSC`; Launcher does not keep a duplicate CEF runtime.
 
 ## UI ↔ host contract
 
@@ -54,12 +61,33 @@ Page origin: loopback HTTP (ephemeral port) serving `Resources\launcher`
 `window.cefQuery` / `window.cefQueryCancel`, command namespace
 `LAUNCHER_*` (no overlap with the osc `QUERY_*` namespace):
 
+The UI names services by role rather than exposing the mixed legacy
+executable prefixes (`Nv*`, `NVIDIA*`) as labels:
+
+| UI label | Product executable / role |
+|---|---|
+| CONTROLLER | `NvContainer\NvContainer.exe` — supervises product services |
+| PRESENTER | `Overlay OSC\NVIDIA OSC\NVIDIA OSC.exe` — renders the CEF overlay |
+| API SERVICE | Active local API lane; CEF uses `Overlay OSC\NVIDIA NodeAPI\NVIDIA Web Helper.exe` on :59011, while the WinForm hub is a separate executable |
+
+These image names are retained where configuration and process ownership
+depend on them. In particular, the bundled managed Web Helper and the
+genuine NVIDIA helper under `NvNode\` are different binaries despite sharing
+a display filename; the genuine NVIDIA files are not renamed or replaced.
+
+The two feature-card controls are independent: **NVIDIA ShadowPlay** turns
+the selected overlay system and its service family on/off via
+`Overlay.UseOverlayEnabled`; **OVERLAY ENGINE** only selects WINFORM or CEF
+via `Overlay.EngineOverlayMode`. Selecting an engine never powers the
+overlay or shows its presenter. **OPEN OVERLAY** explicitly shows the
+presenter while the system is enabled.
+
 | command | payload | effect |
 |---|---|---|
 | `LAUNCHER_GET_STATE` | — | state snapshot JSON |
-| `LAUNCHER_SET_OVERLAY` | `value:bool` | config `Overlay.UseOverlayEnabled` (user toggle only) |
-| `LAUNCHER_SET_ENGINE_OVERLAY` | `value:bool` | **Overlay Mode (WINFORM ⟷ CEF)** — config `Overlay.EngineOverlayMode`; CEF=true brings the chain up, CEF=false stops only `NvOverlay\Cef\NVIDIA Share.exe` (path-deduped), leaving its backend warm |
-| `LAUNCHER_OPEN_OVERLAY` | — | hub frame `[Send] NVIDIA  APP\|open_overlay` → :5001 |
+| `LAUNCHER_SET_OVERLAY` | `value:bool` | config `Overlay.UseOverlayEnabled`; powers the selected engine's complete overlay service family on/off |
+| `LAUNCHER_SET_ENGINE_OVERLAY` | `value:bool` | **Overlay Mode (WINFORM ⟷ CEF)** — config `Overlay.EngineOverlayMode`; CEF=true waits for NvContainer's API/OSC services, CEF=false hides the managed OSC surface |
+| `LAUNCHER_OPEN_OVERLAY` | — | CEF `/show` → :59013, or WINFORM hub frame `[Send] NVIDIA  APP\|open_overlay` → :5001 |
 | `LAUNCHER_OPEN_OBT3` | — | opens the OBT3 page (legacy banner link) |
 | `LAUNCHER_DRAG` | — | borderless-window drag (WM_NCLBUTTONDOWN/HTCAPTION) |
 | `LAUNCHER_MINIMIZE` | — | SW_MINIMIZE |
@@ -73,20 +101,36 @@ pulls `LAUNCHER_GET_STATE` every 2s as a fallback.
 
 ## Supervision contract (port of Main.vb)
 
-- Base chain ALWAYS: `NvContainer\NvContainer.exe` + root
-  `NVIDIA Backend.exe` started if missing (owner call 2026-09-25).
-- ENGINE OVERLAY chain (toggle ON, or config ON at startup):
-  NvContainer → `NvNode\NVIDIA Web Helper.exe` → wait :59001 (≤15s) →
-  `NvOverlay\Cef\NVIDIA Share.exe --backend-port 59001`, deduped by exe
-  PATH.
-- 1s status: NVIDIA Backend / NVIDIA ShadowPlay (+`Flags\Ready` →
+- Base chain ALWAYS: `NvContainer\NvContainer.exe`. The WinForm TCP hub is
+  supervised only when the WinForm engine is selected; CEF mode uses the
+  managed Web Helper API instead and does not require `NvBackend.exe`.
+- CEF overlay service family is active only when both
+  `Overlay.UseOverlayEnabled` and `Overlay.EngineOverlayMode` are true.
+  NvContainer starts or stops the managed Web Helper API, OSC presenter, and
+  hotkey helper as those settings change; the controller itself remains up.
+- With the CEF engine selected and overlay power ON:
+  NvContainer owns the managed
+  `Overlay OSC\NVIDIA NodeAPI\NVIDIA Web Helper.exe` API on
+  :59011 and `Overlay OSC\NVIDIA OSC\NVIDIA OSC.exe` presenter on :59013.
+  Launcher waits for services when power is enabled and sends `/show` or
+  `/hide` only for explicit show/hide actions; it never starts the genuine
+  `NVIDIA Share.exe`.
+- The genuine NVIDIA helper in `NvNode\` is left intact; it hardcodes the
+  installed NVIDIA backend path and cannot host this product's portable API.
+  The Project NodeAPI and its managed Web Helper are staged together under
+  `Overlay OSC\NVIDIA NodeAPI`, independently from the WinForm TCP hub.
+- 1s status: API availability / active-engine overlay (+`Flags\Ready` →
   OVERLAY API "LOADING") / NVIDIA Notifier; stale `Flags\Ready` removed
-  when the notifier lane is down.
+  when the WinForm notifier lane is down (the flag is not consulted in CEF
+  mode, where the OSC/API readiness pair is authoritative).
 - Config writes are read-modify-write on the CURRENT file
   (`launcher_json.h` order-preserving serializer; atomic tmp + `.bak`
   swap) — the AppConfigShared.vb contract.
-- Config path is `<root>\Config\config.json`; `<root>\NvConfig\config.json`
-  is used only as a legacy development fallback.
+- `NvLauncher\Cef\` holds the root Launcher's host DLL, UI bundle, and user
+  data. Both Launcher and OSC load the CEF runtime from
+  `Overlay OSC\NVIDIA OSC\`.
+- The shared overlay config is `<root>\NvConfig\config.json`, alongside the
+  controller and OSC service configuration.
 - Status dots and lane chips reflect process/config state; switches are
   keyboard accessible and failed actions are reported in the footer.
 - EXIT ALL stops only matching product executables by full image path, so
@@ -102,12 +146,12 @@ Log: `<root>\Logs\launcher-cef.log` (+ CEF debug log beside it).
 
 - 3× Launcher.exe (browser + subprocesses), page `httpStatus=200`,
   `BRIDGE LIVE`, state dots rendered, watchdog close clean.
-- LIVE owner interaction: ENGINE OVERLAY ON → full chain start
-  (NvContainer, Web Helper, NVIDIA Share.exe --backend-port 59001);
+- LIVE owner interaction: ENGINE OVERLAY ON → managed chain readiness
+  (NvContainer, Web Helper :59011, NVIDIA OSC :59013);
   toggle writes correct; EXIT ALL killed the family and closed cleanly.
 - Pixel check of the captured window: titlebar/footer `#1A1B1D`, cards
   `#1E2023`, NVIDIA eye `#76B900` — theme renders as designed.
-- Family-name parity fixes proven in the supervised run: the hub starts
+- Family-name parity fixes proven in the supervised run: the WinForm hub starts
   as `NvBackend\NvBackend.exe` (staged name; legacy "NVIDIA Backend"
   kept as candidate + status alias + kill-list entry), Toolhelp32
   process matching accepts the `.exe` suffix (`adopt running: NvContainer`

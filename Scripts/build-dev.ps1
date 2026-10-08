@@ -1,451 +1,278 @@
-﻿# build-dev.ps1
-# Canonical Dev Build:
-#   Project\  ->  Build\NVIDIA ShadowPlay\
-# Layout authority:
-#   Build\Build-Config\dev-layout.json
-# Protected reference trees are never read for staging:
-#   IDK This is\dist\
-#   IDK This is\deploy\
-
+# Build only the active Project tree; the retired Close Project tree is never
+# a source or a fallback.
 param(
+    [string]$Dest = '',
     [switch]$Clean,
+    [switch]$NoBuild,
     [switch]$Strict
 )
 
 $ErrorActionPreference = 'Stop'
 
-$Repo        = Split-Path -Parent $PSScriptRoot
+$Repo = Split-Path -Parent $PSScriptRoot
 $ProjectRoot = Join-Path $Repo 'Project'
-$Solution    = Join-Path $ProjectRoot 'NVIDIA ShadowPlay.sln'
-$BuildRoot   = Join-Path $Repo 'Build\NVIDIA ShadowPlay'
-$ConfigRoot  = Join-Path $Repo 'Build\Build-Config'
-$LayoutFile  = Join-Path $ConfigRoot 'dev-layout.json'
-
-if (-not (Test-Path -LiteralPath $Solution)) { throw "Canonical solution missing: $Solution" }
-if (-not (Test-Path -LiteralPath $LayoutFile)) { throw "Layout config missing: $LayoutFile" }
-
-# CEF C++ lane needs BOTH the CEF SDK and the VS C++ workload. Until both are
-# present, build the no-CEF solution filter instead of failing on the three
-# vcxproj — the CEF owner stages as PENDING either way.
-$SolutionToBuild = $Solution
-$NoCefFilter = Join-Path $ProjectRoot 'NVIDIA ShadowPlay Dev (no CEF).slnf'
-$cefSdkReady = Test-Path -LiteralPath 'C:\My Project\cef-sdk\cef73\Release\libcef.lib'
-$vcToolsReady = $false
-$vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
-if (Test-Path -LiteralPath $vswhere) {
-    $vcInst = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-    $vcToolsReady = [bool]$vcInst
+$BuildRoot = if ([string]::IsNullOrWhiteSpace($Dest)) {
+    Join-Path $Repo 'Build\NVIDIA ShadowPlay'
+} else {
+    [IO.Path]::GetFullPath($Dest)
 }
-if (-not ($cefSdkReady -and $vcToolsReady)) {
-    if (Test-Path -LiteralPath $NoCefFilter) { $SolutionToBuild = $NoCefFilter }
-    elseif ($cefSdkReady) { throw 'CEF SDK present but the VS C++ workload is missing — install "Desktop development with C++" (or move the SDK away).' }
-    else { throw 'CEF SDK missing and no-CEF solution filter missing: ' + $NoCefFilter }
+$ConfigRoot = Join-Path $Repo 'Build\Build-Config'
+$LayoutFile = Join-Path $ConfigRoot 'dev-layout.json'
+$Configuration = 'Release'
+$TargetFramework = 'net10.0-windows10.0.26100.0'
+$CefSdk = $env:CEF_ROOT
+$pending = New-Object System.Collections.Generic.List[string]
+$overlayConfig = Join-Path $BuildRoot 'NvConfig\config.json'
+$legacyOverlayConfig = Join-Path $BuildRoot 'Config\config.json'
+$preservedOverlayConfig = $null
+
+if (Test-Path -LiteralPath $overlayConfig) {
+    $preservedOverlayConfig = Get-Content -LiteralPath $overlayConfig -Raw
+} elseif (Test-Path -LiteralPath $legacyOverlayConfig) {
+    $preservedOverlayConfig = Get-Content -LiteralPath $legacyOverlayConfig -Raw
+}
+
+if (-not (Test-Path -LiteralPath $LayoutFile)) { throw "Layout config missing: $LayoutFile" }
+if ([string]::IsNullOrWhiteSpace($CefSdk) -or
+    -not (Test-Path -LiteralPath (Join-Path $CefSdk 'Release\libcef.lib'))) {
+    throw 'Set CEF_ROOT to the CEF 73 SDK directory before building the active Project tree.'
+}
+
+$MSBuild = $null
+if (-not $NoBuild) {
+    $vswhereCandidates = @()
+    if (-not [string]::IsNullOrWhiteSpace(${env:ProgramFiles(x86)})) {
+        $vswhereCandidates += Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
+    }
+    if (-not [string]::IsNullOrWhiteSpace($env:ProgramFiles)) {
+        $vswhereCandidates += Join-Path $env:ProgramFiles 'Microsoft Visual Studio\Installer\vswhere.exe'
+    }
+    $vswhere = $vswhereCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+    if (-not $vswhere) { throw 'vswhere.exe not found; install Visual Studio Build Tools with the C++ workload.' }
+    $vcInst = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+    if (-not $vcInst) { throw 'The Visual Studio C++ workload is required to build the active CEF owners.' }
+
+    $MSBuild = $env:MSBUILD_EXE
+    if ($MSBuild -and -not (Test-Path -LiteralPath $MSBuild)) { throw "MSBUILD_EXE not found: $MSBuild" }
+    if (-not $MSBuild) {
+        $command = Get-Command msbuild.exe -ErrorAction SilentlyContinue
+        if ($command) { $MSBuild = $command.Source }
+    }
+    if (-not $MSBuild) {
+        $candidate = Join-Path $vcInst 'MSBuild\Current\Bin\MSBuild.exe'
+        if (Test-Path -LiteralPath $candidate) { $MSBuild = $candidate }
+    }
+    if (-not $MSBuild) { throw 'MSBuild.exe not found.' }
 }
 
 $Layout = Get-Content -LiteralPath $LayoutFile -Raw | ConvertFrom-Json
 
-$msbuildCandidates = @(
-    'C:\Visual Studio\MSBuild\Current\Bin\MSBuild.exe',
-    'C:\Program Files\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe',
-    'C:\Program Files\Microsoft Visual Studio\2022\Professional\MSBuild\Current\Bin\MSBuild.exe',
-    'C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe',
-    'C:\Program Files\Microsoft Visual Studio\18\BuildTools\MSBuild\Current\Bin\MSBuild.exe',
-    'C:\Program Files\Microsoft Visual Studio\18\Professional\MSBuild\Current\Bin\MSBuild.exe',
-    'C:\Program Files\Microsoft Visual Studio\18\Community\MSBuild\Current\Bin\MSBuild.exe'
-)
-$MSBuild = $msbuildCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
-if (-not $MSBuild) { throw 'MSBuild.exe not found' }
-
-$Configuration = 'Release'
-$TargetFramework = 'net10.0-windows10.0.26100.0'
-$pending = New-Object System.Collections.Generic.List[string]
-
-function Ensure-Dir([string]$path) {
-    New-Item -ItemType Directory -Force -Path $path | Out-Null
+function Ensure-Dir([string]$Path) {
+    New-Item -ItemType Directory -Force -Path $Path | Out-Null
 }
 
-function Copy-Tree([string]$src, [string]$dst) {
-    if (-not (Test-Path -LiteralPath $src)) {
-        Write-Host "PENDING tree: $src" -ForegroundColor Yellow
-        $pending.Add($src)
-        return
+function Copy-FileSafe([string]$SourceFile, [string]$DestinationFile) {
+    Ensure-Dir (Split-Path -Parent $DestinationFile)
+    try {
+        Copy-Item -LiteralPath $SourceFile -Destination $DestinationFile -Force
+    } catch {
+        if ((Test-Path -LiteralPath $DestinationFile) -and
+            (Get-FileHash -LiteralPath $SourceFile -Algorithm SHA256).Hash -eq
+            (Get-FileHash -LiteralPath $DestinationFile -Algorithm SHA256).Hash) {
+            Write-Host "Unchanged staged file is in use; keeping it: $DestinationFile" -ForegroundColor DarkGray
+        } else {
+            throw
+        }
     }
-    Ensure-Dir $dst
-    robocopy $src $dst /E /R:1 /W:1 /NJH /NJS /NP /NDL /NFL /NS /NC | Out-Null
-    if ($LASTEXITCODE -gt 7) { throw "robocopy failed: $src -> $dst (exit $LASTEXITCODE)" }
 }
 
-function Copy-RuntimeFiles([string]$srcBin, [string]$dst, [string]$ownerName) {
-    if (-not (Test-Path -LiteralPath $srcBin)) {
-        Write-Host "PENDING binary output: $ownerName -> $srcBin" -ForegroundColor Yellow
-        $pending.Add("${ownerName}: $srcBin")
-        return
-    }
-    Ensure-Dir $dst
-    Get-ChildItem -LiteralPath $srcBin -Recurse -File -Force |
+function Copy-Tree([string]$Source, [string]$Destination) {
+    if (-not (Test-Path -LiteralPath $Source)) { throw "Required Project tree missing: $Source" }
+    Ensure-Dir $Destination
+    robocopy $Source $Destination /E /R:1 /W:1 /NJH /NJS /NP /NDL /NFL /NS /NC | Out-Null
+    if ($LASTEXITCODE -gt 7) { throw "robocopy failed: $Source -> $Destination (exit $LASTEXITCODE)" }
+}
+
+function Copy-RuntimeFiles([string]$Source, [string]$Destination) {
+    if (-not (Test-Path -LiteralPath $Source)) { throw "Required Project build output missing: $Source" }
+    Ensure-Dir $Destination
+    Get-ChildItem -LiteralPath $Source -Recurse -File -Force |
         Where-Object {
             $_.Extension -in '.exe','.dll','.json' -and
-            $_.Extension -notin '.pdb','.xml' -and
-            $_.FullName -notmatch '\\obj\\'
+            $_.FullName -notmatch '\\(obj|Debug)\\'
         } |
         ForEach-Object {
-            $rel = $_.FullName.Substring($srcBin.Length).TrimStart('\')
-            $to = Join-Path $dst $rel
-            Ensure-Dir (Split-Path -Parent $to)
-            Copy-Item -LiteralPath $_.FullName -Destination $to -Force
+            $sourceFile = $_.FullName
+            $relative = $sourceFile.Substring($Source.Length).TrimStart('\')
+            $target = Join-Path $Destination $relative
+            Copy-FileSafe $sourceFile $target
         }
 }
 
-function Copy-FlatDlls([string]$srcBin, [string]$dst, [string[]]$names) {
-    Ensure-Dir $dst
-    foreach ($name in $names) {
-        $src = Join-Path $srcBin $name
-        if (Test-Path -LiteralPath $src) {
-            Copy-Item -LiteralPath $src -Destination (Join-Path $dst $name) -Force
-        } else {
-            Write-Host "PENDING dependency: $name" -ForegroundColor Yellow
-            $pending.Add("$src")
-        }
+function Invoke-ProjectBuild([string]$ProjectFile, [string]$Platform) {
+    if (-not (Test-Path -LiteralPath $ProjectFile)) { throw "Active Project owner missing: $ProjectFile" }
+    $extension = [IO.Path]::GetExtension($ProjectFile)
+    if ($extension -in '.csproj','.vbproj') {
+        & $MSBuild $ProjectFile /t:Restore "/p:Configuration=$Configuration" "/p:Platform=$Platform" "/p:CEF_ROOT=$CefSdk" /m:1 /nr:false /v:minimal /nologo
+        if ($LASTEXITCODE -ne 0) { throw "RESTORE FAILED: $ProjectFile (exit $LASTEXITCODE)" }
     }
+    & $MSBuild $ProjectFile /t:Build "/p:Configuration=$Configuration" "/p:Platform=$Platform" "/p:CEF_ROOT=$CefSdk" /m:1 /nr:false /v:minimal /nologo
+    if ($LASTEXITCODE -ne 0) { throw "BUILD FAILED: $ProjectFile (exit $LASTEXITCODE)" }
 }
 
 if ($Clean -and (Test-Path -LiteralPath $BuildRoot)) {
     Remove-Item -LiteralPath $BuildRoot -Recurse -Force
 }
 
-Ensure-Dir $BuildRoot
-Ensure-Dir $ConfigRoot
-
-Write-Host '=== NVIDIA SHADOWPLAY DEV BUILD ===' -ForegroundColor Cyan
-Write-Host "Solution : $SolutionToBuild"
-if ($SolutionToBuild -ne $Solution) { Write-Host '(no-CEF filter: CEF lane deferred — SDK or VC tools missing)' -ForegroundColor Yellow }
-Write-Host "Output   : $BuildRoot"
-Write-Host "Layout   : $LayoutFile"
-
-Write-Host '== Restore ==' -ForegroundColor Cyan
-& $MSBuild $SolutionToBuild /t:Restore /p:Configuration=$Configuration /m:1 /nr:false /v:minimal /nologo
-if ($LASTEXITCODE -ne 0) { throw "RESTORE FAILED (exit $LASTEXITCODE)" }
-
-Write-Host '== Build ==' -ForegroundColor Cyan
-& $MSBuild $SolutionToBuild /t:Build /p:Configuration=$Configuration /m:1 /nr:false /v:minimal /nologo
-if ($LASTEXITCODE -ne 0) { throw "DEV BUILD FAILED (exit $LASTEXITCODE)" }
-
-# Root layout directories are created from the layout specification.
-foreach ($rel in $Layout.rootDirectories) {
-    Ensure-Dir (Join-Path $BuildRoot ($rel -replace '/', '\'))
+$activeProjects = @(
+    @{ Path = 'Overlay OSC\NVIDIA OSC\NVIDIA OSC.vcxproj'; Platform = 'x64' },
+    @{ Path = 'Overlay OSC\NVIDIA NodeAPI\NVIDIA Web Helper\NVIDIA Web Helper.vbproj'; Platform = 'x64' },
+    @{ Path = 'NvContainer\NvContainer\NvContainer.csproj'; Platform = 'AnyCPU' },
+    @{ Path = 'NvContainer\NvShadowPlayHelper\nvsphelper.csproj'; Platform = 'AnyCPU' },
+    @{ Path = 'Launcher.Cef\Launcher.vcxproj'; Platform = 'x64' },
+    @{ Path = 'Launcher.Cef\Launcher Bootstrap.vcxproj'; Platform = 'x64' }
+)
+Write-Host '=== ACTIVE PROJECT BUILD ===' -ForegroundColor Cyan
+Write-Host "Output  : $BuildRoot"
+Write-Host "CEF SDK : $CefSdk"
+if ($NoBuild) {
+    Write-Host 'Build   : skipped; staging existing Project outputs'
+} else {
+    foreach ($project in $activeProjects) {
+        Invoke-ProjectBuild (Join-Path $ProjectRoot $project.Path) $project.Platform
+    }
 }
 
-# Runtime/static payloads. These are Project-owned sources, never IDK This is\dist/deploy.
-Copy-Tree (Join-Path $ProjectRoot '.NET Deployment') (Join-Path $BuildRoot '.NET Deployment')
-Copy-Tree (Join-Path $ProjectRoot 'Data')          (Join-Path $BuildRoot 'Data')
-# Localized UI strings live at the ROOT owner (AppLayout.P("Languages", ...)).
-Copy-Tree (Join-Path $ProjectRoot 'Resources\Languages') (Join-Path $BuildRoot 'Languages')
-Copy-Tree (Join-Path $ProjectRoot 'Flags')         (Join-Path $BuildRoot 'Flags')
-Copy-Tree (Join-Path $ProjectRoot 'Resources')     (Join-Path $BuildRoot 'Resources')
-Ensure-Dir (Join-Path $BuildRoot '.vs')
+$cefOutput = Join-Path $BuildRoot 'NvLauncher\Cef'
+$legacyLauncherOutput = Join-Path $BuildRoot 'NvOverlay\Cef'
+if ((Test-Path -LiteralPath $legacyLauncherOutput) -and
+    -not (Test-Path -LiteralPath $cefOutput)) {
+    Ensure-Dir (Split-Path -Parent $cefOutput)
+    Move-Item -LiteralPath $legacyLauncherOutput -Destination $cefOutput
+}
+
+foreach ($relative in $Layout.rootDirectories) {
+    Ensure-Dir (Join-Path $BuildRoot ($relative -replace '/', '\'))
+}
 Ensure-Dir (Join-Path $BuildRoot 'Logs')
-Ensure-Dir (Join-Path $BuildRoot 'NvAnsel')
 
-# .NET runtime bootstrap lives in .NET Deployment in the historical layout.
-$runtimeBootstrap = Join-Path $ProjectRoot 'Runtime\64bit.runtime.exe'
-if (Test-Path -LiteralPath $runtimeBootstrap) {
-    Copy-Item -LiteralPath $runtimeBootstrap -Destination (Join-Path $BuildRoot '.NET Deployment\64bit.runtime.exe') -Force
-}
-
-# Common runtime dependencies and family dependencies.
-$overlayBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvShadowPlay.exe\bin\Release\{0}" -f $TargetFramework)
-Ensure-Dir (Join-Path $BuildRoot 'Runtime')
-if (Test-Path -LiteralPath $overlayBin) {
-    Copy-FlatDlls $overlayBin (Join-Path $BuildRoot 'Runtime') @(
-        'Microsoft.Windows.SDK.NET.dll',
-        'Newtonsoft.Json.dll',
-        'WinRT.Runtime.dll',
-        'SharpGen.Runtime.dll',
-        'SharpGen.Runtime.COM.dll',
-        'System.Management.dll'
-    )
-}
-
-# Launcher -> root. The root entry is the CEF launcher when its artifacts
-# exist; the WinForm launcher stages ONLY as the fallback (no CEF bin on
-# the build machine). Staging both used to duplicate the WinForm runtime
-# cluster (NVIDIA Controls.dll, Launcher.dll, deps.json...) beside the
-# native exe — owner call 2026-09-25: one launcher at the root.
-$cefLauncherBin = Join-Path $ProjectRoot 'Launcher.Cef\bin\x64\Release'
-$cefLauncherExe = Join-Path $cefLauncherBin 'Launcher.exe'
-$cefLauncherDll = Join-Path $cefLauncherBin 'Launcher.dll'
-if ((Test-Path -LiteralPath $cefLauncherExe) -and (Test-Path -LiteralPath $cefLauncherDll)) {
-    Copy-Item -LiteralPath $cefLauncherExe -Destination (Join-Path $BuildRoot 'Launcher.exe') -Force
-    $cefSlot = Join-Path $BuildRoot 'NvOverlay\Cef'
-    Ensure-Dir $cefSlot
-    Copy-Item -LiteralPath $cefLauncherDll -Destination (Join-Path $cefSlot 'Launcher.dll') -Force
-    $cefUiSrc = Join-Path $ProjectRoot 'Launcher.Cef\ui'
-    if (Test-Path -LiteralPath (Join-Path $cefUiSrc 'index.html')) {
-        Copy-Tree $cefUiSrc (Join-Path $cefSlot 'Resources\launcher')
-    }
-    # The native launcher is not a .NET app: a previous WinForm staging may
-    # have left its runtime cluster at the root — sweep it.
-    foreach ($stale in @('NVIDIA Controls.dll', 'Launcher.dll',
-                         'Launcher.deps.json', 'Launcher.runtimeconfig.json')) {
-        $stalePath = Join-Path $BuildRoot $stale
-        if (Test-Path -LiteralPath $stalePath) {
-            Remove-Item -LiteralPath $stalePath -Force
-        }
-    }
-    Write-Host '[launcher] CEF lane staged (root Launcher.exe + NvOverlay\Cef\Launcher.dll)'
-} else {
-    Write-Host '[launcher] CEF lane artifacts missing - WinForm launcher stages'
-    $launcherBin = Join-Path $ProjectRoot ("Launcher.exe\bin\Release\{0}" -f $TargetFramework)
-    Copy-RuntimeFiles $launcherBin $BuildRoot 'Launcher'
-}
-
-# NvNode (root owner slot, GFE 3.28 parity) -> Web Helper + the node
-# backend runtime (socket.js/index.js/routes/lib/node_modules/data).
-# The hub (NvBackend.exe) stages separately into NvBackend\.
-$backendProjectBin = Join-Path $ProjectRoot ("NvBackend\NVIDIA Web Helper.exe\bin\Release\{0}" -f $TargetFramework)
-$backendOut = Join-Path $BuildRoot 'NvNode'
-Ensure-Dir $backendOut
-Copy-RuntimeFiles $backendProjectBin $backendOut 'NVIDIA Web Helper'
-$backendSrc = Join-Path $ProjectRoot 'NvBackend\NVIDIA Web Helper.exe\Backend'
-Copy-Tree $backendSrc $backendOut
-
-# NvConfig runtime seed: default the overlay stack ON (owner: WinForm family
-# is the default). The user's toggles rewrite this file at runtime; a -Clean
-# must not silently flip the overlay stack back off.
-$nvConfigDir = Join-Path $BuildRoot 'NvConfig'
-Ensure-Dir $nvConfigDir
-$seedConfigPath = Join-Path $nvConfigDir 'config.json'
-if (-not (Test-Path -LiteralPath $seedConfigPath)) {
-    '{ "Overlay": { "UseOverlayEnabled": true } }' | Set-Content -LiteralPath $seedConfigPath -Encoding utf8
-}
-
-# Install Node production dependencies into the staged backend, without mutating Project.
-if ((Test-Path (Join-Path $backendOut 'package.json')) -and (Get-Command npm.cmd -ErrorAction SilentlyContinue)) {
-    Push-Location $backendOut
-    try {
-        & npm.cmd ci --omit=dev --ignore-scripts --no-audit --no-fund
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "PENDING Node dependency install: npm ci failed (exit $LASTEXITCODE)" -ForegroundColor Yellow
-            $pending.Add('NvBackend\node_modules')
-        }
-    }
-    finally {
-        Pop-Location
-    }
-} elseif (-not (Test-Path (Join-Path $backendOut 'package.json'))) {
-    Write-Host 'PENDING Node dependency install: package.json missing' -ForegroundColor Yellow
-    $pending.Add('NvBackend\package.json')
-} else {
-    Write-Host 'PENDING Node dependency install: npm.cmd not found' -ForegroundColor Yellow
-    $pending.Add('npm.cmd')
-}
-
-# NvContainer -> owner folder. The worker contract follows the requested Dev layout.
-$containerBin = Join-Path $ProjectRoot ("NvContainer\NvContainer.exe\bin\Release\{0}" -f $TargetFramework)
-$containerOut = Join-Path $BuildRoot 'NvContainer'
-Copy-RuntimeFiles $containerBin $containerOut 'NVIDIA Container'
-$containerConfig = [ordered]@{
-    port = 5050
-    securityCookie = 'eb6eb0702ec25f9aeb0b0f8f79d06d5b'
-    workers = @(
-        [ordered]@{
-            name = 'nvsphelper64'
-            exe = '..\ShadowPlay\nvsphelper64.exe'
-            args = ''
-            workingDirectory = '..\ShadowPlay'
-            enabled = $true
-            adoptExisting = $true
-            maxRestarts = 10
-            restartBackoffSeconds = 5
-        }
-    )
-}
-$containerConfigDir = Join-Path $containerOut 'Config'
-Ensure-Dir $containerConfigDir
-# The container reads NvContainer\Config\NvContainer.json (NOT the exe dir)
-# and self-seeds a 0-worker default there when the file is missing.
-$containerConfig | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath (Join-Path $containerConfigDir 'NvContainer.json') -Encoding utf8
-
-# NvBackend API TCP hub (WinForm family contract: API TCP + Notifier +
-# NVIDIA ShadowPlay.exe + NVIDIA ShadowPlay Helper.exe). ExePath("NvBackend.exe")
-# resolves here; the overlay also links NvBackend.dll in-process (kept in
-# NvOverlay\WinForm by the dedupe keep-rule).
-$hubBin = Join-Path $ProjectRoot ("NvBackend\NvBackend.exe\bin\Release\{0}" -f $TargetFramework)
-Copy-RuntimeFiles $hubBin (Join-Path $BuildRoot 'NvBackend') 'NvBackend'
-
-# Gallery.Video
-$galleryBin = Join-Path $ProjectRoot 'NvGallery\WinForm\Gallery.Video.dll\bin\Release\net10.0'
-$galleryOut = Join-Path $BuildRoot 'NvGallery\WinForm'
-Copy-RuntimeFiles $galleryBin $galleryOut 'Gallery.Video'
-
-# Overlay WinForm owners. (NVIDIA API was moved to NvBackend\NVIDIA Backend —
-# its types ship in-process with the overlay via ProjectReference.)
-$controlsBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvControls\NvControls.dll\bin\Release\{0}" -f $TargetFramework)
-$notifierBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvNotifier.exe\bin\Release\{0}" -f $TargetFramework)
-$overlayWinBin = Join-Path $ProjectRoot ("NvOverlay\WinForm\NvShadowPlay.exe\bin\Release\{0}" -f $TargetFramework)
-
-Copy-RuntimeFiles $controlsBin (Join-Path $BuildRoot 'NvOverlay\WinForm') 'NVIDIA Controls'
-Copy-RuntimeFiles $notifierBin (Join-Path $BuildRoot 'NvOverlay\WinForm') 'NVIDIA Notifier'
-Copy-RuntimeFiles $overlayWinBin (Join-Path $BuildRoot 'NvOverlay\WinForm') 'NVIDIA ShadowPlay'
-
-# Audio / graphics dependency families.
-$naudioNames = @('NAudio.dll','NAudio.Asio.dll','NAudio.Core.dll','NAudio.Midi.dll','NAudio.Wasapi.dll','NAudio.WinForms.dll','NAudio.WinMM.dll')
-Copy-FlatDlls $overlayWinBin (Join-Path $BuildRoot 'NvAudio') $naudioNames
-$graphicsNames = @('Vortice.Direct3D11.dll','Vortice.DirectX.dll','Vortice.DXGI.dll','Vortice.Mathematics.dll')
-Copy-FlatDlls $overlayWinBin (Join-Path $BuildRoot 'NvGraphics') $graphicsNames
-
-# Config owner.
-$notifierConfig = Join-Path $ProjectRoot 'NvOverlay\WinForm\NvNotifier.exe\notifier_obs.json'
-if (Test-Path $notifierConfig) {
-    Copy-Item $notifierConfig (Join-Path $BuildRoot 'NvConfig\notifier_obs.json') -Force
-}
-
-# Capture engine family. Tests are intentionally excluded.
-$captureProjects = @(
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.dll';                  Tfm='net10.0' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Audio.dll';            Tfm='net10.0' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Audio.Wasapi.dll';    Tfm='net10.0' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Encoder.dll';         Tfm='net10.0' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Encoder.Nvenc.dll';   Tfm='net10.0-windows' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.FFmpegBackend.dll';   Tfm='net10.0' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Recording.dll';       Tfm='net10.0-windows' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Recording.ConsoleDriver.exe'; Tfm='net10.0-windows' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Video.dll';            Tfm='net10.0' },
-    @{ Rel='ShadowPlay\NvCapture\CaptureEngine.Video.Ddagrab.dll';   Tfm='net10.0-windows' },
-    @{ Rel='ShadowPlay\WgcCapture.dll';                              Tfm=$TargetFramework }
-)
-$captureOut = Join-Path $BuildRoot 'ShadowPlay\NvCapture'
-foreach ($c in $captureProjects) {
-    $src = Join-Path $ProjectRoot ($c.Rel + "\bin\Release\" + $c.Tfm)
-    Copy-RuntimeFiles $src $captureOut ($c.Rel)
-}
-
-# FFmpeg is Project-owned runtime payload, staged at the ROOT owner
-# (AppLayout v2 contract — every FFmpegLocator candidate probes
-# <root>\FFmpeg\ffmpeg.exe; the old ShadowPlay\FFmpeg spot is not probed).
-Copy-Tree (Join-Path $ProjectRoot 'ShadowPlay\FFmpeg') (Join-Path $BuildRoot 'FFmpeg')
-
-# Helper root runtime (WinForm + CEF shared engine lane; alias:
-# NVIDIA ShadowPlay Helper — exe identity stays nvsphelper64 per owner).
-$helperBin = Join-Path $ProjectRoot ("ShadowPlay\nvsphelper64.exe\bin\Release\{0}" -f $TargetFramework)
-$shadowOut = Join-Path $BuildRoot 'ShadowPlay'
-Copy-RuntimeFiles $helperBin $shadowOut 'nvsphelper64'
-foreach ($name in @('nvsphelper64.exe','nvsphelper64.dll','nvsphelper64.runtimeconfig.json')) {
-    $p = Join-Path $helperBin $name
-    if (Test-Path $p) { Copy-Item $p (Join-Path $shadowOut $name) -Force }
-}
-
-# Native hook: use a real Project-owned nvspcap*.dll if one exists.
-$hookDll = Get-ChildItem $ProjectRoot -Recurse -File -Force -Filter 'nvspcap*.dll' -ErrorAction SilentlyContinue |
-    Where-Object { $_.FullName -notmatch '\\obj\\|\\bin\\Debug\\' } |
-    Select-Object -First 1
-if ($hookDll) {
-    Copy-Item $hookDll.FullName -Destination (Join-Path $shadowOut $hookDll.Name) -Force
-} else {
-    Write-Host 'PENDING runtime artifact: ShadowPlay\nvspcap.dll (current hook project is still a placeholder and does not produce nvspcap.dll)' -ForegroundColor Yellow
-    $pending.Add('ShadowPlay\nvspcap.dll')
-}
-
-# Root product icon.
-$icon = Join-Path $ProjectRoot 'NVIDIA ShadowPlay.ico'
-if (Test-Path $icon) { Copy-Item $icon (Join-Path $BuildRoot 'NVIDIA ShadowPlay.ico') -Force }
-
-# CEF owner: built host + pinned CEF runtime + OSC bundle.
-$cefOut = Join-Path $BuildRoot 'NvOverlay\Cef'
-Ensure-Dir $cefOut
-$cefBin = Join-Path $ProjectRoot 'NvOverlay\Cef\bin\x64\Release'
-Copy-RuntimeFiles $cefBin $cefOut 'NVIDIA Share CEF host'
-$shareJson = Join-Path $ProjectRoot 'NvOverlay\Cef\NVIDIA Share.json'
-if (Test-Path $shareJson) { Copy-Item $shareJson (Join-Path $cefOut 'NVIDIA Share.json') -Force }
-
-$cefSdk = 'C:\My Project\cef-sdk\cef73'
-if (Test-Path $cefSdk) {
-    foreach ($f in @('libcef.dll','chrome_elf.dll','d3dcompiler_47.dll','d3dcompiler_43.dll','libEGL.dll','libGLESv2.dll','natives_blob.bin','snapshot_blob.bin','v8_context_snapshot.bin')) {
-        $src = Join-Path $cefSdk "Release\$f"
-        if (Test-Path $src) { Copy-Item $src (Join-Path $cefOut $f) -Force }
-        else { $pending.Add("CEF:$f") }
-    }
-    foreach ($f in @('cef.pak','cef_100_percent.pak','cef_200_percent.pak','cef_extensions.pak','devtools_resources.pak','icudtl.dat')) {
-        $src = Join-Path $cefSdk "Resources\$f"
-        if (Test-Path $src) { Copy-Item $src (Join-Path $cefOut $f) -Force }
-        else { $pending.Add("CEF Resources:$f") }
-    }
-    Copy-Tree (Join-Path $cefSdk 'Resources\locales') (Join-Path $cefOut 'locales')
-    Copy-Tree (Join-Path $cefSdk 'Release\swiftshader') (Join-Path $cefOut 'swiftshader')
-} else {
-    $pending.Add('CEF SDK: C:\My Project\cef-sdk\cef73')
-}
-
-# OSC frontend bundle: Project-owned copy of the GFE 3.28 WebView\osc
-# bundle (index.html + vendor/common/app.js + config.js + assets). Docs\osc
-# is the osc DOCUMENTATION set, not the bundle — staging it here produced a
-# "not found" page (no index.html to serve).
-$oscSrc = Join-Path $ProjectRoot 'NvOverlay\Cef\osc'
-$oscDst = Join-Path $cefOut 'Resources\osc'
-if (Test-Path $oscSrc) {
-    if (Test-Path $oscDst) { Remove-Item -LiteralPath $oscDst -Recurse -Force }
-    Copy-Tree $oscSrc $oscDst
-} else {
-    Write-Host "PENDING OSC bundle: $oscSrc" -ForegroundColor Yellow
-    $pending.Add('NvOverlay\Cef\osc (OSC frontend bundle)')
-}
-
-# Central deployment metadata: keep deps.json discoverable without removing them
-# from the runnable folders.
-$deploymentRoot = Join-Path $BuildRoot '.NET Deployment'
-Ensure-Dir $deploymentRoot
-Get-ChildItem -LiteralPath $BuildRoot -Recurse -File -Filter '*.deps.json' -Force |
-    Where-Object { $_.FullName -notlike ($deploymentRoot + '\*') } |
+# Stage the NodeAPI runtime as a paired owner, without copying its developer
+# Logs folder or the nested host project's source/build tree.
+$nodeApiSource = Join-Path $ProjectRoot 'Overlay OSC\NVIDIA NodeAPI'
+$nodeApiOutput = Join-Path $BuildRoot 'Overlay OSC\NVIDIA NodeAPI'
+$nodeHostOutput = Join-Path $nodeApiSource ("NVIDIA Web Helper\bin\x64\Release\{0}" -f $TargetFramework)
+Copy-RuntimeFiles $nodeHostOutput $nodeApiOutput
+Get-ChildItem -LiteralPath $nodeApiSource -File -Force |
+    Where-Object {
+        $_.Extension -in '.js','.json','.node','.dll','.exe','.dat' -and
+        $_.Name -notlike 'NVIDIA Web Helper.*'
+    } |
     ForEach-Object {
-        $rel = $_.FullName.Substring($BuildRoot.Length + 1)
-        $safe = $rel -replace '\\','__'
-        Copy-Item $_.FullName (Join-Path $deploymentRoot $safe) -Force
+        Copy-FileSafe $_.FullName (Join-Path $nodeApiOutput $_.Name)
     }
+foreach ($directory in @('node_modules', 'osc', 'shims')) {
+    Copy-Tree (Join-Path $nodeApiSource $directory) (Join-Path $nodeApiOutput $directory)
+}
 
-# ── Owner dedupe (owner-tree rule: ONE canonical folder per assembly) ────
-# Copy-RuntimeFiles stages each project bin WHOLE, so referenced-project
-# outputs (CaptureEngine/NAudio/Vortice/Launcher/...) leak into every
-# referencing owner folder. AppLayout.vb's Resolving handler supplies
-# cross-folder assemblies (NvCapture/ShadowPlay/ShadowPlay\NvCapture/
-# NvAudio/NvGraphics/Runtime/NvGallery probes), so those leaked copies are
-# dead weight — prune them back to the canonical owner. Patterns are
-# filename PREFIXES; a folder's own primary outputs are never listed as
-# foreign. WinForm keeps NvBackend.dll (in-process library of the overlay)
-# but loses NvBackend.exe (legacy apphost, superseded by Web Helper).
-$ownerForeign = @(
-    @{ Folder = '.'                    ; Foreign = @('NVIDIA Controls.', 'Microsoft.Windows.SDK.NET.', 'WinRT.Runtime.', 'Newtonsoft.Json.', 'System.Management.', 'CaptureEngine.', 'NAudio.', 'Vortice.') },
-    @{ Folder = 'NvOverlay\WinForm'    ; Foreign = @('CaptureEngine.', 'WgcCapture.', 'NAudio.', 'Vortice.', 'SharpGen.', 'Gallery.Video.', 'Launcher.', 'nvsphelper64.', 'NvBackend.exe', 'NVIDIA Backend.exe', 'Microsoft.Windows.SDK.NET.', 'WinRT.Runtime.', 'Newtonsoft.Json.', 'System.Management.') },
-    @{ Folder = 'ShadowPlay'           ; Foreign = @('CaptureEngine.', 'WgcCapture.', 'NAudio.', 'Vortice.', 'SharpGen.', 'Gallery.Video.', 'Launcher.', 'Microsoft.Windows.SDK.NET.', 'WinRT.Runtime.', 'Newtonsoft.Json.', 'System.Management.') },
-    @{ Folder = 'ShadowPlay\NvCapture' ; Foreign = @('NAudio.', 'Vortice.', 'SharpGen.', 'Microsoft.Windows.SDK.NET.', 'WinRT.Runtime.', 'Newtonsoft.Json.', 'System.Management.') },
-    @{ Folder = 'NvGallery\WinForm'    ; Foreign = @('NAudio.', 'Vortice.', 'SharpGen.', 'Microsoft.Windows.SDK.NET.', 'WinRT.Runtime.', 'Newtonsoft.Json.', 'System.Management.') },
-    @{ Folder = 'NvBackend'            ; Foreign = @('NAudio.', 'Vortice.', 'SharpGen.', 'Microsoft.Windows.SDK.NET.', 'WinRT.Runtime.', 'Newtonsoft.Json.', 'System.Management.') },
-    @{ Folder = 'NvContainer'          ; Foreign = @('NAudio.', 'Vortice.', 'SharpGen.', 'Microsoft.Windows.SDK.NET.', 'WinRT.Runtime.', 'Newtonsoft.Json.', 'System.Management.', 'CaptureEngine.', 'Launcher.') }
+# Service configuration is rooted beside NvContainer; mutable user settings
+# are preserved when already present.
+$nvConfigOutput = Join-Path $BuildRoot 'NvConfig'
+Ensure-Dir $nvConfigOutput
+Get-ChildItem -LiteralPath (Join-Path $ProjectRoot 'NvConfig') -File -Filter '*.json' |
+    ForEach-Object {
+    Copy-FileSafe $_.FullName (Join-Path $nvConfigOutput $_.Name)
+    }
+$captureFlag = Join-Path $ProjectRoot 'NvConfig\capture-disabled.flag'
+if (Test-Path -LiteralPath $captureFlag) {
+    Copy-FileSafe $captureFlag (Join-Path $nvConfigOutput 'capture-disabled.flag')
+}
+Copy-Tree (Join-Path $ProjectRoot 'NvConfig\nvnode') (Join-Path $nvConfigOutput 'nvnode')
+
+if ($preservedOverlayConfig) {
+    [System.IO.File]::WriteAllText(
+        $overlayConfig,
+        $preservedOverlayConfig,
+        [System.Text.UTF8Encoding]::new($false))
+}
+if (-not (Test-Path -LiteralPath $overlayConfig)) {
+    [System.IO.File]::WriteAllText(
+        $overlayConfig,
+        '{ "Overlay": { "UseOverlayEnabled": true, "EngineOverlayMode": true } }',
+        [System.Text.UTF8Encoding]::new($false))
+}
+if (Test-Path -LiteralPath $legacyOverlayConfig) {
+    Remove-Item -LiteralPath $legacyOverlayConfig -Force
+}
+
+# Stage the controller and its hotkey helper from their active Project owners.
+$containerOutput = Join-Path $BuildRoot 'NvContainer'
+Copy-RuntimeFiles (Join-Path $ProjectRoot ("NvContainer\NvContainer\bin\Release\{0}" -f $TargetFramework)) $containerOutput
+Copy-RuntimeFiles (Join-Path $ProjectRoot ("NvContainer\NvShadowPlayHelper\bin\Release\{0}" -f $TargetFramework)) $containerOutput
+
+# Launcher host/UI slot; CEF runtime is shared from the OSC slot below.
+$launcherOutput = Join-Path $ProjectRoot 'Launcher.Cef\bin\x64\Release'
+Copy-FileSafe (Join-Path $launcherOutput 'Launcher.exe') (Join-Path $BuildRoot 'Launcher.exe')
+Copy-FileSafe (Join-Path $launcherOutput 'Launcher.dll') (Join-Path $cefOutput 'Launcher.dll')
+Copy-Tree (Join-Path $ProjectRoot 'Launcher.Cef\ui') (Join-Path $cefOutput 'Resources\launcher')
+
+# OSC owns the single shared CEF runtime directory used by both hosts.
+$oscOutput = Join-Path $BuildRoot 'Overlay OSC\NVIDIA OSC'
+Copy-RuntimeFiles (Join-Path $ProjectRoot 'Overlay OSC\NVIDIA OSC\bin\x64\Release') $oscOutput
+$cefRuntimeFiles = @(
+    @{ Source = 'Release\libcef.dll'; Destination = 'libcef.dll' },
+    @{ Source = 'Release\chrome_elf.dll'; Destination = 'chrome_elf.dll' },
+    @{ Source = 'Release\d3dcompiler_47.dll'; Destination = 'd3dcompiler_47.dll' },
+    @{ Source = 'Release\d3dcompiler_43.dll'; Destination = 'd3dcompiler_43.dll' },
+    @{ Source = 'Release\libEGL.dll'; Destination = 'libEGL.dll' },
+    @{ Source = 'Release\libGLESv2.dll'; Destination = 'libGLESv2.dll' },
+    @{ Source = 'Release\natives_blob.bin'; Destination = 'natives_blob.bin' },
+    @{ Source = 'Release\snapshot_blob.bin'; Destination = 'snapshot_blob.bin' },
+    @{ Source = 'Release\v8_context_snapshot.bin'; Destination = 'v8_context_snapshot.bin' },
+    @{ Source = 'Resources\cef.pak'; Destination = 'cef.pak' },
+    @{ Source = 'Resources\cef_100_percent.pak'; Destination = 'cef_100_percent.pak' },
+    @{ Source = 'Resources\cef_200_percent.pak'; Destination = 'cef_200_percent.pak' },
+    @{ Source = 'Resources\cef_extensions.pak'; Destination = 'cef_extensions.pak' },
+    @{ Source = 'Resources\devtools_resources.pak'; Destination = 'devtools_resources.pak' },
+    @{ Source = 'Resources\icudtl.dat'; Destination = 'icudtl.dat' }
 )
-$pruned = 0
-foreach ($rule in $ownerForeign) {
-    $dir = Join-Path $BuildRoot $rule.Folder
-    if (-not (Test-Path -LiteralPath $dir)) { continue }
-    Get-ChildItem -LiteralPath $dir -File -Force | ForEach-Object {
-        $f = $_
-        if ($f.Extension -notin '.dll', '.exe') { return }
-        $hit = $rule.Foreign | Where-Object { $f.Name -like ($_ + '*') }
-        if ($hit) {
-            Remove-Item -LiteralPath $f.FullName -Force
-            $script:pruned++
+foreach ($file in $cefRuntimeFiles) {
+    $source = Join-Path $CefSdk $file.Source
+    if (-not (Test-Path -LiteralPath $source)) { throw "CEF runtime dependency missing: $source" }
+    Copy-FileSafe $source (Join-Path $oscOutput $file.Destination)
+}
+Copy-Tree (Join-Path $CefSdk 'Resources\locales') (Join-Path $oscOutput 'locales')
+Copy-Tree (Join-Path $CefSdk 'Release\swiftshader') (Join-Path $oscOutput 'swiftshader')
+
+# Remove only stale CEF runtime copies from the Launcher slot. Keep
+# Launcher UI, profile data, and legacy NVIDIA Share assets untouched.
+$legacyCefRuntimeItems = @(
+    'libcef.dll', 'chrome_elf.dll', 'd3dcompiler_47.dll',
+    'd3dcompiler_43.dll', 'libEGL.dll', 'libGLESv2.dll',
+    'natives_blob.bin', 'snapshot_blob.bin', 'v8_context_snapshot.bin',
+    'cef.pak', 'cef_100_percent.pak', 'cef_200_percent.pak',
+    'cef_extensions.pak', 'devtools_resources.pak', 'icudtl.dat',
+    'locales', 'swiftshader'
+)
+foreach ($item in $legacyCefRuntimeItems) {
+    $legacyPath = Join-Path $cefOutput $item
+    if (Test-Path -LiteralPath $legacyPath) {
+        try {
+            Remove-Item -LiteralPath $legacyPath -Recurse -Force -ErrorAction Stop
+        } catch {
+            $pending.Add("stale Launcher CEF runtime still in use: $legacyPath")
+            Write-Host "PENDING: stale Launcher CEF runtime still in use: $legacyPath" -ForegroundColor Yellow
         }
     }
 }
-Write-Host "OWNER DEDUPE: pruned $pruned duplicate binary file(s)." -ForegroundColor Cyan
 
 $manifest = [ordered]@{
     buildUtc = [DateTime]::UtcNow.ToString('o')
     configuration = $Configuration
-    solution = if ($SolutionToBuild -ne $Solution) { 'Project/NVIDIA ShadowPlay Dev (no CEF).slnf' } else { 'Project/NVIDIA ShadowPlay.sln' }
-    output = 'Build/NVIDIA ShadowPlay'
+    sourceRoot = 'Project'
+    projects = @($activeProjects | ForEach-Object { $_.Path })
+    output = $BuildRoot
     layout = 'Build/Build-Config/dev-layout.json'
-    protectedReferences = @('IDK This is/dist','IDK This is/deploy')
-    testsExcluded = $true
-    buildResult = 'MSBuild exit 0'
+    retiredSourceExcluded = 'Project/Close Project'
     pendingArtifacts = @($pending)
 }
 $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $ConfigRoot 'dev-build.json') -Encoding utf8
@@ -453,8 +280,7 @@ $manifest | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $Confi
 if ($pending.Count -gt 0) {
     Write-Host "DEV BUILD STAGED WITH PENDING ARTIFACTS: $($pending.Count)" -ForegroundColor Yellow
     $pending | ForEach-Object { Write-Host "  PENDING: $_" -ForegroundColor Yellow }
-    if ($Strict) { exit 2 }
+    if ($Strict) { throw 'Strict build requested and pending artifacts remain.' }
 } else {
-    Write-Host 'DEV BUILD STAGED COMPLETE.' -ForegroundColor Green
+    Write-Host 'ACTIVE PROJECT BUILD TREE STAGED.' -ForegroundColor Green
 }
-exit 0

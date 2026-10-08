@@ -1,16 +1,16 @@
 {
   "$comment": "ตัวแม่ NvContainer.exe — ศูนย์กลาง config ของ Duluka System ทั้งหมด",
   "mode": "ours",
-  "$mode_note": "ours = ดูแล NVIDIA Web Helper.exe → NvNode/NodeAPI :59011 + NVIDIA OSC.exe + nvsphelper.exe | NvCapture.exe ยังไม่ spawn | genuine = NVIDIA Share.exe แท้",
-  "buildRoot": "C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay",
+  "$mode_note": "ours = ดูแล Project NodeAPI ใน Overlay OSC\\NVIDIA NodeAPI :59011 + NVIDIA OSC.exe + nvsphelper.exe | NvCapture.exe ยังไม่ spawn | genuine = NVIDIA Share.exe แท้",
+  "buildRoot": ".",
   "children": {
-    "webHelperExe": "C:\\My Project\\NVIDIA-Shadowplay\\Project\\Overlay OSC\\NVIDIA NodeAPI\\NVIDIA Web Helper.exe",
-    "webHelperWd": "C:\\My Project\\NVIDIA-Shadowplay\\Project\\Overlay OSC\\NVIDIA NodeAPI",
+    "webHelperExe": "Overlay OSC\\NVIDIA NodeAPI\\NVIDIA Web Helper.exe",
+    "webHelperWd": "Overlay OSC\\NVIDIA NodeAPI",
     "oscExe": "Overlay OSC\\NVIDIA OSC\\NVIDIA OSC.exe",
     "oscWd": "Overlay OSC\\NVIDIA OSC",
     "$oscExe_note": "OSC host ที่ใช้งานและยืนยันแล้ว",
-    "genuineShareExe": "C:\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience\\NVIDIA Share.exe",
-    "genuineShareWd": "C:\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience",
+    "genuineShareExe": "%ProgramFiles%\\NVIDIA Corporation\\NVIDIA GeForce Experience\\NVIDIA Share.exe",
+    "genuineShareWd": "%ProgramFiles%\\NVIDIA Corporation\\NVIDIA GeForce Experience",
     "hotkeyExe": "NvContainer\\nvsphelper.exe"
   },
   "pairing": {
@@ -22,7 +22,7 @@
   "nodeApiPort": 59011,
   "nvnodeInitPath": "%LOCALAPPDATA%\\NVIDIA Corporation\\NvNode\\nvnode-init-duluka.json",
   "watchdog": {
-    "intervalSeconds": 15,
+    "intervalSeconds": 5,
     "orphanWipeNames": [
       "nvnodejslauncher",
       "node",

@@ -9,14 +9,13 @@ Imports System.Text.RegularExpressions
 ' contract (docs/PHASE-1B-LAUNCH-CONTRACT.md §5): JSON + environment ONLY —
 ' no registry, no argv.
 '
-'   port     : NVSP_PORT env > config.json "port" > 59001 (the real Web
-'              Helper port; provisioning parity of registry Global\NvNode
-'              port=59001)
+'   port     : NVSP_PORT env > config.json "port" > 59011 (shared with
+'              NvContainer and the native OSC host)
 '   bindHost : NVSP_HOST env > config.json "host" > 127.0.0.1 (loopback —
 '              the osc frontend and the engine run on this machine)
 Friend Class HostConfig
 
-    Public Property Port As Integer = 59001
+    Public Property Port As Integer = 59011
     Public Property BindHost As String = "127.0.0.1"
     Public Property HealthPath As String = "/Backend/v.1.0/health"
 

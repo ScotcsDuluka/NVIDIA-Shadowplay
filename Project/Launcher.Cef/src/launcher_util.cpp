@@ -13,6 +13,7 @@
 #include <wchar.h>
 
 #include <fstream>
+#include <algorithm>
 #include <sstream>
 
 namespace launcherutil {
@@ -104,11 +105,13 @@ std::wstring GetDllDir() {
 
 std::wstring GetRootDir() {
   // Bootstrap exe at the root -> its dir IS the root. Defensive fallback
-  // for a body DLL launched from NvOverlay\Cef: climb two levels so the
+  // for a body DLL launched from NvLauncher\Cef: climb two levels so the
   // supervisor still finds NvConfig\ and the family exes.
   std::wstring dir = GetExeDir();
-  size_t tail = dir.rfind(L"\\NvOverlay\\Cef");
-  if (tail != std::wstring::npos && tail + 14 == dir.size()) {
+  const std::wstring launcher_suffix = L"\\NvLauncher\\Cef";
+  size_t tail = dir.rfind(launcher_suffix);
+  if (tail != std::wstring::npos &&
+      tail + launcher_suffix.size() == dir.size()) {
     dir.resize(tail);
   }
   return dir;
@@ -318,29 +321,33 @@ void KillProcessFromPath(const wchar_t* name, const std::wstring& exe_path) {
   CloseHandle(snap);
 }
 
-bool WaitForTcpPort(unsigned port, unsigned timeout_ms) {
+bool IsTcpPortOpen(unsigned port) {
   WSADATA wsa;
   if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) return false;
-  unsigned waited = 0;
   bool alive = false;
-  while (waited < timeout_ms) {
-    SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    if (s != INVALID_SOCKET) {
-      sockaddr_in a;
-      memset(&a, 0, sizeof(a));
-      a.sin_family = AF_INET;
-      a.sin_port = htons(static_cast<u_short>(port));
-      a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
-      if (connect(s, reinterpret_cast<sockaddr*>(&a), sizeof(a)) == 0) {
-        alive = true;
-      }
-      closesocket(s);
-      if (alive) break;
-    }
-    Sleep(250);
-    waited += 250;
+  SOCKET s = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+  if (s != INVALID_SOCKET) {
+    sockaddr_in a;
+    memset(&a, 0, sizeof(a));
+    a.sin_family = AF_INET;
+    a.sin_port = htons(static_cast<u_short>(port));
+    a.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    alive = connect(s, reinterpret_cast<sockaddr*>(&a), sizeof(a)) == 0;
+    closesocket(s);
   }
   WSACleanup();
+  return alive;
+}
+
+bool WaitForTcpPort(unsigned port, unsigned timeout_ms) {
+  const ULONGLONG started = GetTickCount64();
+  bool alive = IsTcpPortOpen(port);
+  while (!alive) {
+    const ULONGLONG elapsed = GetTickCount64() - started;
+    if (elapsed >= timeout_ms) break;
+    Sleep(static_cast<DWORD>(std::min<ULONGLONG>(50, timeout_ms - elapsed)));
+    alive = IsTcpPortOpen(port);
+  }
   if (!alive) {
     LogLine("backend wait timeout on port " + std::to_string(port));
   }
@@ -403,13 +410,7 @@ bool HttpPostLocal(unsigned port, const std::wstring& path) {
 }
 
 static std::wstring ConfigPath() {
-  const std::wstring root = GetRootDir();
-  const std::wstring product_config = JoinPath(root, L"Config\\config.json");
-  const std::wstring legacy_config = JoinPath(root, L"NvConfig\\config.json");
-  if (FileExists(product_config) || !FileExists(legacy_config)) {
-    return product_config;
-  }
-  return legacy_config;
+  return JoinPath(GetRootDir(), L"NvConfig\\config.json");
 }
 
 bool ReadConfigBool(const wchar_t* section, const wchar_t* key,

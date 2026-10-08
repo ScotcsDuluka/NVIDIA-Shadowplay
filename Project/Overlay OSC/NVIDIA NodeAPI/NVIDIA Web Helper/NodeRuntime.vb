@@ -5,13 +5,14 @@ Imports System.IO
 ' node.exe resolution for the INSTALLED layout — never the repo working
 ' directory (goal: ทำงานจาก installed owner-layout). Precedence:
 '   1. NVBACKEND_NODE_EXE env   — explicit deployment override
-'   2. <NvBackend>\node.exe     — portable slot beside the host (the
+'   2. <NodeAPI>\NvNode.exe     — portable Node runtime beside the host
+'      (preferred project runtime); then <NodeAPI>\node.exe
 '                                 deploy/install.ps1 fallback hint)
 '   3. PATH                     — system node
 '   4. %ProgramFiles%\nodejs\node.exe and
 '      %LocalAppData%\Programs\nodejs\node.exe — deploy/install.ps1's
 '      candidate list
-' The backend itself resolves its dependencies from NvBackend\node_modules
+' The backend itself resolves its dependencies from NodeAPI\node_modules
 ' by standard node resolution (cwd + entry beside it) — the host must not
 ' set NODE_PATH (launch contract: NvNode's own module.paths come from the
 ' entry location, not from injected env).
@@ -67,7 +68,7 @@ Friend Class NodeRuntime
         Next
 
         HostLog.Error("node.exe not found (searched: NVBACKEND_NODE_EXE, " & portable & ", PATH, %ProgramFiles%\nodejs, %LocalAppData%\Programs\nodejs)")
-        HostLog.Error("the NvBackend JS backend needs Node.js (>=12): install it, extend PATH, or copy a portable node.exe into NvBackend\")
+        HostLog.Error("the Project NodeAPI backend needs its NvNode.exe or Node.js on PATH")
         Return Nothing
     End Function
 

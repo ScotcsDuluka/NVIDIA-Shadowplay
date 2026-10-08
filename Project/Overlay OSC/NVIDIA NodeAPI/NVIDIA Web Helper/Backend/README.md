@@ -5,7 +5,7 @@ serves the osc overlay frontend (same-origin) + the full REST/socket surface
 the page talks to, on the REAL Web Helper port:
 
 ```
-http://127.0.0.1:59001        (registry Global\NvNode port=59001, disableSecurity=1)
+http://127.0.0.1:59011        (NvContainer nodeApiPort and OSC backend port)
 ```
 
 ## Layout
@@ -47,7 +47,7 @@ Backend/
 ```
 cd Backend
 npm install
-npm start            # node index.js — listens http://127.0.0.1:59001
+npm start            # node index.js — listens http://127.0.0.1:59011
 ```
 
 Environment overrides: `NVSP_PORT`, `NVSP_HOST`, `OSC_DIR`, `DULUKA_SERVER`,

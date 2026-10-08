@@ -1,11 +1,11 @@
 // NvHotkeyHelper.cs — NVIDIA ShadowPlay Helper (ของเรา 100%) — แบบของแท้
 // บทบาท (เหมือน nvsphelper64.exe แท้): เป็น "ตัวจับ hotkey ระดับ OS" ตัวเดียวของระบบ
-//   • อ่านคีย์ที่ผู้ใช้ปรับจาก NvNode\shadowplay-settings.json (หน้า OSC settings เขียน)
+//   • อ่านคีย์ที่ผู้ใช้ปรับจาก Overlay OSC\NVIDIA NodeAPI\shadowplay-settings.json (หน้า OSC settings เขียน)
 //   • RegisterHotKey ทุกตัวที่มี modifier (Alt+F1, Alt+F9, Ctrl+Alt+R …)
 //   • กดแล้วยิง :59002/?hk=<Name> → node shim → socket /ShadowPlay/v.1.0/Hotkey → หน้าทำงาน
 //   • FileSystemWatcher ตามไฟล์ settings — แก้คีย์ใน OSC แล้วมีผลทันที (ไม่ต้องรีสตาร์ท)
 //   • OpenShare ยิง hotkey callback เข้า NvNode; OSC page เป็นเจ้าของ toggle state
-// config: Project\NvConfig\nvsphelper.json
+// config: <BuildRoot>\NvConfig\nvsphelper.json
 //
 // WinExe: ห้ามแตะ Console ทุกชนิด (handle invalid = crash) — log ลงไฟล์เท่านั้น
 using System;
@@ -36,11 +36,19 @@ static class NvShadowPlayHelper
     const uint WM_HOTKEY = 0x0312;
     const uint MOD_NOREPEAT = 0x4000;   // [P2#4 Copilot] 1 event ต่อ key-down (Win10+)
     const uint MOD_ALT = 0x1, MOD_CONTROL = 0x2, MOD_SHIFT = 0x4, MOD_WIN = 0x8;
-    const string CONFIG = @"C:\My Project\NVIDIA-Shadowplay\Project\NvConfig\nvsphelper.json";
-    const string SETTINGS = @"C:\My Project\NVIDIA-Shadowplay\Project\Overlay OSC\NVIDIA NodeAPI\shadowplay-settings.json";
-
+    static readonly string BuildRoot = FindBuildRoot();
+    static readonly string ConfigPath = Path.Combine(BuildRoot, "NvConfig", "nvsphelper.json");
+    static readonly string SettingsPath = Path.Combine(BuildRoot, "Overlay OSC", "NVIDIA NodeAPI", "shadowplay-settings.json");
     static string _fireUrl = "http://127.0.0.1:59011/?hk={name}";
-    static string _logFile = @"C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\NvContainer\Logs\nvsphelper.log";
+    static string _logFile = Path.Combine(BuildRoot, "NvContainer", "Logs", "nvsphelper.log");
+
+    static string FindBuildRoot()
+    {
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+            if (File.Exists(Path.Combine(dir.FullName, "NvConfig", "nvsphelper.json")))
+                return dir.FullName;
+        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, ".."));
+    }
 
     // ค่า default ตาม GFE แท้ (route-floor HOTKEYS) — ใช้เมื่อ settings ไม่มีชื่อนั้น
     static readonly Dictionary<string, int[]> Defaults = new Dictionary<string, int[]>
@@ -98,12 +106,18 @@ static class NvShadowPlayHelper
     {
         try
         {
-            using var doc = JsonDocument.Parse(File.ReadAllText(CONFIG));
+            using var doc = JsonDocument.Parse(File.ReadAllText(ConfigPath));
             var r = doc.RootElement;
             if (r.TryGetProperty("fireUrl", out var v)) _fireUrl = v.GetString();
-            if (r.TryGetProperty("logFile", out v)) _logFile = v.GetString();
+            if (r.TryGetProperty("logFile", out v))
+            {
+                var configuredLog = Environment.ExpandEnvironmentVariables(v.GetString());
+                _logFile = Path.GetFullPath(Path.IsPathRooted(configuredLog)
+                    ? configuredLog
+                    : Path.Combine(BuildRoot, configuredLog));
+            }
         }
-        catch { /* default ไว้แล้ว */ }
+        catch (Exception ex) { Log("[config] " + ConfigPath + ": " + ex.Message); }
     }
 
     static void Log(string m)
@@ -125,7 +139,7 @@ static class NvShadowPlayHelper
         foreach (var kv in Defaults) all[kv.Key] = kv.Value;
         try
         {
-            using var doc = JsonDocument.Parse(File.ReadAllText(SETTINGS));
+            using var doc = JsonDocument.Parse(File.ReadAllText(SettingsPath));
             if (doc.RootElement.TryGetProperty("hotkeys", out var hk) && hk.ValueKind == JsonValueKind.Object)
             {
                 foreach (var p in hk.EnumerateObject())
@@ -228,7 +242,7 @@ static class NvShadowPlayHelper
             Log("[hotkey] warning: could not set 1ms timer resolution");
 
         // ตามไฟล์ settings — ผู้ใช้แก้คีย์ใน OSC = มีผลทันที
-        var watcher = new FileSystemWatcher(Path.GetDirectoryName(SETTINGS), Path.GetFileName(SETTINGS))
+        var watcher = new FileSystemWatcher(Path.GetDirectoryName(SettingsPath), Path.GetFileName(SettingsPath))
         {
             NotifyFilter = NotifyFilters.LastWrite,
             EnableRaisingEvents = true

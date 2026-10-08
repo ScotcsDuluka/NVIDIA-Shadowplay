@@ -1,10 +1,7 @@
 'use strict'
 // config.js — runtime configuration resolution: env > config.json > defaults.
 //
-// Port 59001 is the REAL Web Helper port (provisioning sets
-// HKLM\...\Global\NvNode port=59001 + disableSecurity=1 — see
-// docs/osc/16-real-host-portable.md). The osc page, hotkey listener and
-// the engine (Phase 3) all target http://127.0.0.1:59001.
+// Port 59011 is shared with NvContainer and the native OSC host.
 
 const fs = require('fs');
 const path = require('path');

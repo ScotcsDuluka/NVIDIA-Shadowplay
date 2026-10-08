@@ -38,9 +38,9 @@
       <div class="hero-cta-group">
       </div>
       <div class="hero-meta">
-        <span class="lane-chip" id="chipEngine" title="NvContainer supervisor">ENGINE</span>
-        <span class="lane-chip" id="chipCef" title="CEF overlay window">CEF OVERLAY</span>
-        <span class="lane-chip" id="chipHub" title="Local NVIDIA API hub">API HUB</span>
+        <span class="lane-chip" id="chipEngine" title="Overlay controller (NvContainer.exe)">CONTROLLER</span>
+        <span class="lane-chip" id="chipCef" title="On-screen overlay presenter (NVIDIA OSC.exe)">PRESENTER</span>
+        <span class="lane-chip" id="chipHub" title="Local API service (engine dependent)">API SERVICE</span>
       </div>
     </section>
 
@@ -59,28 +59,28 @@
           <li>
             <span class="dot" id="dotOverlay"></span>
             <div class="svc-text">
-              <div class="svc-name">NVIDIA ShadowPlay</div>
+              <div class="svc-name">SHADOWPLAY OVERLAY</div>
               <div class="svc-state" id="stateOverlay">STOPPED</div>
             </div>
           </li>
           <li>
             <span class="dot" id="dotContainer"></span>
             <div class="svc-text">
-              <div class="svc-name">NVCONTAINER</div>
+              <div class="svc-name">OVERLAY CONTROLLER</div>
               <div class="svc-state" id="stateContainer">STOPPED</div>
             </div>
           </li>
           <li>
             <span class="dot" id="dotNotifier"></span>
             <div class="svc-text">
-              <div class="svc-name">NVIDIA NOTIFIER</div>
+              <div class="svc-name">WINFORM NOTIFIER</div>
               <div class="svc-state" id="stateNotifier">STOPPED</div>
             </div>
           </li>
           <li>
             <span class="dot" id="dotNvApi"></span>
             <div class="svc-text">
-              <div class="svc-name">NVIDIA Backend</div>
+              <div class="svc-name">LOCAL API SERVICE</div>
               <div class="svc-state" id="stateNvApi">STOPPED</div>
             </div>
           </li>
@@ -97,20 +97,20 @@
         <div class="feat-text">
           <span class="card-status">Overlay In-game</span>
           <h3>NVIDIA ShadowPlay</h3>
-          <p>Precision-engineered, that keeps you in control - without ever breaking immersion.</p>
+          <p>Turn the selected overlay engine on or off.</p>
         </div>
         <span class="toggle" id="tglOverlay" role="switch" aria-label="Overlay enabled" aria-checked="false" tabindex="0"></span>
       </div>
     </div>
     <div class="feature-card">
       <div class="mode-panel">
-        <div class="mode-title">ENGINE TYPE</div>
+        <div class="mode-title">OVERLAY ENGINE</div>
         <div class="mode-row">
           <span class="mode-label active" id="lblWinform" role="button" tabindex="0">WINFORM</span>
-          <span class="mode-toggle" id="tglEngine" role="switch" aria-label="Overlay engine" aria-checked="false" tabindex="0"><span class="mode-knob"></span></span>
+          <span class="mode-toggle" id="tglEngine" role="switch" aria-label="Overlay engine mode" aria-checked="false" tabindex="0"><span class="mode-knob"></span></span>
           <span class="mode-label" id="lblCef" role="button" tabindex="0">CEF</span>
         </div>
-        <div class="mode-desc" id="modeDesc">Two Engine Regimes</div>
+        <div class="mode-desc" id="modeDesc">Selects the engine; does not power the overlay.</div>
       </div>
     </div>
   </section>

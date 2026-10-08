@@ -5,45 +5,27 @@
   "outputRoot": "Build/NVIDIA ShadowPlay",
   "referenceOnly": [
     "IDK This is/dist",
-    "IDK This is/deploy"
+    "IDK This is/deploy",
+    "Project/Close Project"
   ],
   "excludeProjects": [
     "**/*Tests*",
     "**/ManualOverlayTest.vbproj"
   ],
   "rootDirectories": [
-    ".NET Deployment",
-    ".vs",
-    "Data",
-    "Flags",
+    "Config",
     "Logs",
-    "NvAnsel",
-    "NvAudio",
-    "NvBackend",
     "NvConfig",
     "NvContainer",
-    "NvGallery/WinForm",
-    "NvGraphics",
-    "NvOverlay/Cef",
-    "NvOverlay/WinForm",
-    "Resources",
-    "Runtime",
-    "ShadowPlay",
-    "ShadowPlay/NvCapture",
-    "FFmpeg",
-    "Languages"
+    "NvLauncher/Cef",
+    "Overlay OSC/NVIDIA NodeAPI",
+    "Overlay OSC/NVIDIA OSC"
   ],
   "owners": {
-    "Launcher": ".",
-    "NVIDIA Web Helper": "NvBackend",
-    "NVIDIA Container": "NvContainer",
-    "Gallery.Video": "NvGallery/WinForm",
-    "NVIDIA Controls": "NvOverlay/WinForm",
-    "NVIDIA Notifier": "NvOverlay/WinForm",
-    "NVIDIA Overlay": "NvOverlay/WinForm",
-    "NVIDIA Share": "NvOverlay/Cef",
-    "ShadowPlay Capture": "ShadowPlay/NvCapture",
-    "ShadowPlay Native Hook": "ShadowPlay",
-    "FFmpeg": "ShadowPlay/FFmpeg"
+    "Launcher": "Launcher.Cef",
+    "NVIDIA Web Helper + NvNode": "Overlay OSC/NVIDIA NodeAPI",
+    "NVIDIA OSC": "Overlay OSC/NVIDIA OSC",
+    "NvContainer + nvsphelper": "NvContainer",
+    "Launcher CEF body": "NvLauncher/Cef"
   }
 }

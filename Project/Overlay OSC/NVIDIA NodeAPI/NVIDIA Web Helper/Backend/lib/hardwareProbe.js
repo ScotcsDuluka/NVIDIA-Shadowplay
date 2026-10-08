@@ -55,7 +55,7 @@ const PS_SCRIPT = [
     "    IsPrimary='1'",
     "  })",
     "} | ConvertTo-Json -Depth 4"
-].join('; ');
+].join('\n');
 
 function probeWindows(logger, cb) {
     execFile('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', PS_SCRIPT],

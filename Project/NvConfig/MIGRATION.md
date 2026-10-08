@@ -1,39 +1,45 @@
-# Phase 2 — ย้ายโฟลเดอร์ build tree (ห้ามทำก่อน OSC นิ่ง 3-4 วัน)
+# Build Tree contract
 
-## เงื่อนไขก่อนทำ
-1. OSC บูตสำเร็จต่อเนื่อง ≥ 3 วัน (ไม่มี ud2 / watchdog respawn ใน log)
-2. Record + Alt+Shift+Z + คลิกทะลุ ทดสอบผ่านครบ
-3. Backup: `robocopy "build\NVIDIA ShadowPlay" "D:\backup\NVIDIA ShadowPlay" /MIR` (หรือ drive อื่น)
+`Project` is the source tree. `Scripts\build-dev.ps1` stages a non-destructive
+runtime tree at `Build\NVIDIA ShadowPlay`; do not use `-Clean` for ordinary
+builds because the output contains runtime-created settings and NvNode state.
 
-## จุดที่ต้องแก้เมื่อย้าย (path รวมศูนย์แล้ว = แก้ที่นี่จุดเดียว)
-| ไฟล์ | คีย์ | หมายเหตุ |
+## Runtime ownership
+
+| Runtime | Build location | Source |
 |---|---|---|
-| `Project\NvConfig\nvcontainer.json` | `buildRoot`, `children.*`, `nodeApiPort`, `logsDir` | แม่อ่านทุก path จากนี่; `ours` ดูแล Web Helper → NodeAPI :59011, OSC, nvsphelper (ยังไม่ start NvCapture) |
-| `Project\NvConfig\nvidia-osc.json` | `page`, `logFile`, `cef.cachePath`, `cef.subprocessPath` | OSC native อ่าน |
-| `Project\NvConfig\webhelper.json` | (ถ้ามี path) | node backend |
-| `NvContainer-USERS\NvContainer.cs:25` | `ROOT` | คงที่ (repo root ไม่ย้าย) |
-| Scheduled task `Duluka-NvContainer` | `schtasks /change /tr "<new path>"` | เปิดแม่ตอน sign-in; ต้องอยู่ใน user session เพื่อให้ OSC แสดงผล |
+| NvContainer controller | `NvContainer\NvContainer.exe` | `Project\NvContainer\NvContainer` |
+| NVIDIA Web Helper + `NvNode.exe` + NodeAPI + OSC frontend | `Overlay OSC\NVIDIA NodeAPI\` | `Project\Overlay OSC\NVIDIA NodeAPI` |
+| NVIDIA OSC native host + CEF runtime | `Overlay OSC\NVIDIA OSC\` | `Project\Overlay OSC\NVIDIA OSC` and the CEF SDK |
+| NvNode state and service configuration | `NvConfig\` | `Project\NvConfig` |
+| Overlay enable/engine mode | `NvConfig\config.json` | Preserved if already present; seeded by the build script if absent |
 
-## Controller startup and ownership
-- `NvContainer.exe` is the single-instance parent; it starts `NVIDIA Web Helper.exe`. That host owns `NvNode.exe` in its job object and serves NodeAPI on `127.0.0.1:59011`; the parent watchdog monitors the host and NodeAPI health, along with OSC and `nvsphelper.exe`.
-- Register `build\NVIDIA ShadowPlay\NvContainer\NvContainer.exe` with the per-user `Duluka-NvContainer` logon task. Do not run the interactive OSC host as a boot-time service in session 0.
-- Keep `children.webHelperExe` and `children.webHelperWd` pointed at the paired project NodeAPI host; it owns `NvNode.exe` and is outside `buildRoot`.
+The build script migrates an existing `Config\config.json` into
+`NvConfig\config.json` when the new location is absent, then removes only the
+old config file. The `Config\` directory remains available for capture-engine
+settings; it is not the owner of the shared overlay switches.
 
-## สิ่งที่ phase 1 ทำไปแล้ว (2026-09-30)
-- osc_main.cpp อ่าน `cachePath` / `subprocessPath` / `debugPort` จาก nvidia-osc.json (ไม่ hardcode แล้ว)
-- OSC host ที่ใช้งานอยู่คือ `build\...\Overlay OSC\NVIDIA OSC\NVIDIA OSC.exe` และเป็น path ที่ `nvcontainer.json` ให้ NvContainer spawn
-- native exe ใน `Overlay OSC\NVIDIA OSC Native\` ไม่ใช่ target ของ NvContainer
+NvContainer resolves the build root from its startup directory and loads
+`NvConfig\nvcontainer.json` beneath that root. The service and OSC JSON paths
+are relative to the same root. The OSC host independently walks from its own
+executable location to the build root before loading its config and assets.
 
-## checklist หลังย้าย (ต้องผ่านทุกข้อ)
-- [ ] แม่ spawn ครบ: NVIDIA Web Helper.exe → NodeAPI :59011 + NVIDIA OSC.exe + nvsphelper.exe (ดู NvContainer.log)
-- [ ] ยืนยันว่า NvCapture.exe ยังไม่ถูก spawn โดย NvContainer (รอ Phase 3)
-- [ ] OSC: `CreateBrowserSync=OK` + `frame loaded` + `composite PRESENT ok`
-- [ ] คลิกทะลุตอนปิด (WindowFromPoint ชี้หน้าต่างอื่น)
-- [ ] Alt+Shift+Z เปิด/ปิดได้ + เมาส์ไม่ค้าง
-- [ ] Record → ไฟล์เกิดใน Videos (ffmpeg ชุด DLL ครบ)
-- [ ] ไม่มี ud2/0x80000003 ใน Event Viewer 15 นาทีหลังบูต
+The managed Web Helper host is built from the Project host source and staged
+beside the Project NodeAPI. `NvBackend` remains the separate API-hub owner; it
+is not the Project NodeAPI runtime. This mirrors the Project layout and avoids
+overwriting the pre-existing root `NvNode\` runtime. `NVIDIA OSC.exe` is
+launched from `Overlay OSC\NVIDIA OSC` and serves the frontend staged under
+`Overlay OSC\NVIDIA NodeAPI\osc`.
 
-## ข้อห้าม
-- ห้าม overwrite `Overlay OSC\NVIDIA OSC\NVIDIA OSC.exe` (CefSharp) ด้วย native exe
-- ห้ามลบ `NvNode\ffmpeg\` (ชุด DLL อ้างอิงของ CaptureEngine)
-- ห้ามแตะ `nvcontainer.exe` (lowercase — ของแท้)
+## Build prerequisites
+
+Set `CEF_ROOT` to the CEF 73 SDK directory before building or staging. The
+active Project tree always includes the native OSC host and shared CEF runtime;
+there is no no-CEF solution-filter fallback. Visual Studio Build Tools with
+the C++ workload and MSBuild are also required unless `-NoBuild` is used.
+
+`Project\Launcher.Cef\deploy-launcher.ps1` is a compatibility entry point
+that forwards to `Scripts\build-dev.ps1`, so both commands stage the same
+complete Project-owned Build Tree. `-Dest` selects another output root,
+`-NoBuild` stages existing Project outputs, and `-Clean` explicitly removes
+the selected output root before staging.

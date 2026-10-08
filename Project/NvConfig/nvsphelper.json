@@ -15,5 +15,5 @@
     }
   ],
   "fireUrl": "http://127.0.0.1:59011/?hk={name}",
-  "logFile": "C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\NvContainer\\Logs\\nvsphelper.log"
+  "logFile": "NvContainer\\Logs\\nvsphelper.log"
 }

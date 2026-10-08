@@ -8,8 +8,8 @@
 //   โหมด genuine (--genuine หรือ mode ใน config):
 //     แม่ → NVIDIA Share.exe แท้ (มันเลี้ยง node เองผ่าน launcher)
 //
-// config ทั้งระบบรวมที่ Project\NvConfig\nvcontainer.json
-// log: build\NVIDIA ShadowPlay\NvContainer\Logs\NvContainer.log
+// config ทั้งระบบรวมที่ <BuildRoot>\NvConfig\nvcontainer.json
+// log: <BuildRoot>\NvContainer\Logs\NvContainer.log
 using System;
 using System.Diagnostics;
 using System.IO;
@@ -22,47 +22,67 @@ using System.Threading;
 
 static class NvContainer
 {
-    // ---- config hub ----
-    const string ROOT     = @"C:\My Project\NVIDIA-Shadowplay";
-    const string CONFIG   = ROOT + @"\Project\NvConfig\nvcontainer.json";
-
-    // fallback ถ้า config หาย (ทำให้แม่ไม่ตายเฉย ๆ)
-    const string DEF_BUILD = ROOT + @"\build\NVIDIA ShadowPlay";
-
-    static JsonElement C;          // ทั้งไฟล์ config
-    static string BuildRoot;
-    static string LogDir;
+    // NvContainer is staged at <BuildRoot>\NvContainer; resolve the rest of
+    // the runtime tree from that startup location, never from the checkout.
+    static readonly string StartupRoot = FindStartupRoot();
+    static string ConfigPath => Path.Combine(StartupRoot, "NvConfig", "nvcontainer.json");
+    static JsonElement C = JsonDocument.Parse("{}").RootElement.Clone();
+    static string BuildRoot = StartupRoot;
+    static string LogDir = Path.Combine(StartupRoot, "NvContainer", "Logs");
     static bool ModeOurs = true;
+    static bool OverlayConfigErrorReported;
     static readonly HttpClient NodeApiHttp = new HttpClient
     {
         Timeout = TimeSpan.FromMilliseconds(1500)
     };
 
+    static string FindStartupRoot()
+    {
+        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
+            if (File.Exists(Path.Combine(dir.FullName, "NvConfig", "nvcontainer.json")))
+                return dir.FullName;
+        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, ".."));
+    }
+
     static void LoadConfig()
     {
         try
         {
-            C = JsonDocument.Parse(File.ReadAllText(CONFIG)).RootElement;
-            BuildRoot = Str("buildRoot", DEF_BUILD);
+            using var doc = JsonDocument.Parse(File.ReadAllText(ConfigPath));
+            C = doc.RootElement.Clone();
+            BuildRoot = ResolvePath(Str("buildRoot", "."), StartupRoot);
             ModeOurs = Str("mode", "ours") != "genuine";
-            LogDir = Path.Combine(BuildRoot, Str("logsDir", @"NvContainer\Logs"));
+            LogDir = ResolvePath(Str("logsDir", @"NvContainer\Logs"), BuildRoot);
         }
         catch (Exception ex)
         {
-            // config พัง = ใช้ค่า default ทั้งหมด แล้วทำงานต่อ
-            BuildRoot = DEF_BUILD;
-            LogDir = Path.Combine(DEF_BUILD, @"NvContainer\Logs");
+            C = JsonDocument.Parse("{}").RootElement.Clone();
+            BuildRoot = StartupRoot;
+            LogDir = Path.Combine(BuildRoot, "NvContainer", "Logs");
             ModeOurs = true;
-            Log("[config] อ่าน " + CONFIG + " ไม่ได้ (" + ex.Message + ") — ใช้ default");
+            Log("[config] อ่าน " + ConfigPath + " ไม่ได้ (" + ex.Message +
+                ") — ใช้ startup-relative defaults");
         }
         // พอร์ต toggle ของ OSC host (ใช้เป็นหัวใจ liveness) — จาก nvidia-osc.json
         try
         {
-            var osc = JsonDocument.Parse(File.ReadAllText(
-                ROOT + @"\Project\NvConfig\nvidia-osc.json")).RootElement;
+            using var doc = JsonDocument.Parse(File.ReadAllText(
+                Path.Combine(BuildRoot, "NvConfig", "nvidia-osc.json")));
+            var osc = doc.RootElement;
             OscTogglePort = osc.GetProperty("toggle").GetInt32();
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Log("[config] OSC toggle port unavailable: " + ex.Message);
+        }
+    }
+
+    static string ResolvePath(string value, string basePath)
+    {
+        value = Environment.ExpandEnvironmentVariables(value);
+        return Path.GetFullPath(Path.IsPathRooted(value)
+            ? value
+            : Path.Combine(basePath, value));
     }
 
     static string Str(string name, string def)
@@ -73,7 +93,7 @@ static class NvContainer
 
     static string Child(string name)
     {
-        try { return Path.Combine(BuildRoot, C.GetProperty("children").GetProperty(name).GetString()); }
+        try { return ResolvePath(C.GetProperty("children").GetProperty(name).GetString(), BuildRoot); }
         catch { return null; }
     }
 
@@ -229,12 +249,66 @@ static class NvContainer
         catch { return false; }
     }
 
+    static bool CefOverlayEnabled()
+    {
+        var path = Path.Combine(BuildRoot, "NvConfig", "config.json");
+        try
+        {
+            using var doc = JsonDocument.Parse(File.ReadAllText(path));
+            var overlay = doc.RootElement.GetProperty("Overlay");
+            OverlayConfigErrorReported = false;
+            return overlay.GetProperty("UseOverlayEnabled").GetBoolean() &&
+                   overlay.GetProperty("EngineOverlayMode").GetBoolean();
+        }
+        catch (Exception ex)
+        {
+            if (!OverlayConfigErrorReported)
+            {
+                Log("[overlay] config unavailable; CEF overlay services remain stopped: " + ex.Message);
+                OverlayConfigErrorReported = true;
+            }
+            return false;
+        }
+    }
+
+    static void StopAtPath(string exe)
+    {
+        if (string.IsNullOrWhiteSpace(exe)) return;
+        var expected = Path.GetFullPath(exe);
+        foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(expected)))
+        {
+            using (p)
+            {
+                try
+                {
+                    if (!string.Equals(Path.GetFullPath(p.MainModule?.FileName ?? ""),
+                                       expected, StringComparison.OrdinalIgnoreCase)) continue;
+                    Log("[overlay] stop " + Path.GetFileName(expected) + " PID " + p.Id);
+                    p.Kill();
+                    p.WaitForExit(3000);
+                }
+                catch (Exception ex)
+                {
+                    Log("[overlay] stop failed " + Path.GetFileName(expected) +
+                        " PID " + p.Id + ": " + ex.Message);
+                }
+            }
+        }
+    }
+
+    static void StopOursOverlayChildren()
+    {
+        StopAtPath(Child("oscExe"));
+        StopAtPath(Child("webHelperExe"));
+        StopAtPath(Child("hotkeyExe"));
+    }
+
     // ★ coexistence: NVIDIA App แท้มี process ชื่อเดียวกับของเรา (NVIDIA Web Helper.exe,
     //   nvcontainer) — เช็คชื่อเฉย ๆ จะหลอกว่า "ลูกเรายังมีชีวิต" ทั้งที่ตาย
     //   นับเฉพาะตัวที่ exe อยู่ใต้ tree ของเรา (build\NVIDIA ShadowPlay\)
     static string OurRoot()
     {
-        return Path.GetFullPath(BuildRoot ?? Path.Combine(AppContext.BaseDirectory, ".."));
+        return Path.GetFullPath(BuildRoot);
     }
     static bool UnderOurRoot(Process p)
     {
@@ -329,9 +403,17 @@ static class NvContainer
             var osc  = Child("oscExe");
             var hk   = Child("hotkeyExe");
 
-            EnsureRunning(host, "NVIDIA Web Helper", Child("webHelperWd"));
-            EnsureRunning(hk, "nvsphelper", Path.GetDirectoryName(hk));
-            EnsureRunning(osc, "NVIDIA OSC", Child("oscWd"));
+            if (CefOverlayEnabled())
+            {
+                EnsureRunning(host, "NVIDIA Web Helper", Child("webHelperWd"));
+                EnsureRunning(hk, "nvsphelper", Path.GetDirectoryName(hk));
+                EnsureRunning(osc, "NVIDIA OSC", Child("oscWd"));
+            }
+            else
+            {
+                StopOursOverlayChildren();
+                Log("[overlay] CEF engine/system disabled; overlay services remain stopped");
+            }
 
             WatchOurs();
         }
@@ -358,21 +440,47 @@ static class NvContainer
         var hk   = Child("hotkeyExe");
         var nodeApiPort = 59011;
         try { nodeApiPort = C.GetProperty("nodeApiPort").GetInt32(); } catch { }
-        int interval = 15;
+        int interval = 5;
         try { interval = C.GetProperty("watchdog").GetProperty("intervalSeconds").GetInt32(); } catch { }
         var spills = 0;
+        var enabled = CefOverlayEnabled();
+        var elapsed = 0;
 
         while (true)
         {
             // ★ แม่ห้ามตาย: exception ใด ๆ ในรอบเฝ้ายาม (process race, IO) = log แล้วรอบต่อไป
             try
             {
-                Thread.Sleep(interval * 1000);
+                Thread.Sleep(1000);
+
+                var nowEnabled = CefOverlayEnabled();
+                if (nowEnabled != enabled)
+                {
+                    enabled = nowEnabled;
+                    elapsed = 0;
+                    if (enabled)
+                    {
+                        Log("[overlay] CEF engine/system enabled — starting overlay services");
+                        EnsureRunning(host, "NVIDIA Web Helper", Child("webHelperWd"));
+                        EnsureRunning(hk, "nvsphelper", Path.GetDirectoryName(hk));
+                        EnsureRunning(osc, "NVIDIA OSC", Child("oscWd"));
+                    }
+                    else
+                    {
+                        Log("[overlay] CEF engine/system disabled — stopping overlay services");
+                        StopOursOverlayChildren();
+                    }
+                    continue;
+                }
+                if (!enabled) continue;
+                if (++elapsed < interval) continue;
+                elapsed = 0;
 
                 EnsureRunning(hk, "nvsphelper", Path.GetDirectoryName(hk));
 
-                // Web Helper owns NvNode.exe in a kill-on-close job; recover the host
-                // if either its process or the NodeAPI health endpoint disappears.
+                // The host owns the NvNode runtime in a kill-on-close job.
+                // A dead child exits the host; an unhealthy endpoint while
+                // the host remains alive is recovered after its startup grace.
                 if (host != null && File.Exists(host) && !ProcessAtPathAlive(host))
                 {
                     WipeOrphans();
@@ -391,7 +499,7 @@ static class NvContainer
                             {
                                 if (!string.Equals(Path.GetFullPath(p.MainModule?.FileName ?? ""),
                                                    Path.GetFullPath(host), StringComparison.OrdinalIgnoreCase)) continue;
-                                Log("[watchdog] NodeAPI ไม่ตอบ health ที่ :" + nodeApiPort +
+                                Log("[watchdog] NvNode/API ไม่ตอบ health ที่ :" + nodeApiPort +
                                     " — restart Web Helper PID " + p.Id);
                                 p.Kill();
                                 p.WaitForExit(3000);

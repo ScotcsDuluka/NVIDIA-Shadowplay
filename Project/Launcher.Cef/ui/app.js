@@ -1,8 +1,7 @@
 /* NVIDIA ShadowPlay Launcher — page logic.
    RPC: window.cefQuery (the osc page contract) carrying JSON requests,
-   LAUNCHER_* command namespace. State arrives two ways:
-     - host push: window.__LauncherState(stateObject)  (1s supervisor poll)
-     - pull: LAUNCHER_GET_STATE every 2s (fallback when pushes stall)
+   LAUNCHER_* command namespace. State is pushed by the native supervisor
+   on change; one initial pull seeds the page after load.
 
    NULL-SAFE BY CONTRACT: the HTML is owner-editable (elements may be
    removed/renamed freely). Every lookup and every handler attach is
@@ -182,7 +181,6 @@
     });
   }
   pull();
-  setInterval(pull, 2000);
 
   // ── Toggles (user action only — config.json is the source of truth) ─
   on(el.tglOverlay, 'click', function () {

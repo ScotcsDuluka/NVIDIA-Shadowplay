@@ -3,8 +3,8 @@
 // index.js — NVIDIA ShadowPlay Portable backend.
 //
 // Clean-room replacement for NVIDIA Web Helper.exe (NvNode). One process:
-//   - REST + static on http://127.0.0.1:59001 (the REAL Web Helper port,
-//     registry Global\NvNode port=59001 + disableSecurity=1)
+//   - REST + static on http://127.0.0.1:59011 (the managed Node API port,
+//     shared with NvContainer and the native OSC host)
 //   - serves the osc frontend (../osc in the product tree) same-origin,
 //     so the overlay loads through this server and socket.io stays
 //     same-origin too

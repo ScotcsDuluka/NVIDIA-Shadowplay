@@ -3,8 +3,7 @@
 //   - base chain ALWAYS: NvContainer (engine lane) + NVIDIA Backend.exe
 //     (TCP hub) started if missing;
 //   - ENGINE OVERLAY chain (config Overlay.EngineOverlayMode=true):
-//     NvContainer -> NVIDIA Web Helper -> wait :59001 -> NvOverlay\Cef
-//     NVIDIA Share.exe --backend-port 59001 (dedupe by exe PATH);
+//     NvContainer owns the Node API on :59011 and NVIDIA OSC on :59013;
 //   - 1s status poll (Overlay API / Notifier API / NVIDIA API dots +
 //     Flags\Ready) pushed to the page;
 //   - config toggles Overlay.UseOverlayEnabled / Overlay.EngineOverlayMode
@@ -49,8 +48,8 @@ class LauncherSupervisor {
 
   // Actions (page commands). All idempotent.
   void StartBaseChain();
-  void StartEngineOverlayChainAsync();  // background thread: waits :59001
-  void StopCefOverlay();  // kill NvOverlay\Cef NVIDIA Share.exe (mode OFF)
+  void StartEngineOverlayChainAsync();  // prepare services; never shows overlay
+  void StopCefOverlay();  // hide the NvContainer-owned OSC presenter
   bool SendOpenOverlay();
   void InstallerExit();  // config reset + kill family (Main.vb RadioButton2)
 

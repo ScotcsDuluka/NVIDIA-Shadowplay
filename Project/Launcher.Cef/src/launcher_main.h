@@ -19,7 +19,7 @@ struct LauncherLaunchParams {
 LauncherLaunchParams* GetLaunchParams();
 
 // Exported host entry (bootstrap.cpp of the root Launcher.exe loads
-// NvOverlay\Cef\Launcher.dll and calls this).
+// NvLauncher\Cef\Launcher.dll and calls this).
 extern "C" __declspec(dllexport) int NvLauncherCefMain(void);
 
 #endif  // LAUNCHER_MAIN_H_

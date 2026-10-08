@@ -4,7 +4,7 @@ Imports System.Text
 
 ' Console + file logger (ContainerLog pattern). File:
 ' Logs\NVIDIA Web Helper.log beside the exe — i.e. Logs\ inside the
-' deployed NvBackend\ tree. Child (node backend) lines are tagged
+' deployed NodeAPI tree. Child (Node backend) lines are tagged
 ' [NODE]/[NODE!] so host and backend streams stay distinguishable in the
 ' same file (goal: stdout/stderr/logging ชัด).
 Friend Module HostLog

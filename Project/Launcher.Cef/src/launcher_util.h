@@ -18,9 +18,9 @@ std::wstring Utf8ToWide(const std::string& in);
 std::string LowerAscii(std::string s);
 std::wstring GetExeDir();      // directory of the running .exe (process-wide)
 std::wstring GetDllDir();      // directory of Launcher.dll (host body owner)
-// Product layout root: the folder holding NvConfig\, NvOverlay\, Flags\...
+// Product layout root: the folder holding NvConfig\, NvLauncher\, Flags\...
 // The bootstrap exe sits at the root; the body DLL sits in
-// NvOverlay\Cef\ ("ลงที่เดียวกับ osc" — shared CEF runtime slot). Both
+// NvLauncher\Cef\, while CEF runtime files live beside NVIDIA OSC.exe. Both
 // resolve to the same root.
 std::wstring GetRootDir();
 std::wstring JoinPath(const std::wstring& a, const std::wstring& b);
@@ -38,7 +38,7 @@ void LogLine(const std::string& line);
 bool ProcessRunning(const wchar_t* name);  // name WITHOUT .exe
 // True when a process named |name| runs FROM |exe_path| (path dedupe —
 // Main.vb StartCefOverlay contract: the WinForm overlay is also named
-// "NVIDIA Share"; only the exact NvOverlay\Cef exe counts).
+// "NVIDIA Share"; only the exact NvLauncher\Cef exe counts).
 bool ProcessRunningFromPath(const wchar_t* name, const std::wstring& exe_path);
 bool StartProcess(const std::wstring& exe_path, const std::wstring& args);
 // TerminateProcess on every process named |name| (except our own PID).
@@ -46,6 +46,7 @@ void KillProcessByName(const wchar_t* name);
 // TerminateProcess only on instances of |name| running FROM |exe_path|
 // (exact image-path match, StartCefOverlay dedupe contract).
 void KillProcessFromPath(const wchar_t* name, const std::wstring& exe_path);
+bool IsTcpPortOpen(unsigned port);
 bool WaitForTcpPort(unsigned port, unsigned timeout_ms);
 // One-shot loopback send to the NVIDIA API hub (:5001). Frame parity with
 // TcpClientHelper.Send: "[Send] <app>|<cmd>\r\n". Best effort.

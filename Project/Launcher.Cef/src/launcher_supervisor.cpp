@@ -16,10 +16,10 @@ const wchar_t* kShadowPlay = L"NVIDIA ShadowPlay";
 const wchar_t* kNotifier = L"NVIDIA Notifier";
 const wchar_t* kContainer = L"NvContainer";
 const wchar_t* kWebHelper = L"NVIDIA Web Helper";
-const wchar_t* kCefOverlay = L"NVIDIA Share";
+const wchar_t* kCefOverlay = L"NVIDIA OSC";
 
-// The TCP hub ("NVIDIA API") uses NvBackend.exe in the current tree; the
-// older NVIDIA Backend.exe path remains a compatibility candidate.
+// The WinForm TCP hub uses NvBackend.exe; the older NVIDIA Backend.exe path
+// remains a compatibility candidate.
 const wchar_t* kHub = L"NvBackend";
 
 std::wstring RootP(const wchar_t* folder, const wchar_t* file);
@@ -41,6 +41,18 @@ bool HubRunning() {
     if (launcherutil::ProcessRunningFromPath(name.c_str(), path)) return true;
   }
   return false;
+}
+
+bool BackendRunning() {
+  return launcherutil::IsTcpPortOpen(59011);
+}
+
+std::wstring OscExePath() {
+  return RootP(L"Overlay OSC\\NVIDIA OSC", L"NVIDIA OSC.exe");
+}
+
+bool OscRunning() {
+  return launcherutil::ProcessRunningFromPath(kCefOverlay, OscExePath());
 }
 
 void StartIfMissing(const wchar_t* name, const std::wstring& exe_path,
@@ -111,21 +123,22 @@ LauncherSupervisor* LauncherSupervisor::Get() {
 
 LauncherState LauncherSupervisor::Snapshot() {
   LauncherState st;
-  st.nv_api = HubRunning();
-  st.shadowplay = launcherutil::ProcessRunning(kShadowPlay);
-  st.overlay_ready =
-      launcherutil::FileExists(RootP(L"Flags", L"Ready"));
+  st.engine_overlay =
+      launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode", false);
+  st.overlay_enabled =
+      launcherutil::ReadConfigBool(L"Overlay", L"UseOverlayEnabled", false);
+  st.cef_overlay = OscRunning();
+  st.web_helper = BackendRunning();
+  st.nv_api = st.engine_overlay ? st.web_helper : HubRunning();
+  st.shadowplay = st.overlay_enabled &&
+                  (launcherutil::ProcessRunning(kShadowPlay) ||
+                   (st.engine_overlay && st.cef_overlay));
+  st.overlay_ready = st.engine_overlay
+                         ? (st.web_helper && st.cef_overlay)
+                         : launcherutil::FileExists(RootP(L"Flags", L"Ready"));
   st.notifier = launcherutil::ProcessRunning(kNotifier);
   st.container = launcherutil::ProcessRunningFromPath(
       kContainer, RootP(L"NvContainer", L"NvContainer.exe"));
-  st.web_helper = launcherutil::ProcessRunningFromPath(
-      kWebHelper, RootP(L"NvNode", L"NVIDIA Web Helper.exe"));
-  st.cef_overlay = launcherutil::ProcessRunningFromPath(
-      kCefOverlay, RootP(L"NvOverlay\\Cef", L"NVIDIA Share.exe"));
-  st.overlay_enabled =
-      launcherutil::ReadConfigBool(L"Overlay", L"UseOverlayEnabled", false);
-  st.engine_overlay =
-      launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode", false);
   return st;
 }
 
@@ -137,7 +150,8 @@ void LauncherSupervisor::Start(bool supervise, PushFn push) {
   // Engine mode persisted as CEF: bring the genuine chain up at boot too
   // (the engine chain otherwise starts only on the mode toggle).
   if (supervise_ &&
-      launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode", false)) {
+      launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode", false) &&
+      launcherutil::ReadConfigBool(L"Overlay", L"UseOverlayEnabled", false)) {
     StartEngineOverlayChainAsync();
   }
   poll_thread_ = CreateThread(NULL, 0, PollTramp, this, 0, NULL);
@@ -180,7 +194,7 @@ void LauncherSupervisor::PollLoop() {
     }
     // Main.vb parity: if the NOTIFIER lane is down, the Ready marker is
     // stale — remove it (the overlay writes it when its API surface opens).
-    if (!st.notifier && st.overlay_ready && supervise_) {
+    if (!st.engine_overlay && !st.notifier && st.overlay_ready && supervise_) {
       DeleteFileW(RootP(L"Flags", L"Ready").c_str());
       LogLine("stale Flags\\Ready removed (notifier down)");
     }
@@ -191,7 +205,9 @@ void LauncherSupervisor::PollLoop() {
         LogLine("NvContainer lost - restarting");
         StartIfMissing(kContainer, RootP(L"NvContainer", L"NvContainer.exe"));
       }
-      if (!HubRunning()) {
+      const bool winform_mode =
+          !launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode", false);
+      if (winform_mode && !HubRunning()) {
         const std::wstring hub_exe = ResolveHubExe();
         if (launcherutil::FileExists(hub_exe)) {
           LogLine("hub lost - restarting");
@@ -204,32 +220,27 @@ void LauncherSupervisor::PollLoop() {
 }
 
 void LauncherSupervisor::StartBaseChain() {
-  // Supervisor lane runs ALWAYS (owner 2026-09-25): NvContainer starts
-  // together with the Launcher and keeps nvsphelper64 alive.
+  // NvContainer runs in both modes and owns the managed helper/presenter.
   StartIfMissing(kContainer, RootP(L"NvContainer", L"NvContainer.exe"));
-  // TCP hub (WinForm family contract): NvBackend\NvBackend.exe.
-  StartIfMissing(kHub, ResolveHubExe());
+  // The TCP hub belongs only to the WinForm engine lane.
+  if (!launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode", false)) {
+    StartIfMissing(kHub, ResolveHubExe());
+  }
 }
 
 void LauncherSupervisor::StartEngineOverlayChain() {
   LogLine("engine overlay chain: begin");
+  // NvContainer is the sole owner of the Node API helper and CEF host.
   StartIfMissing(kContainer, RootP(L"NvContainer", L"NvContainer.exe"));
-  // Backend lane (owner 2026-09-26, decisive): the GENUINE NvNode v11 was
-  // CUT — its trusted-location loader refuses anything outside the NVIDIA
-  // install and its container handshake needs NVIDIA's own service stack.
-  // The CEF overlay runs against OUR backend: root NvNode\ = the managed
-  // NVIDIA Web Helper.exe hosting Backend\index.js (parity 11/11,
-  // same-origin osc on :59001, no cookie in standalone mode).
-  StartIfMissing(kWebHelper, RootP(L"NvNode", L"NVIDIA Web Helper.exe"));
-  // Wait for the node backend (:59001) before the CEF overlay, so the
-  // page and the ShadowPlay v1.0 REST surface come up same-origin.
-  launcherutil::WaitForTcpPort(59001, 15000);
-  std::wstring share_exe = RootP(L"NvOverlay\\Cef", L"NVIDIA Share.exe");
-  if (!launcherutil::ProcessRunningFromPath(kCefOverlay, share_exe)) {
-    launcherutil::StartProcess(share_exe, L"--backend-port 59001");
-  } else {
-    LogLine("CEF overlay already running from NvOverlay\\Cef - adopted");
+  if (!launcherutil::WaitForTcpPort(59011, 15000)) {
+    LogLine("NvContainer API backend did not become ready on port 59011");
+    return;
   }
+  if (!launcherutil::WaitForTcpPort(59013, 15000)) {
+    LogLine("NvContainer CEF host did not become ready on port 59013");
+    return;
+  }
+  LogLine("NvContainer-managed API and CEF host ready (presenter remains hidden)");
   LogLine("engine overlay chain: done");
 }
 
@@ -253,26 +264,23 @@ void LauncherSupervisor::StartEngineOverlayChainAsync() {
 }
 
 void LauncherSupervisor::StopCefOverlay() {
-  // Overlay Mode -> WINFORM: stop only our CEF overlay window. Leave its
-  // backend warm; other NVIDIA Web Helper instances may belong to NVIDIA.
-  std::wstring share_exe = RootP(L"NvOverlay\\Cef", L"NVIDIA Share.exe");
-  launcherutil::KillProcessFromPath(kCefOverlay, share_exe);
+  // NvContainer owns the OSC process; hide it rather than killing a child
+  // that the container watchdog would immediately restart.
+  if (!launcherutil::HttpPostLocal(59013, L"/hide")) {
+    LogLine("CEF host hide request failed on port 59013");
+  }
 }
 
 bool LauncherSupervisor::SendOpenOverlay() {
   if (launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode", false)) {
-    // CEF lane: make sure the genuine chain is up first (a Launcher boot
-    // with CEF persisted runs the engine chain async, but the port wait
-    // may still be in flight — or the lane was stopped externally).
-    if (!launcherutil::WaitForTcpPort(59001, 500)) {
+    // CEF lane: ask the NvContainer-owned OSC host to show, not toggle.
+    if (!launcherutil::IsTcpPortOpen(59011) ||
+        !launcherutil::IsTcpPortOpen(59013)) {
       LogLine("OPEN OVERLAY (CEF): chain down - starting");
       StartEngineOverlayChain();
     }
-    // Genuine hotkey parity: the node broadcasts WindowState and the
-    // genuine page opens. disableSecurity=1 provisioning means no cookie
-    // header is needed from outside the chain.
-    return launcherutil::HttpPostLocal(
-        59001, L"/ShadowPlay/v.1.0/Hotkey/Toggle");
+    if (!launcherutil::WaitForTcpPort(59013, 500)) return false;
+    return launcherutil::HttpPostLocal(59013, L"/show");
   }
   // WINFORM lane: TcpClientHelper.Send("open_overlay") wire parity:
   //   "[Send] NVIDIA  APP|open_overlay\r\n" to 127.0.0.1:5001.
@@ -292,9 +300,8 @@ void LauncherSupervisor::InstallerExit() {
       {L"NVIDIA Backend", L"NvBackend\\NVIDIA Backend.exe"},
       {L"NVIDIA Backend", L"NVIDIA Backend.exe"},
       {L"NvCapture", L"NvContainer\\CaptureEngine\\NvCapture.exe"},
-      {L"NVIDIA Share", L"NvOverlay\\Cef\\NVIDIA Share.exe"},
-      {L"NVIDIA Web Helper", L"NvNode\\NVIDIA Web Helper.exe"},
-      {L"nvnodejslauncher", L"NvNode\\nvnodejslauncher.exe"},
+      {L"NVIDIA Web Helper", L"Overlay OSC\\NVIDIA NodeAPI\\NVIDIA Web Helper.exe"},
+      {L"NVIDIA OSC", L"Overlay OSC\\NVIDIA OSC\\NVIDIA OSC.exe"},
   };
   for (size_t i = 0; i < sizeof(owned) / sizeof(owned[0]); ++i) {
     launcherutil::KillProcessFromPath(

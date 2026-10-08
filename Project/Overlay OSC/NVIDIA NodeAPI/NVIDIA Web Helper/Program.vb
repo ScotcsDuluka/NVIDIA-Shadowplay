@@ -5,17 +5,16 @@ Imports System.Text
 Imports System.Threading
 Imports System.Threading.Tasks
 
-' NVIDIA Web Helper — production host for the NvBackend\ tree (owner
-' drawing 2026-09-24, "owner decision 1"). One job: keep the node backend
-' (index.js staged from Backend\) serving 127.0.0.1:59001 from the INSTALLED
-' layout — never the repo working directory — with clear logs, a duplicate
+' NVIDIA Web Helper — managed host for the Project NodeAPI runtime tree.
+' One job: keep its NvNode.exe + index.js backend serving 127.0.0.1:59011
+' from the installed layout — never the repo working directory — with clear logs, a duplicate
 ' guard, a health proof and a graceful shutdown. The parity surface itself
 ' lives in Backend\ and is not duplicated here.
 '
 ' Boot order (every step logged; failures are explicit exit codes):
 '   log init -> config (env > config.json > defaults) -> index.js check ->
-'   node runtime resolution -> duplicate guard (one host per installed
-'   NvBackend dir) -> port guard (healthy backend up => idempotent exit 0;
+'   node runtime resolution -> duplicate guard (one host per NodeAPI dir)
+'   -> port guard (healthy backend up => idempotent exit 0;
 '   foreign holder => refuse) -> spawn `node index.js` (job-owned) ->
 '   health proof -> supervise until child exit or shutdown signal.
 '
@@ -57,7 +56,7 @@ Friend Module Program
         Dim entry = Path.Combine(baseDir, "index.js")
         If Not File.Exists(entry) Then
             HostLog.Error("index.js not found at " & entry &
-                          " — the NvBackend tree is incomplete (expected the Backend\ parity layout: index.js, lib\, routes\, node_modules\)")
+                          " — the Project NodeAPI runtime is incomplete")
             Return 3
         End If
 
@@ -66,7 +65,7 @@ Friend Module Program
         Dim nodeVersion = NodeRuntime.TryGetVersion(nodeExe)
         HostLog.Log("node runtime: " & nodeExe & If(nodeVersion IsNot Nothing, " (" & nodeVersion & ")", " (version probe failed)"))
 
-        ' duplicate-process guard — one host per installed NvBackend directory
+        ' duplicate-process guard — one host per installed NodeAPI directory
         Dim created As Boolean
         Dim mutexName As String = "Global\NvBackend.WebHelperHost." & DirHash(baseDir)
         Try

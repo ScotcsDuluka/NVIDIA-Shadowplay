@@ -10,8 +10,6 @@
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <AssemblyName>nvsphelper</AssemblyName>
     <RootNamespace>NvShadowPlayHelper</RootNamespace>
-    <OutputPath>C:\My Project\NVIDIA-Shadowplay\build\NVIDIA ShadowPlay\NvContainer\</OutputPath>
-    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <!-- NVIDIA ShadowPlay Helper — ดัก Alt+Z ยิงให้ NvContainer (hotkey-only) -->
   </PropertyGroup>
 

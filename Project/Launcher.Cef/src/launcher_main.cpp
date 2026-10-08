@@ -1,11 +1,11 @@
-// launcher_main.cpp - DLL entry surface for NvOverlay\Cef\Launcher.dll.
+// launcher_main.cpp - DLL entry surface for NvLauncher\Cef\Launcher.dll.
 // Exports NvLauncherCefMain: the full CEF process split (subprocess
 // relaunch -> CefExecuteProcess; browser process -> supervisor chain +
 // loopback UI server + CefInitialize + message loop). The ROOT
 // Launcher.exe (thin bootstrap) loads this DLL and calls the export.
-// Layout contract ("ลงที่เดียวกับ osc"): Launcher.dll sits in the
-// NvOverlay\Cef owner slot and shares libcef.dll / cef.pak / locales with
-// the osc NVIDIA Share.exe lane — no second CEF runtime on disk.
+// Layout contract: Launcher.dll and its UI sit in NvLauncher\Cef. The
+// Launcher loads CEF binaries/resources from the shared runtime beside
+// NVIDIA OSC.exe; Launcher cache and user data remain in its own slot.
 // winsock2.h MUST precede any windows.h include (cef headers pull it in).
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -64,7 +64,7 @@ int ParseInt(const std::string& s, int def) {
 }
 
 // Resolves the launcher UI bundle root: --ui-root=... >
-// <root>\NvOverlay\Cef\Resources\launcher (production) > <exeDir>\ui
+// <root>\NvLauncher\Cef\Resources\launcher (production) > <exeDir>\ui
 // (dev run from the project bin). Returns "" when none exists (logged).
 std::string ResolveUiRoot(CefRefPtr<CefCommandLine> cl) {
   std::vector<std::wstring> candidates;
@@ -73,7 +73,7 @@ std::string ResolveUiRoot(CefRefPtr<CefCommandLine> cl) {
         launcherutil::Utf8ToWide(cl->GetSwitchValue("ui-root").ToString()));
   }
   candidates.push_back(launcherutil::JoinPath(
-      launcherutil::GetRootDir(), L"NvOverlay\\Cef\\Resources\\launcher"));
+      launcherutil::GetRootDir(), L"NvLauncher\\Cef\\Resources\\launcher"));
   candidates.push_back(launcherutil::JoinPath(launcherutil::GetExeDir(),
                                               L"ui"));
   for (size_t i = 0; i < candidates.size(); ++i) {
@@ -138,7 +138,7 @@ int NvLauncherCefMain(void) {
   static LauncherHttpServer server;
   if (ui_root.empty()) {
     launcherutil::LogLine("launcher ui root missing (tried --ui-root, "
-                          "NvOverlay\\Cef\\Resources\\launcher, exeDir\\ui)");
+                          "NvLauncher\\Cef\\Resources\\launcher, exeDir\\ui)");
     return 2;
   }
   std::string err;
@@ -173,8 +173,10 @@ int NvLauncherCefMain(void) {
 
   const std::wstring exe_dir = launcherutil::GetExeDir();
   const std::wstring root = launcherutil::GetRootDir();
-  const std::wstring cef_dir =
-      launcherutil::JoinPath(root, L"NvOverlay\\Cef");
+  const std::wstring launcher_dir =
+      launcherutil::JoinPath(root, L"NvLauncher\\Cef");
+  const std::wstring cef_runtime_dir =
+      launcherutil::JoinPath(root, L"Overlay OSC\\NVIDIA OSC");
 
   // Subprocess: this same exe (root bootstrap). It re-enters
   // NvLauncherCefMain, loads Launcher.dll by ABSOLUTE path and hands the
@@ -182,18 +184,20 @@ int NvLauncherCefMain(void) {
   CefString(&settings.browser_subprocess_path).FromString(
       launcherutil::WideToUtf8(launcherutil::JoinPath(exe_dir,
                                                       L"Launcher.exe")));
-  // Shared CEF runtime slot (osc lane): cef.pak + locales\ beside
-  // NVIDIA Share.exe.
+  // Both CEF hosts use the one runtime staged beside NVIDIA OSC.exe.
   CefString(&settings.resources_dir_path).FromString(
-      launcherutil::WideToUtf8(cef_dir));
+      launcherutil::WideToUtf8(cef_runtime_dir));
   CefString(&settings.locales_dir_path).FromString(
-      launcherutil::WideToUtf8(launcherutil::JoinPath(cef_dir, L"locales")));
+      launcherutil::WideToUtf8(
+          launcherutil::JoinPath(cef_runtime_dir, L"locales")));
   CefString(&settings.cache_path).FromString(
       launcherutil::WideToUtf8(launcherutil::JoinPath(
-          cef_dir, L"Data\\launcher-cef-cache")));
+          launcher_dir, L"Data\\launcher-cef-cache")));
   CefString(&settings.user_data_path).FromString(
       launcherutil::WideToUtf8(launcherutil::JoinPath(
-          cef_dir, L"Data\\launcher-cef-user-data")));
+          launcher_dir, L"Data\\launcher-cef-user-data")));
+  launcherutil::LogLine("CEF runtime dir " +
+                        launcherutil::WidePathUtf8(cef_runtime_dir));
   CefString(&settings.log_file).FromString(
       launcherutil::WideToUtf8(launcherutil::JoinPath(
           root, L"Logs\\launcher-cef-debug.log")));

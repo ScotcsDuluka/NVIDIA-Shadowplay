@@ -75,9 +75,6 @@ body::after {
     radial-gradient(2px 2px at 90% 80%, rgba(0,212,255,0.2), transparent);
   animation: float 24s linear infinite;
 }
-/* transform-only drift (compositor): animating background-position on a
-   fixed full-window layer repainted the WHOLE WINDOW every frame — the
-   "หน่วง" report. */
 @keyframes float {
   0%, 100% { transform: translate3d(0, 0, 0); }
   50% { transform: translate3d(4%, 4%, 0); }

@@ -29,6 +29,7 @@
 #include <psapi.h>
 #include <windowsx.h>      // GET_X_LPARAM / GET_Y_LPARAM
 #include <string>
+#include <filesystem>
 #include <atomic>
 #include <algorithm>
 #include <shlwapi.h>
@@ -53,8 +54,8 @@
 
 // ================= config (แบบง่าย: หา "key": ค่า ใน json) =================
 struct OscConfig {
-    std::wstring page_dir = L"C:\\My Project\\NVIDIA-Shadowplay\\Project\\Overlay OSC\\NVIDIA OSC\\osc";
-    std::wstring log_file = L"C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Logs\\NVIDIA OSC.log";
+    std::wstring page_dir;
+    std::wstring log_file;
     double render_scale = 1.0;
     int design_w = 0, design_h = 0;   // Canvas UI ฐานออกแบบ (1920×1080 = UI 1.0) — 0 = ตามจอ×renderScale
     bool show_on_boot = false;
@@ -63,10 +64,8 @@ struct OscConfig {
     int toggle_port = 59003;
     int frame_rate = 60;      // CEF OSR default 30 = กระตุก — ตั้งให้เต็มจอปกติ
     double ui_scale = 1.0;    // คูณเข้า fit ของสูตร zoom แท้ (1.0 = ตรง binary เป๊ะ)
-    // ★ Phase 1 (path รวมศูนย์ที่ nvidia-osc.json) — ค่า default ตรงกับ json เสมอ
-    //   deploy = build\...\Overlay OSC\NVIDIA OSC\ (แทน dir เก่า "NVIDIA OSC Native")
-    std::wstring cache_path = L"C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Overlay OSC\\NVIDIA OSC\\CefCache";
-    std::wstring subprocess_path = L"C:\\My Project\\NVIDIA-Shadowplay\\build\\NVIDIA ShadowPlay\\Overlay OSC\\NVIDIA OSC\\NVIDIA OSC.exe";
+    std::wstring cache_path;
+    std::wstring subprocess_path;
     int debug_port = 59099;
     bool windowed = true;          // ★ สเปก OWNER (10:5x): ให้ CEF จัดการ render เอง (GPU native)
     int max_fps = 60;              // CEF 73 OSR maximum
@@ -74,6 +73,40 @@ struct OscConfig {
     bool gdi_compositor = false;   // true = UpdateLayeredWindow (แสดงผลชัวร์) แทน DComp
 };
 static OscConfig g_cfg;
+static std::wstring g_build_root;
+
+static std::wstring GetExecutablePath() {
+    std::wstring path(32768, L'\0');
+    DWORD length = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
+    if (length == 0 || length >= static_cast<DWORD>(path.size())) return L"";
+    path.resize(length);
+    return path;
+}
+
+static std::wstring ResolveBuildPath(const std::wstring& value) {
+    std::filesystem::path path(value);
+    if (path.is_relative()) path = std::filesystem::path(g_build_root) / path;
+    return path.lexically_normal().wstring();
+}
+
+static void InitBuildPaths() {
+    const auto executable = GetExecutablePath();
+    const auto executable_dir = std::filesystem::path(executable).parent_path();
+    auto root = executable_dir.parent_path().parent_path().parent_path();
+    for (auto current = executable_dir; !current.empty(); current = current.parent_path()) {
+        std::error_code error;
+        if (std::filesystem::exists(current / L"NvConfig" / L"nvidia-osc.json", error)) {
+            root = current;
+            break;
+        }
+        if (current == current.parent_path()) break;
+    }
+    g_build_root = root.lexically_normal().wstring();
+    g_cfg.page_dir = (root / L"Overlay OSC" / L"NVIDIA NodeAPI" / L"osc").wstring();
+    g_cfg.log_file = (root / L"Logs" / L"NVIDIA OSC.log").wstring();
+    g_cfg.cache_path = (root / L"Overlay OSC" / L"NVIDIA OSC" / L"CefCache").wstring();
+    g_cfg.subprocess_path = (root / L"Overlay OSC" / L"NVIDIA OSC" / L"NVIDIA OSC.exe").wstring();
+}
 
 static std::wstring CfgStr(const std::string& json, const char* key) {
     std::string pat = "\"" + std::string(key) + "\"";
@@ -108,7 +141,10 @@ static double CfgNum(const std::string& json, const char* key, double def) {
     return atof(json.c_str() + p + 1);
 }
 static void LoadConfig() {
-    HANDLE f = CreateFileW(L"C:\\My Project\\NVIDIA-Shadowplay\\Project\\NvConfig\\nvidia-osc.json",
+    InitBuildPaths();
+    const auto config_path = (std::filesystem::path(g_build_root) /
+        L"NvConfig" / L"nvidia-osc.json").wstring();
+    HANDLE f = CreateFileW(config_path.c_str(),
         GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, 0, nullptr);
     if (f == INVALID_HANDLE_VALUE) return;
     char buf[8192]; DWORD n = 0; ReadFile(f, buf, sizeof(buf) - 1, &n, nullptr); CloseHandle(f);
@@ -117,11 +153,12 @@ static void LoadConfig() {
     std::wstring page = CfgStr(json, "page");
     if (!page.empty()) {
         // page = ...\osc\index.html → dir = ...\osc
+        page = ResolveBuildPath(page);
         size_t k = page.rfind(L'\\');
         if (k != std::wstring::npos) g_cfg.page_dir = page.substr(0, k);
     }
     std::wstring lg = CfgStr(json, "logFile");
-    if (!lg.empty()) g_cfg.log_file = lg;
+    if (!lg.empty()) g_cfg.log_file = ResolveBuildPath(lg);
     g_cfg.render_scale = CfgNum(json, "renderScale", 1.0);
     if (g_cfg.render_scale < 0.25 || g_cfg.render_scale > 1.0) g_cfg.render_scale = 1.0;
     g_cfg.design_w = (int)CfgNum(json, "designWidth", 0);
@@ -134,9 +171,9 @@ static void LoadConfig() {
     if (g_cfg.ui_scale < 0.5 || g_cfg.ui_scale > 2.0) g_cfg.ui_scale = 1.0;
     g_cfg.show_on_boot = CfgNum(json, "showOnBoot", 0) != 0;
     std::wstring cp = CfgStr(json, "cachePath");
-    if (!cp.empty()) g_cfg.cache_path = cp;
+    if (!cp.empty()) g_cfg.cache_path = ResolveBuildPath(cp);
     std::wstring sp = CfgStr(json, "subprocessPath");
-    if (!sp.empty()) g_cfg.subprocess_path = sp;
+    if (!sp.empty()) g_cfg.subprocess_path = ResolveBuildPath(sp);
     g_cfg.debug_port = (int)CfgNum(json, "debugPort", 59099);
     g_cfg.gdi_compositor = CfgStr(json, "compositor") == L"gdi";
     g_cfg.windowed = CfgNum(json, "windowed", 1) != 0;
@@ -147,6 +184,8 @@ static void LoadConfig() {
 
 static HANDLE g_log = INVALID_HANDLE_VALUE;
 static void LogInit() {
+    std::error_code error;
+    std::filesystem::create_directories(std::filesystem::path(g_cfg.log_file).parent_path(), error);
     g_log = CreateFileW(g_cfg.log_file.c_str(), FILE_APPEND_DATA,
         FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_ALWAYS, 0, nullptr);
 }

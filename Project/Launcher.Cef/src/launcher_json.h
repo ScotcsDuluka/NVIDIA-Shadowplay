@@ -245,7 +245,16 @@ class Parser {
 };
 
 inline bool Parse(const std::string& in, JVal* out) {
-  return Parser(in).Parse(out);
+  // Windows PowerShell's UTF-8 output may include a BOM. JSON permits
+  // parsers to ignore it, so accept it for persisted config files.
+  const size_t offset =
+      in.size() >= 3 &&
+              static_cast<unsigned char>(in[0]) == 0xEF &&
+              static_cast<unsigned char>(in[1]) == 0xBB &&
+              static_cast<unsigned char>(in[2]) == 0xBF
+          ? 3
+          : 0;
+  return Parser(in.substr(offset)).Parse(out);
 }
 
 inline void EscapeInto(const std::string& in, std::string* out) {
