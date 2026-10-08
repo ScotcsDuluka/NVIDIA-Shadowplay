@@ -1,22 +1,17 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- OWNER architecture (2026-09-29): ของเรา 2 = NvContainer.exe (ตัวแม่, ไฟล์นี้)
-         + nvsphelper.exe (Alt+Z) | ของ NVIDIA 2 = NVIDIA Share.exe + NVIDIA Web Helper.exe
-         (รันจาก build\NVIDIA ShadowPlay\Overlay OSC\) -->
+    <!-- NvContainer owns NVIDIA OSC.exe, NVIDIA Web Helper.exe, and nvsphelper.exe.
+         NvCapture.exe is intentionally not started by this process manager yet. -->
     <OutputType>WinExe</OutputType>
     <AssemblyName>NvContainer</AssemblyName>
     <RootNamespace>NvContainer</RootNamespace>
     <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
     <Platforms>AnyCPU;x64</Platforms>
-    <ApplicationIcon>..\NvContainer-Capture\NVIDIA ShadowPlay.ico</ApplicationIcon>
+    <ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Content Include="..\NvContainer-Capture\NVIDIA ShadowPlay.ico" Link="NVIDIA ShadowPlay.ico" />
-  </ItemGroup>
 
 </Project>

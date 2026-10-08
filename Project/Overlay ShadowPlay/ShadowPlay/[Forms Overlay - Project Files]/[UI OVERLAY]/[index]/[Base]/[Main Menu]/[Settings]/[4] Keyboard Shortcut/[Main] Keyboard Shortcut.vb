@@ -203,6 +203,14 @@ Public Class Base_KeySet
         End If
 
         Dim actionKey As String = _captureActionKey
+        If e.KeyCode = Keys.Delete OrElse e.KeyCode = Keys.Back Then
+            SaveBinding(actionKey, "")
+            _captureActionKey = Nothing
+            ResetCaptureVisuals()
+            LoadHotkeyValues()
+            Base.ReloadHotkeys()
+            Return
+        End If
 
         Dim modifiers As Integer = 0
         If e.Control Then modifiers = modifiers Or WinAPI.MOD_CONTROL

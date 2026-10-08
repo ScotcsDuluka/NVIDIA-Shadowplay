@@ -36,8 +36,16 @@ powershell -File Project\Launcher.Cef\deploy-launcher.ps1 -NoBuild   # stage bin
 powershell -File Project\Launcher.Cef\deploy-launcher.ps1 -Dest <path>
 ```
 
+The deploy script verifies the shared CEF runtime before staging and stops
+only `Launcher.exe` instances whose full image path is the selected product
+root; unrelated applications with the same process name are left alone.
+
 MSBuild path + CEF SDK default to the repo convention
 (`C:\Visual Studio\MSBuild`, `C:\My Project\cef-sdk\cef73`).
+The OSC lane's CEF 73 wrapper library must be built at
+`Project\Overlay OSC\NVIDIA OSC\obj\wrapper73\libcef_dll_wrapper73.lib`;
+the launcher links that same version instead of rebuilding or shipping a
+second CEF wrapper/runtime.
 
 ## UI ↔ host contract
 
@@ -50,7 +58,7 @@ Page origin: loopback HTTP (ephemeral port) serving `Resources\launcher`
 |---|---|---|
 | `LAUNCHER_GET_STATE` | — | state snapshot JSON |
 | `LAUNCHER_SET_OVERLAY` | `value:bool` | config `Overlay.UseOverlayEnabled` (user toggle only) |
-| `LAUNCHER_SET_ENGINE_OVERLAY` | `value:bool` | **Overlay Mode (WINFORM ⟷ CEF)** — config `Overlay.EngineOverlayMode`; CEF=true brings the chain up, CEF=false ALSO stops `NvOverlay\Cef\NVIDIA Share.exe` (path-deduped) so the switch is real |
+| `LAUNCHER_SET_ENGINE_OVERLAY` | `value:bool` | **Overlay Mode (WINFORM ⟷ CEF)** — config `Overlay.EngineOverlayMode`; CEF=true brings the chain up, CEF=false stops only `NvOverlay\Cef\NVIDIA Share.exe` (path-deduped), leaving its backend warm |
 | `LAUNCHER_OPEN_OVERLAY` | — | hub frame `[Send] NVIDIA  APP\|open_overlay` → :5001 |
 | `LAUNCHER_OPEN_OBT3` | — | opens the OBT3 page (legacy banner link) |
 | `LAUNCHER_DRAG` | — | borderless-window drag (WM_NCLBUTTONDOWN/HTCAPTION) |
@@ -68,7 +76,7 @@ pulls `LAUNCHER_GET_STATE` every 2s as a fallback.
 - Base chain ALWAYS: `NvContainer\NvContainer.exe` + root
   `NVIDIA Backend.exe` started if missing (owner call 2026-09-25).
 - ENGINE OVERLAY chain (toggle ON, or config ON at startup):
-  NvContainer → `NvBackend\NVIDIA Web Helper.exe` → wait :59001 (≤10s) →
+  NvContainer → `NvNode\NVIDIA Web Helper.exe` → wait :59001 (≤15s) →
   `NvOverlay\Cef\NVIDIA Share.exe --backend-port 59001`, deduped by exe
   PATH.
 - 1s status: NVIDIA Backend / NVIDIA ShadowPlay (+`Flags\Ready` →
@@ -77,8 +85,12 @@ pulls `LAUNCHER_GET_STATE` every 2s as a fallback.
 - Config writes are read-modify-write on the CURRENT file
   (`launcher_json.h` order-preserving serializer; atomic tmp + `.bak`
   swap) — the AppConfigShared.vb contract.
-- EXIT ALL kill list: Notifier, ShadowPlay, nvsphelper64, NvContainer,
-  NVIDIA Backend, NVIDIA Capture.
+- Config path is `<root>\Config\config.json`; `<root>\NvConfig\config.json`
+  is used only as a legacy development fallback.
+- Status dots and lane chips reflect process/config state; switches are
+  keyboard accessible and failed actions are reported in the footer.
+- EXIT ALL stops only matching product executables by full image path, so
+  same-named NVIDIA applications outside this product remain untouched.
 
 ## Switches (smoke/proof runs)
 

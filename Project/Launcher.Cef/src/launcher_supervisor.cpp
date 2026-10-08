@@ -18,29 +18,45 @@ const wchar_t* kContainer = L"NvContainer";
 const wchar_t* kWebHelper = L"NVIDIA Web Helper";
 const wchar_t* kCefOverlay = L"NVIDIA Share";
 
-// The TCP hub ("NVIDIA API") is staged as NvBackend\NvBackend.exe in the
-// current tree (Nv<App>.exe rename wave). The historical name was
-// "NVIDIA Backend" — treat BOTH as the hub lane for status/start/kill.
+// The TCP hub ("NVIDIA API") uses NvBackend.exe in the current tree; the
+// older NVIDIA Backend.exe path remains a compatibility candidate.
 const wchar_t* kHub = L"NvBackend";
-const wchar_t* kHubLegacy = L"NVIDIA Backend";
+
+std::wstring RootP(const wchar_t* folder, const wchar_t* file);
 
 bool HubRunning() {
-  return launcherutil::ProcessRunning(kHub) ||
-         launcherutil::ProcessRunning(kHubLegacy);
+  const std::wstring candidates[] = {
+      RootP(L"NvBackend", L"NvBackend.exe"),
+      RootP(L"NvBackend", L"NVIDIA Backend.exe"),
+      RootP(L"", L"NVIDIA Backend.exe"),
+  };
+  for (size_t i = 0; i < sizeof(candidates) / sizeof(candidates[0]); ++i) {
+    const std::wstring& path = candidates[i];
+    const size_t slash = path.find_last_of(L'\\');
+    const size_t dot = path.find_last_of(L'.');
+    const std::wstring name = path.substr(
+        slash == std::wstring::npos ? 0 : slash + 1,
+        (dot == std::wstring::npos ? path.size() : dot) -
+            (slash == std::wstring::npos ? 0 : slash + 1));
+    if (launcherutil::ProcessRunningFromPath(name.c_str(), path)) return true;
+  }
+  return false;
 }
-
-// Installer-exit kill list — Main.vb RadioButton2 order + the staged hub
-// name (NvBackend.exe — the "NVIDIA Backend" slot of the current tree).
-const wchar_t* kKillList[] = {
-    L"NVIDIA Notifier.exe", L"NVIDIA ShadowPlay.exe", L"nvsphelper64.exe",
-    L"NvContainer.exe",     L"NvBackend.exe",         L"NVIDIA Backend.exe",
-    L"NVIDIA Capture.exe",
-};
 
 void StartIfMissing(const wchar_t* name, const std::wstring& exe_path,
                     const std::wstring& args = L"") {
-  if (!launcherutil::FileExists(exe_path)) return;  // logged by StartProcess
-  if (launcherutil::ProcessRunning(name)) {
+  if (!launcherutil::FileExists(exe_path)) {
+    LogLine(std::string("service executable missing: ") +
+            launcherutil::WideToUtf8(exe_path));
+    return;
+  }
+  const size_t slash = exe_path.find_last_of(L'\\');
+  const size_t dot = exe_path.find_last_of(L'.');
+  const std::wstring image_name = exe_path.substr(
+      slash == std::wstring::npos ? 0 : slash + 1,
+      (dot == std::wstring::npos ? exe_path.size() : dot) -
+          (slash == std::wstring::npos ? 0 : slash + 1));
+  if (launcherutil::ProcessRunningFromPath(image_name.c_str(), exe_path)) {
     LogLine(std::string("adopt running: ") + launcherutil::WideToUtf8(name));
     return;
   }
@@ -100,9 +116,12 @@ LauncherState LauncherSupervisor::Snapshot() {
   st.overlay_ready =
       launcherutil::FileExists(RootP(L"Flags", L"Ready"));
   st.notifier = launcherutil::ProcessRunning(kNotifier);
-  st.container = launcherutil::ProcessRunning(kContainer);
-  st.web_helper = launcherutil::ProcessRunning(kWebHelper);
-  st.cef_overlay = launcherutil::ProcessRunning(kCefOverlay);
+  st.container = launcherutil::ProcessRunningFromPath(
+      kContainer, RootP(L"NvContainer", L"NvContainer.exe"));
+  st.web_helper = launcherutil::ProcessRunningFromPath(
+      kWebHelper, RootP(L"NvNode", L"NVIDIA Web Helper.exe"));
+  st.cef_overlay = launcherutil::ProcessRunningFromPath(
+      kCefOverlay, RootP(L"NvOverlay\\Cef", L"NVIDIA Share.exe"));
   st.overlay_enabled =
       launcherutil::ReadConfigBool(L"Overlay", L"UseOverlayEnabled", false);
   st.engine_overlay =
@@ -167,13 +186,17 @@ void LauncherSupervisor::PollLoop() {
     }
     // Slow lane housekeeping (every 5s): keep the base chain alive.
     if (supervise_ && (++tick % 5) == 0) {
-      if (!launcherutil::ProcessRunning(kContainer)) {
+      if (!launcherutil::ProcessRunningFromPath(
+              kContainer, RootP(L"NvContainer", L"NvContainer.exe"))) {
         LogLine("NvContainer lost - restarting");
         StartIfMissing(kContainer, RootP(L"NvContainer", L"NvContainer.exe"));
       }
       if (!HubRunning()) {
-        LogLine("hub lost - restarting");
-        launcherutil::StartProcess(ResolveHubExe(), L"");
+        const std::wstring hub_exe = ResolveHubExe();
+        if (launcherutil::FileExists(hub_exe)) {
+          LogLine("hub lost - restarting");
+          StartIfMissing(kHub, hub_exe);
+        }
       }
     }
     for (int i = 0; i < 10 && !stop_; ++i) Sleep(100);
@@ -212,8 +235,13 @@ void LauncherSupervisor::StartEngineOverlayChain() {
 
 void LauncherSupervisor::StartEngineOverlayChainAsync() {
   if (chain_thread_) {
-    LogLine("engine overlay chain already running");
-    return;
+    if (WaitForSingleObject(chain_thread_, 0) == WAIT_OBJECT_0) {
+      CloseHandle(chain_thread_);
+      chain_thread_ = NULL;
+    } else {
+      LogLine("engine overlay chain already running");
+      return;
+    }
   }
   chain_thread_ = CreateThread(NULL, 0, ChainTramp, this, 0, NULL);
   // The thread self-terminates after the chain; the handle is reaped in
@@ -225,16 +253,10 @@ void LauncherSupervisor::StartEngineOverlayChainAsync() {
 }
 
 void LauncherSupervisor::StopCefOverlay() {
-  // Overlay Mode -> WINFORM: bring the CEF lane down. The genuine host
-  // owns the node chain (nvnodejslauncher -> NvNode Web Helper), so all
-  // three go — otherwise ClaimSingleInstance in the orphaned launcher
-  // blocks the next start. Only the Share.exe running from NvOverlay\Cef
-  // (other instances of that name belong to different lanes and stay).
-  // The WinForm family itself is hub-managed, untouched here.
+  // Overlay Mode -> WINFORM: stop only our CEF overlay window. Leave its
+  // backend warm; other NVIDIA Web Helper instances may belong to NVIDIA.
   std::wstring share_exe = RootP(L"NvOverlay\\Cef", L"NVIDIA Share.exe");
   launcherutil::KillProcessFromPath(kCefOverlay, share_exe);
-  launcherutil::KillProcessByName(L"nvnodejslauncher");
-  launcherutil::KillProcessByName(kWebHelper);
 }
 
 bool LauncherSupervisor::SendOpenOverlay() {
@@ -260,8 +282,23 @@ bool LauncherSupervisor::SendOpenOverlay() {
 void LauncherSupervisor::InstallerExit() {
   // Single-source config: clear the overlay switch (Main.vb RadioButton2).
   launcherutil::WriteConfigBool(L"Overlay", L"UseOverlayEnabled", false);
-  for (size_t i = 0; i < sizeof(kKillList) / sizeof(kKillList[0]); ++i) {
-    launcherutil::KillProcessByName(kKillList[i]);
+  const struct { const wchar_t* name; const wchar_t* path; } owned[] = {
+      {L"NVIDIA Notifier", L"NvOverlay\\WinForm\\NVIDIA Notifier.exe"},
+      {L"NVIDIA ShadowPlay", L"NvOverlay\\WinForm\\NVIDIA ShadowPlay.exe"},
+      {L"nvsphelper64", L"ShadowPlay\\nvsphelper64.exe"},
+      {L"nvsphelper64", L"NvContainer\\nvsphelper64.exe"},
+      {L"NvContainer", L"NvContainer\\NvContainer.exe"},
+      {L"NvBackend", L"NvBackend\\NvBackend.exe"},
+      {L"NVIDIA Backend", L"NvBackend\\NVIDIA Backend.exe"},
+      {L"NVIDIA Backend", L"NVIDIA Backend.exe"},
+      {L"NvCapture", L"NvContainer\\CaptureEngine\\NvCapture.exe"},
+      {L"NVIDIA Share", L"NvOverlay\\Cef\\NVIDIA Share.exe"},
+      {L"NVIDIA Web Helper", L"NvNode\\NVIDIA Web Helper.exe"},
+      {L"nvnodejslauncher", L"NvNode\\nvnodejslauncher.exe"},
+  };
+  for (size_t i = 0; i < sizeof(owned) / sizeof(owned[0]); ++i) {
+    launcherutil::KillProcessFromPath(
+        owned[i].name, RootP(L"", owned[i].path));
   }
   LogLine("installer exit complete");
 }

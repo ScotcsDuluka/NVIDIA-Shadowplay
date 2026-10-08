@@ -204,6 +204,7 @@ static HWND g_clickthrough_hwnd = nullptr;
 static CefRefPtr<CefBrowser> g_browser;
 static std::atomic<bool> g_devtools_open{ false };
 static std::atomic<ULONGLONG> g_devtools_close_grace_until{ 0 };
+static std::atomic<unsigned> g_page_retry_attempts{ 0 };
 static std::string g_page_url;          // URL หน้า OSC — กู้คืนเมื่อ renderer ตายกลางทาง
 static int g_pending_page_action = -1;   // external show/hide received before browser creation
 static std::atomic<bool> g_visible{ false };
@@ -1202,6 +1203,24 @@ public:
     IMPLEMENT_REFCOUNTING(QueryReplyTask);
 };
 
+class RetryPageLoadTask : public CefTask {
+public:
+    RetryPageLoadTask(CefRefPtr<CefBrowser> browser, std::string url, unsigned attempt)
+        : browser_(browser), url_(std::move(url)), attempt_(attempt) {}
+    void Execute() override {
+        if (!browser_ || url_ != g_page_url) return;
+        CefRefPtr<CefFrame> frame = browser_->GetMainFrame();
+        if (!frame || !frame->IsValid()) return;
+        Log("[load] retrying OSC page (attempt " + std::to_string(attempt_) + ")");
+        frame->LoadURL(url_);
+    }
+private:
+    CefRefPtr<CefBrowser> browser_;
+    std::string url_;
+    unsigned attempt_;
+    IMPLEMENT_REFCOUNTING(RetryPageLoadTask);
+};
+
 // ★ รัน JS ในหน้าจากเธรด HTTP (toggle route) — ต้อง post ไป TID_UI เสมอ
 class JsEvalTask : public CefTask {
 public:
@@ -1446,9 +1465,28 @@ public:
             //   (shim เก่า override window.cefQuery ทับ bridge แท้ = ต้องง้อ HTTP)
         }
     }
+    void OnLoadEnd(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame> frame, int) override {
+        if (frame && frame->IsMain()) {
+            unsigned attempts = g_page_retry_attempts.exchange(0);
+            if (attempts > 0)
+                Log("[load] OSC page recovered after " + std::to_string(attempts) + " retries");
+        }
+    }
     void OnLoadError(CefRefPtr<CefBrowser>, CefRefPtr<CefFrame> frame, ErrorCode code,
         const CefString& text, const CefString& url) override {
-        Log("[loaderror] code=" + std::to_string((int)code) + " " + text.ToString() + " " + url.ToString());
+        std::string failed_url = url.ToString();
+        Log("[loaderror] code=" + std::to_string((int)code) + " " + text.ToString() + " " + failed_url);
+        if (!frame || !frame->IsMain() || failed_url != g_page_url) return;
+
+        unsigned attempt = ++g_page_retry_attempts;
+        int delay_ms = attempt >= 4 ? 5000 : (1000 << (attempt - 1));
+        if (!CefPostDelayedTask(TID_UI,
+            new RetryPageLoadTask(frame->GetBrowser(), g_page_url, attempt), delay_ms)) {
+            Log("[load] failed to schedule OSC page retry");
+            return;
+        }
+        Log("[load] OSC page retry scheduled in " + std::to_string(delay_ms) +
+            "ms (attempt " + std::to_string(attempt) + ")");
     }
     void OnRenderProcessTerminated(CefRefPtr<CefBrowser> browser, CefRequestHandler::TerminationStatus status) override {
         Log("[renderer] TERMINATED status=" + std::to_string((int)status) +

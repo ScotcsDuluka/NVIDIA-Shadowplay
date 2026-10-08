@@ -12,7 +12,7 @@ Public Class HotkeyService
 
     Shared Sub New()
         AllHotkeys = New List(Of HotkeyDef) From {
-            CreateDef("ToggleOverlay", "Alt+Z"),
+            CreateDef("ToggleOverlay", ""),
             CreateDef("Screenshot", "Alt+F1"),
             CreateDef("PhotosToggle", "Alt+F2"),
             CreateDef("GameFilterToggle", "Alt+F3"),
@@ -91,15 +91,17 @@ Public Class HotkeyService
         Dim modifiers As Integer = 0
         Dim key As Keys = Keys.None
 
+        If String.IsNullOrWhiteSpace(configuredBinding) Then Return
+
         If Not TryParseHotkey(configuredBinding, modifiers, key) Then
             configuredBinding = def.DefaultBinding
-            TryParseHotkey(configuredBinding, modifiers, key)
+            If Not TryParseHotkey(configuredBinding, modifiers, key) Then Return
         End If
 
         Dim comboKey As String = modifiers.ToString() & ":" & CInt(key).ToString()
         If usedCombos.Contains(comboKey) Then
             configuredBinding = def.DefaultBinding
-            TryParseHotkey(configuredBinding, modifiers, key)
+            If Not TryParseHotkey(configuredBinding, modifiers, key) Then Return
             comboKey = modifiers.ToString() & ":" & CInt(key).ToString()
         End If
 

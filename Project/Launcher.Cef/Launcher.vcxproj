@@ -4,7 +4,8 @@
   Produces Launcher.dll: CefApp/CefClient, the cefQuery message-router
   bridge (LAUNCHER_* command namespace), the process supervisor (Main.vb
   contract port), the loopback UI static server and the state-push
-  pipeline. The root Launcher.exe (Bootstrap project) loads this DLL from
+  pipeline. It links the CEF 73 wrapper built for the OSC host. The root
+  Launcher.exe (Bootstrap project) loads this DLL from
   NvOverlay\Cef\ — the shared CEF runtime slot of the osc NVIDIA Share.exe
   lane, so libcef.dll / cef.pak / locales are never duplicated.
 -->
@@ -72,15 +73,10 @@
       <BasicRuntimeChecks Condition="'$(Configuration)'=='Debug'">EnableFastChecks</BasicRuntimeChecks>
     </ClCompile>
     <Link>
-      <AdditionalLibraryDirectories>"$(CefSdk)Release";%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>libcef.lib;comctl32.lib;rpcrt4.lib;shlwapi.lib;ws2_32.lib;user32.lib;gdi32.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>"$(ProjectDir)..\Overlay OSC\NVIDIA OSC\obj\wrapper73";"$(CefSdk)Release";%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>libcef_dll_wrapper73.lib;libcef.lib;comctl32.lib;rpcrt4.lib;shlwapi.lib;ws2_32.lib;user32.lib;gdi32.lib;dwmapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\NvOverlay\Cef\libcef_dll_wrapper.vcxproj">
-      <Project>{A1B2C3D4-E5F6-4A7B-8C9D-0E1F2A3B4C5D}</Project>
-    </ProjectReference>
-  </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\launcher_main.cpp" />
     <ClCompile Include="src\launcher_app.cpp" />

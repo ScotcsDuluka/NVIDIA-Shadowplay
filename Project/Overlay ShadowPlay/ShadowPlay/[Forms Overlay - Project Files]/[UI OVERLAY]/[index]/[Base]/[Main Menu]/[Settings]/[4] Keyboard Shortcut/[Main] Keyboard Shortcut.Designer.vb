@@ -181,7 +181,7 @@ Partial Class Base_KeySet
         lbl_ToggleOverlay.Name = "lbl_ToggleOverlay"
         lbl_ToggleOverlay.Size = New Size(170, 40)
         lbl_ToggleOverlay.TabIndex = 1
-        lbl_ToggleOverlay.Text = "Alt+Z"
+        lbl_ToggleOverlay.Text = ""
         lbl_ToggleOverlay.TextAlign = ContentAlignment.MiddleCenter
 
         row_TestNotifier.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))

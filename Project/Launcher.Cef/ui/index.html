@@ -4,8 +4,6 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <title>NVIDIA ShadowPlay</title>
-<!-- Inter (online) — Segoe UI fallback keeps the layout offline-safe -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -34,13 +32,15 @@
       <h1 class="hero-title">NVIDIA ShadowPlay</h1>
       <h2 class="animated-text-gradient hero-sub">Capture Every Moment</h2>
       <p class="hero-desc">
-        Zero latency. Zero compromise. Built for performance.
-        The launcher supervises the capture family and the overlay
-        lanes&thinsp;&mdash;&thinsp;everything on this page is live system state.
+        Manage your overlay engine and monitor the services that power
+        capture. Status and preferences are synchronized with the local system.
       </p>
       <div class="hero-cta-group">
       </div>
       <div class="hero-meta">
+        <span class="lane-chip" id="chipEngine" title="NvContainer supervisor">ENGINE</span>
+        <span class="lane-chip" id="chipCef" title="CEF overlay window">CEF OVERLAY</span>
+        <span class="lane-chip" id="chipHub" title="Local NVIDIA API hub">API HUB</span>
       </div>
     </section>
 
@@ -61,6 +61,13 @@
             <div class="svc-text">
               <div class="svc-name">NVIDIA ShadowPlay</div>
               <div class="svc-state" id="stateOverlay">STOPPED</div>
+            </div>
+          </li>
+          <li>
+            <span class="dot" id="dotContainer"></span>
+            <div class="svc-text">
+              <div class="svc-name">NVCONTAINER</div>
+              <div class="svc-state" id="stateContainer">STOPPED</div>
             </div>
           </li>
           <li>
@@ -92,16 +99,16 @@
           <h3>NVIDIA ShadowPlay</h3>
           <p>Precision-engineered, that keeps you in control - without ever breaking immersion.</p>
         </div>
-        <span class="toggle" id="tglOverlay" role="switch" aria-checked="false" tabindex="0"></span>
+        <span class="toggle" id="tglOverlay" role="switch" aria-label="Overlay enabled" aria-checked="false" tabindex="0"></span>
       </div>
     </div>
     <div class="feature-card">
       <div class="mode-panel">
         <div class="mode-title">ENGINE TYPE</div>
         <div class="mode-row">
-          <span class="mode-label active" id="lblWinform">WINFORM</span>
-          <span class="mode-toggle" id="tglEngine" role="switch" aria-checked="false" tabindex="0"><span class="mode-knob"></span></span>
-          <span class="mode-label" id="lblCef">CEF</span>
+          <span class="mode-label active" id="lblWinform" role="button" tabindex="0">WINFORM</span>
+          <span class="mode-toggle" id="tglEngine" role="switch" aria-label="Overlay engine" aria-checked="false" tabindex="0"><span class="mode-knob"></span></span>
+          <span class="mode-label" id="lblCef" role="button" tabindex="0">CEF</span>
         </div>
         <div class="mode-desc" id="modeDesc">Two Engine Regimes</div>
       </div>
@@ -111,6 +118,9 @@
   <!-- ==================== FOOTER ==================== -->
   <footer>
     <div class="foot-left">
+      <span class="ver">NVIDIA SHADOWPLAY · CEF 73</span>
+      <span class="bridge" id="bridgeState" role="status" aria-live="polite">CONNECTING</span>
+      <span class="action-status" id="actionStatus" role="status" aria-live="polite"></span>
     </div>
     <div class="foot-right">
       <button id="btnObt3" class="btn-secondary">OBT3 &rarr;</button>

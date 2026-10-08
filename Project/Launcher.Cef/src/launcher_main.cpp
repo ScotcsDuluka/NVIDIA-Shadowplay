@@ -212,10 +212,6 @@ int NvLauncherCefMain(void) {
   // (Main.vb contract) — background thread, never blocking startup.
   LauncherSupervisor* supervisor = LauncherSupervisor::Get();
   supervisor->Start(params->supervise, &LauncherPushStateAnyThread);
-  if (params->supervise &&
-      launcherutil::ReadConfigBool(L"Overlay", L"EngineOverlayMode", false)) {
-    supervisor->StartEngineOverlayChainAsync();
-  }
 
   if (params->self_exit_ms > 0) {
     // Smoke-run watchdog: always terminates, always leaves a log line.

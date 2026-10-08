@@ -1,9 +1,9 @@
 {
   "record": {
-    "quality": "VeryGood",
+    "quality": "Custom",
     "resolution": "In-game",
     "framerate": 60,
-    "bitrateBps": 50000000
+    "bitrateBps": 107000000
   },
   "instantReplay": {
     "quality": "Custom",
@@ -89,7 +89,7 @@
     ],
     "openshare": [
       18,
-      90
+      78
     ],
     "mictoggle": [
       17,

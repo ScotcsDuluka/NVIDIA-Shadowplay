@@ -429,3 +429,23 @@ footer {
 .bridge.off { color: var(--red); }
 .foot-right { display: flex; }
 .foot-right > * + * { margin-left: 10px; }
+
+/* ---------- SYSTEM STATUS / ACCESSIBILITY ---------- */
+button { cursor: pointer; }
+.toggle:focus, .mode-toggle:focus, .mode-label:focus {
+  outline: 1px solid var(--nvidia-green);
+  outline-offset: 3px;
+}
+.bridge { white-space: nowrap; }
+.bridge.off { color: var(--red); }
+.mode-label { cursor: pointer; }
+.action-status {
+  min-width: 1px;
+  color: var(--nvidia-green);
+  font-size: 10px;
+  letter-spacing: 1.1px;
+  white-space: nowrap;
+}
+.action-status.error { color: var(--red); }
+.svc li { min-height: 34px; }
+.hero-meta { row-gap: 8px; }

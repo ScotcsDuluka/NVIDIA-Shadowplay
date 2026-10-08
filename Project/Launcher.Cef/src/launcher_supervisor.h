@@ -41,9 +41,9 @@ class LauncherSupervisor {
 
   static LauncherSupervisor* Get();
 
-  // Start the always-on base chain (NvContainer + NVIDIA Backend) and the
-  // poll thread. With supervise=false (smoke/proof runs) nothing is
-  // started and the poll still reports real process states.
+  // Start the always-on base chain (NvContainer + API hub) and the poll
+  // thread. With supervise=false (smoke/proof runs) nothing is started and
+  // the poll still reports real process states.
   void Start(bool supervise, PushFn push);
   void Stop();
 

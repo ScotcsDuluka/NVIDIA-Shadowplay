@@ -1,4 +1,6 @@
 {
+  "host": "127.0.0.1",
+  "port": 59011,
   "gfservices": {
     "server": "https://ota.nvidia.com/GFE/",
     "version": "v1.0"

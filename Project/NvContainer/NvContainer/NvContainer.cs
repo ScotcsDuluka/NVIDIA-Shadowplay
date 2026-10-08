@@ -2,7 +2,7 @@
 //
 // สถาปัตยกรรม (2026-09-29, หลัง approve แผน):
 //   โหมด ours (default):
-//     แม่ → NVIDIA Web Helper.exe (เรา) → node :59001 (shims เรา)
+//     แม่ → NVIDIA Web Helper.exe → NvNode.exe :59011
 //         → NVIDIA OSC.exe      (เรา — CEF host เลียน Share.exe)
 //         → nvsphelper.exe      (เรา — Alt+Z)
 //   โหมด genuine (--genuine หรือ mode ใน config):
@@ -13,6 +13,7 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -32,6 +33,10 @@ static class NvContainer
     static string BuildRoot;
     static string LogDir;
     static bool ModeOurs = true;
+    static readonly HttpClient NodeApiHttp = new HttpClient
+    {
+        Timeout = TimeSpan.FromMilliseconds(1500)
+    };
 
     static void LoadConfig()
     {
@@ -137,9 +142,7 @@ static class NvContainer
         catch (Exception ex) { Log("[nvnode-init] FAIL: " + ex.Message); }
     }
 
-    static Process Spawn(string exe, string wd) { return Spawn(exe, wd, null); }
-
-    static Process Spawn(string exe, string wd, string args)
+    static Process Spawn(string exe, string wd, string args = null)
     {
         try
         {
@@ -149,10 +152,10 @@ static class NvContainer
                 WorkingDirectory = wd,
                 UseShellExecute = true,
             };
-            // บอกลูกว่า config hub อยู่ไหน (env ธรรมดา ใช้ได้กับ UseShellExecute=false เท่านั้น
-            // → ใช้ส่งผ่าน command line แทนไม่ได้เพราะลูกไม่รับ argv → set env ผ่าน registry ไม่คุ้ม
-            // ลูกอ่าน Project\NvConfig\<ตัวเอง>.json เองตาม contract)
-            return Process.Start(psi);
+            var process = Process.Start(psi);
+            if (process == null) Log("[spawn] FAIL " + Path.GetFileName(exe) + ": Process.Start returned null");
+            else Log("[spawn] " + Path.GetFileName(exe) + " PID " + process.Id);
+            return process;
         }
         catch (Exception ex)
         {
@@ -161,23 +164,97 @@ static class NvContainer
         }
     }
 
+    static void EnsureRunning(string exe, string processName, string wd, string args = null)
+    {
+        if (string.IsNullOrWhiteSpace(exe) || !File.Exists(exe))
+        {
+            Log("[boot] ไม่พบ " + processName + " (" + exe + ")");
+            return;
+        }
+        if (ProcessAtPathAlive(exe))
+        {
+            Log("[boot] " + processName + " ทำงานอยู่แล้ว");
+            return;
+        }
+        Spawn(exe, wd ?? Path.GetDirectoryName(exe), args);
+    }
+
+    static bool ProcessAtPathAlive(string exe)
+    {
+        if (string.IsNullOrWhiteSpace(exe)) return false;
+        var expected = Path.GetFullPath(exe);
+        foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(expected)))
+        {
+            using (p)
+            {
+                try
+                {
+                    if (string.Equals(Path.GetFullPath(p.MainModule?.FileName ?? ""),
+                                      expected, StringComparison.OrdinalIgnoreCase)) return true;
+                }
+                catch { }
+            }
+        }
+        return false;
+    }
+
+    static bool ProcessAtPathStartedRecently(string exe, int seconds)
+    {
+        if (string.IsNullOrWhiteSpace(exe)) return false;
+        var expected = Path.GetFullPath(exe);
+        foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(expected)))
+        {
+            using (p)
+            {
+                try
+                {
+                    if (string.Equals(Path.GetFullPath(p.MainModule?.FileName ?? ""),
+                                      expected, StringComparison.OrdinalIgnoreCase) &&
+                        DateTime.Now - p.StartTime < TimeSpan.FromSeconds(seconds)) return true;
+                }
+                catch { }
+            }
+        }
+        return false;
+    }
+
+    static bool NodeApiHealthy(int port)
+    {
+        try
+        {
+            using var response = NodeApiHttp.GetAsync(
+                "http://127.0.0.1:" + port + "/Backend/v.1.0/health").GetAwaiter().GetResult();
+            return response.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
     // ★ coexistence: NVIDIA App แท้มี process ชื่อเดียวกับของเรา (NVIDIA Web Helper.exe,
     //   nvcontainer) — เช็คชื่อเฉย ๆ จะหลอกว่า "ลูกเรายังมีชีวิต" ทั้งที่ตาย
     //   นับเฉพาะตัวที่ exe อยู่ใต้ tree ของเรา (build\NVIDIA ShadowPlay\)
     static string OurRoot()
     {
-        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", ".."));
+        return Path.GetFullPath(BuildRoot ?? Path.Combine(AppContext.BaseDirectory, ".."));
     }
     static bool UnderOurRoot(Process p)
     {
-        try { return p.MainModule?.FileName != null &&
-                   p.MainModule.FileName.StartsWith(OurRoot(), StringComparison.OrdinalIgnoreCase); }
+        try
+        {
+            var path = p.MainModule?.FileName;
+            if (path == null) return false;
+            var root = OurRoot().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + Path.DirectorySeparatorChar;
+            return Path.GetFullPath(path).StartsWith(root, StringComparison.OrdinalIgnoreCase);
+        }
         catch { return false; }   // access denied = ไม่ใช่ของเรา (ของแท้ก็ไม่อ่านได้)
     }
     static bool Alive(string name)
     {
         foreach (var p in Process.GetProcessesByName(name))
-            if (UnderOurRoot(p)) return true;
+        {
+            using (p)
+                if (UnderOurRoot(p)) return true;
+        }
         return false;
     }
 
@@ -252,23 +329,9 @@ static class NvContainer
             var osc  = Child("oscExe");
             var hk   = Child("hotkeyExe");
 
-            // 1) node backend ก่อน (หน้า OSC จะได้มี :59001 ตั้งแต่เปิด)
-            if (host != null && File.Exists(host))
-            {
-                if (!Alive("NVIDIA Web Helper")) Spawn(host, Child("webHelperWd") ?? Path.GetDirectoryName(host));
-            }
-            else Log("[boot] ไม่เจอ NVIDIA Web Helper.exe (" + host + ")");
-
-            // 2) nvsphelper (Alt+Z)
-            if (hk != null && File.Exists(hk))
-            {
-                if (!Alive("nvsphelper")) Spawn(hk, Path.GetDirectoryName(hk));
-            }
-            else Log("[boot] ไม่เจอ nvsphelper.exe (" + hk + ")");
-
-            // 3) หน้าต่าง OSC ของเรา
-            if (osc != null && File.Exists(osc)) Spawn(osc, Child("oscWd") ?? Path.GetDirectoryName(osc));
-            else Log("[boot] ไม่เจอ NVIDIA OSC.exe (" + osc + ") — ยังไม่ได้ build? (Phase 2)");
+            EnsureRunning(host, "NVIDIA Web Helper", Child("webHelperWd"));
+            EnsureRunning(hk, "nvsphelper", Path.GetDirectoryName(hk));
+            EnsureRunning(osc, "NVIDIA OSC", Child("oscWd"));
 
             WatchOurs();
         }
@@ -293,6 +356,8 @@ static class NvContainer
         var host = Child("webHelperExe");
         var osc  = Child("oscExe");
         var hk   = Child("hotkeyExe");
+        var nodeApiPort = 59011;
+        try { nodeApiPort = C.GetProperty("nodeApiPort").GetInt32(); } catch { }
         int interval = 15;
         try { interval = C.GetProperty("watchdog").GetProperty("intervalSeconds").GetInt32(); } catch { }
         var spills = 0;
@@ -304,37 +369,77 @@ static class NvContainer
             {
                 Thread.Sleep(interval * 1000);
 
-                if (hk != null && File.Exists(hk) && !Alive("nvsphelper")) Spawn(hk, Path.GetDirectoryName(hk));
+                EnsureRunning(hk, "nvsphelper", Path.GetDirectoryName(hk));
 
-                // host ตาย = node ตายตาม (job object) → :59001 ว่าง → spawn ใหม่ได้เลย
-                if (host != null && File.Exists(host) && !Alive("NVIDIA Web Helper"))
+                // Web Helper owns NvNode.exe in a kill-on-close job; recover the host
+                // if either its process or the NodeAPI health endpoint disappears.
+                if (host != null && File.Exists(host) && !ProcessAtPathAlive(host))
                 {
                     WipeOrphans();
                     spills++;
                     Log("[watchdog] Web Helper หาย (รอบที่ " + spills + ") — spawn ใหม่");
                     Spawn(host, Child("webHelperWd") ?? Path.GetDirectoryName(host));
                 }
+                else if (host != null && File.Exists(host) && !NodeApiHealthy(nodeApiPort) &&
+                         !ProcessAtPathStartedRecently(host, 60))
+                {
+                    foreach (var p in Process.GetProcessesByName(Path.GetFileNameWithoutExtension(host)))
+                    {
+                        using (p)
+                        {
+                            try
+                            {
+                                if (!string.Equals(Path.GetFullPath(p.MainModule?.FileName ?? ""),
+                                                   Path.GetFullPath(host), StringComparison.OrdinalIgnoreCase)) continue;
+                                Log("[watchdog] NodeAPI ไม่ตอบ health ที่ :" + nodeApiPort +
+                                    " — restart Web Helper PID " + p.Id);
+                                p.Kill();
+                                p.WaitForExit(3000);
+                            }
+                            catch { }
+                        }
+                    }
+                    if (!ProcessAtPathAlive(host))
+                    {
+                        Thread.Sleep(1000);
+                        Spawn(host, Child("webHelperWd") ?? Path.GetDirectoryName(host));
+                    }
+                }
 
                 // หน้าต่าง OSC: เช็คพอร์ต toggle — ตายจริง (พอร์ตปิด) ค่อยเปิดใหม่
                 // ★ แต่บูต CEF+GPU ใช้เวลาได้เกิน 15 วิ (เมื่อ GPU ต้องแบ่งกับ NVIDIA App แท้)
                 //   → ถ้า process ยังอยู่และอายุ < 60 วิ = กำลังบูต ห้ามฆ่า
-                if (osc != null && File.Exists(osc) && !OscAlive() && !YoungOscAlive())
+                if (osc != null && File.Exists(osc))
                 {
-                    // เช็ดซากที่ค้างก่อน (best-effort — ซากที่ฆ่าไม่ตายไม่ถือพอร์ต ไม่ขวาง)
-                    foreach (var p in Process.GetProcessesByName("NVIDIA OSC"))
-                    { try { p.Kill(); } catch { } }
-                    Thread.Sleep(1000);
-                    Log("[watchdog] NVIDIA OSC ตาย (:59003 ปิด) — spawn ใหม่");
-                    Spawn(osc, Child("oscWd") ?? Path.GetDirectoryName(osc));
-                }
-
-                // capture engine (NvCapture.exe — ตัวอัด ตามสถาปัตยกรรม): headless --rest
-                // อยู่ตลอด รอคำสั่ง /Record/Enable จากหน้า OSC (edge ผ่าน /Duluka plane)
-                var cap = Child("captureExe");
-                if (cap != null && File.Exists(cap) && !Alive("NvCapture"))
-                {
-                    Log("[watchdog] NvCapture (ตัวอัด) หาย — spawn ใหม่");
-                    Spawn(cap, Child("captureWd") ?? Path.GetDirectoryName(cap), Child("captureArgs") ?? "--rest");
+                    if (!Alive("NVIDIA OSC"))
+                    {
+                        Log("[watchdog] NVIDIA OSC process หาย — spawn ใหม่");
+                        Spawn(osc, Child("oscWd") ?? Path.GetDirectoryName(osc));
+                    }
+                    else if (!OscAlive() && !YoungOscAlive())
+                    {
+                        // รีสตาร์ตเฉพาะ OSC ของเรา ไม่แตะ NVIDIA App ที่ใช้ชื่อ process เดียวกัน
+                        foreach (var p in Process.GetProcessesByName("NVIDIA OSC"))
+                        {
+                            using (p)
+                            {
+                                try
+                                {
+                                    if (!UnderOurRoot(p)) continue;
+                                    Log("[watchdog] เช็ด OSC ค้าง PID " + p.Id);
+                                    p.Kill();
+                                    p.WaitForExit(3000);
+                                }
+                                catch { }
+                            }
+                        }
+                        if (!Alive("NVIDIA OSC"))
+                        {
+                            Thread.Sleep(1000);
+                            Log("[watchdog] NVIDIA OSC ไม่ตอบพอร์ต :" + OscTogglePort + " — spawn ใหม่");
+                            Spawn(osc, Child("oscWd") ?? Path.GetDirectoryName(osc));
+                        }
+                    }
                 }
             }
             catch (Exception ex)

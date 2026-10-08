@@ -48,12 +48,15 @@
     dotOverlay: $('dotOverlay'),
     dotNotifier: $('dotNotifier'),
     dotNvApi: $('dotNvApi'),
+    dotContainer: $('dotContainer'),
     stateOverlay: $('stateOverlay'),
     stateNotifier: $('stateNotifier'),
     stateNvApi: $('stateNvApi'),
+    stateContainer: $('stateContainer'),
     chipEngine: $('chipEngine'),
     chipCef: $('chipCef'),
     chipHub: $('chipHub'),
+    actionStatus: $('actionStatus'),
     tglOverlay: $('tglOverlay'),
     tglEngine: $('tglEngine'),
     lblWinform: $('lblWinform'),
@@ -69,6 +72,33 @@
   // Guarded event attach: a missing element skips silently.
   function on(node, ev, fn) {
     if (node) node.addEventListener(ev, fn);
+  }
+
+  function activateByKeyboard(node, fn) {
+    on(node, 'keydown', function (event) {
+      if (event.key !== 'Enter' && event.key !== ' ' && event.key !== 'Spacebar') return;
+      event.preventDefault();
+      fn.call(node, event);
+    });
+  }
+
+  var statusTimer = null;
+  function announce(message, failed) {
+    if (!el.actionStatus) return;
+    el.actionStatus.textContent = message;
+    el.actionStatus.className = 'action-status' + (failed ? ' error' : '');
+    if (statusTimer) clearTimeout(statusTimer);
+    if (message && !failed) {
+      statusTimer = setTimeout(function () {
+        el.actionStatus.textContent = '';
+        el.actionStatus.className = 'action-status';
+      }, 2500);
+    }
+  }
+
+  function reportFailure(label, error) {
+    if (window.console && console.error) console.error(label, error);
+    announce(label, true);
   }
 
   function setDot(dot, stateEl, cls, label) {
@@ -97,6 +127,9 @@
     setDot(el.dotNvApi, el.stateNvApi,
       (s.nvApi && s.nvApi.running) ? 'running' : '',
       (s.nvApi && s.nvApi.running) ? 'RUNNING' : 'STOPPED');
+    setDot(el.dotContainer, el.stateContainer,
+      (s.lanes && s.lanes.container) ? 'running' : '',
+      (s.lanes && s.lanes.container) ? 'RUNNING' : 'STOPPED');
 
     var lanes = s.lanes || {};
     if (el.chipEngine) el.chipEngine.className = 'lane-chip' + (lanes.container ? ' on' : '');
@@ -143,7 +176,11 @@
   window.__onLauncherState(function (s) { render(s); });
 
   // Pull fallback: never let the page sit on stale state.
-  function pull() { rpc('LAUNCHER_GET_STATE').then(render).catch(function () {}); }
+  function pull() {
+    rpc('LAUNCHER_GET_STATE').then(render).catch(function (error) {
+      if (bridgeUp) reportFailure('STATE SYNC FAILED', error);
+    });
+  }
   pull();
   setInterval(pull, 2000);
 
@@ -154,15 +191,33 @@
     this.dataset.pending = String(on);
     this.classList.toggle('on', on);
     this.setAttribute('aria-checked', on ? 'true' : 'false');
-    rpc('LAUNCHER_SET_OVERLAY', { value: on }).catch(function () {});
+    rpc('LAUNCHER_SET_OVERLAY', { value: on }).then(function (result) {
+      if (!result || result.ok === false) throw new Error('setting was not saved');
+      announce('SETTING SAVED', false);
+    }).catch(function (error) {
+      el.tglOverlay.dataset.userHold = '';
+      reportFailure('COULD NOT SAVE SETTING', error);
+      pull();
+    });
+  });
+  activateByKeyboard(el.tglOverlay, function () {
+    this.click();
   });
 
   // Overlay Mode: click the switch or either label.
   function setMode(cef) {
+    if (!el.tglEngine) return;
     el.tglEngine.dataset.userHold = '1';
     el.tglEngine.dataset.pending = String(cef);
     applyMode(cef);
-    rpc('LAUNCHER_SET_ENGINE_OVERLAY', { value: cef }).catch(function () {});
+    rpc('LAUNCHER_SET_ENGINE_OVERLAY', { value: cef }).then(function (result) {
+      if (!result || result.ok === false) throw new Error('mode was not saved');
+      announce(cef ? 'CEF ENGINE STARTING' : 'WINFORM ENGINE SELECTED', false);
+    }).catch(function (error) {
+      el.tglEngine.dataset.userHold = '';
+      reportFailure('COULD NOT CHANGE ENGINE', error);
+      pull();
+    });
   }
   on(el.tglEngine, 'click', function () {
     setMode(!this.classList.contains('cef'));
@@ -171,10 +226,13 @@
     if (!el.tglEngine.classList.contains('cef')) return;  // already WINFORM
     setMode(false);
   });
+  activateByKeyboard(el.lblWinform, function () { this.click(); });
   on(el.lblCef, 'click', function () {
     if (el.tglEngine.classList.contains('cef')) return;  // already CEF
     setMode(true);
   });
+  activateByKeyboard(el.lblCef, function () { this.click(); });
+  activateByKeyboard(el.tglEngine, function () { this.click(); });
 
   // ── Buttons ─────────────────────────────────────────────────────────
   // OPEN OVERLAY feedback: never read back the mutated label (a fast
@@ -189,18 +247,25 @@
     b.textContent = 'SENDING';
     rpc('LAUNCHER_OPEN_OVERLAY').then(function (r) {
       b.textContent = (r && r.ok) ? 'SENT' : 'HUB OFFLINE';
+      announce((r && r.ok) ? 'OVERLAY REQUEST SENT' : 'OVERLAY SERVICE OFFLINE',
+        !(r && r.ok));
       setTimeout(function () {
         b.textContent = 'OPEN OVERLAY';
         overlayBusy = false;
       }, 1200);
-    }).catch(function () {
+    }).catch(function (error) {
       b.textContent = 'OPEN OVERLAY';
       overlayBusy = false;
+      reportFailure('OVERLAY REQUEST FAILED', error);
     });
   });
 
   on(el.btnObt3, 'click', function () {
-    rpc('LAUNCHER_OPEN_OBT3').catch(function () {});
+    rpc('LAUNCHER_OPEN_OBT3').then(function (result) {
+      if (!result || result.ok === false) throw new Error('browser could not be opened');
+    }).catch(function (error) {
+      reportFailure('COULD NOT OPEN OBT3', error);
+    });
   });
 
   // EXIT ALL is armed by a first click (old RadioButton2 kills the whole
@@ -212,7 +277,13 @@
       clearTimeout(exitArm);
       b.classList.remove('armed');
       b.textContent = 'EXITING';
-      rpc('LAUNCHER_EXIT_ALL').catch(function () {});
+      rpc('LAUNCHER_EXIT_ALL').then(function (result) {
+        if (!result || result.ok === false) throw new Error('shutdown request failed');
+      }).catch(function (error) {
+        b.classList.remove('armed');
+        b.textContent = 'EXIT ALL';
+        reportFailure('EXIT ALL FAILED', error);
+      });
       return;
     }
     b.classList.add('armed');

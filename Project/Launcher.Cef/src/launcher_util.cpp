@@ -403,7 +403,13 @@ bool HttpPostLocal(unsigned port, const std::wstring& path) {
 }
 
 static std::wstring ConfigPath() {
-  return JoinPath(GetRootDir(), L"NvConfig\\config.json");
+  const std::wstring root = GetRootDir();
+  const std::wstring product_config = JoinPath(root, L"Config\\config.json");
+  const std::wstring legacy_config = JoinPath(root, L"NvConfig\\config.json");
+  if (FileExists(product_config) || !FileExists(legacy_config)) {
+    return product_config;
+  }
+  return legacy_config;
 }
 
 bool ReadConfigBool(const wchar_t* section, const wchar_t* key,

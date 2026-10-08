@@ -98,6 +98,116 @@ function persistSettings(s, res) {
     return false;
   }
 }
+function appRootCandidates() {
+  const candidates = [];
+  const configured = process.env.NVIDIA_SHADOWPLAY_APP_ROOT;
+  if (configured) candidates.push(path.resolve(configured));
+  [process.cwd(), __dirname].forEach(function (start) {
+    let current = path.resolve(start);
+    for (let depth = 0; depth < 10; depth += 1) {
+      candidates.push(current);
+      candidates.push(path.join(current, 'build', 'NVIDIA ShadowPlay'));
+      const parent = path.dirname(current);
+      if (parent === current) break;
+      current = parent;
+    }
+  });
+  return candidates;
+}
+function captureConfigPaths() {
+  const root = appRootCandidates().find(function (candidate) {
+    return fs.existsSync(path.join(candidate, 'NvContainer')) &&
+      fs.existsSync(path.join(candidate, 'NvOverlay'));
+  });
+  if (!root) return null;
+  const configDir = path.join(root, 'Config');
+  return {
+    config: path.join(configDir, 'config.json'),
+    engine: path.join(configDir, 'engine.json')
+  };
+}
+function readJsonFile(file, fallback) {
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch (e) {
+    if (e.code === 'ENOENT') return fallback;
+    throw e;
+  }
+}
+function writeJsonFileAtomic(file, value) {
+  const temp = file + '.' + process.pid + '.tmp';
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(temp, JSON.stringify(value, null, 2));
+    fs.renameSync(temp, file);
+  } catch (e) {
+    try { fs.unlinkSync(temp); } catch (_) {}
+    throw e;
+  }
+}
+function captureOptions(paths) {
+  const config = readJsonFile(paths.config, {});
+  const recording = config.Recording || config.recording || {};
+  const nestedCurrent = recording.current || {};
+  const engine = readJsonFile(paths.engine, {});
+  const configuredApi = recording.APICapture || recording.api_capture || '';
+  const captureMethod = String(configuredApi || engine.CaptureMethod || 'ddagrab').toLowerCase();
+  const configuredMode = recording.EngineMode || recording.engine_mode;
+  const engineMode = String(configuredMode ||
+    (captureMethod === 'ddagrab' || captureMethod === 'dxgi_desktop_duplication' ? 'Duluka' : 'FFmpeg')).toLowerCase();
+  if (engineMode !== 'duluka' && engineMode !== 'ddagrab' && engineMode !== 'ffmpeg' && engineMode !== 'legacy') {
+    throw new Error('Unsupported capture engine mode: ' + engineMode);
+  }
+  const mode = engineMode === 'duluka' || engineMode === 'ddagrab' ? 'Duluka' : 'FFmpeg';
+  let apiCapture = configuredApi || engine.CaptureMethod || 'ddagrab';
+  if (mode === 'Duluka') {
+    if (String(apiCapture).toLowerCase() !== 'ddagrab' &&
+        String(apiCapture).toLowerCase() !== 'dxgi_desktop_duplication') {
+      throw new Error('Unsupported Duluka capture API: ' + apiCapture);
+    }
+    apiCapture = 'dxgi_desktop_duplication';
+  } else if (['ddagrab', 'gdigrab', 'gfxcapture'].indexOf(String(apiCapture).toLowerCase()) < 0) {
+    throw new Error('Unsupported FFmpeg capture API: ' + apiCapture);
+  }
+  const encoder = recording.Encoder || recording.encoder || 'NVENC_H264';
+  if (['NVENC_H264', 'NVENC_HEVC', 'NVENC_AV1', 'QuickSync_H264', 'QuickSync_HEVC',
+    'AMF_H264', 'AMF_HEVC', 'LibX264', 'LibX265'].indexOf(encoder) < 0) {
+    throw new Error('Unsupported encoder: ' + encoder);
+  }
+  const useNativeResolution = nestedCurrent.use_native_resolution !== undefined
+    ? nestedCurrent.use_native_resolution === true
+    : (recording.UseNativeResolution !== undefined ? recording.UseNativeResolution === true : true);
+  return {
+    engineMode: mode,
+    apiCapture: apiCapture,
+    encoder: encoder,
+    encoderPreset: Number(nestedCurrent.encoder_preset || recording.EncoderPreset ||
+      recording.encoder_preset || parseInt(String(engine.Preset || 'p4').replace(/^p/i, ''), 10) || 4),
+    captureCursor: engine.CaptureCursor === true,
+    fps: Number(nestedCurrent.fps || recording.FPS || recording.fps || 60),
+    bitrateKbps: Number(nestedCurrent.bitrate || recording.Bitrate || recording.bitrate || 50000),
+    useNativeResolution: useNativeResolution,
+    width: Number(nestedCurrent.width || recording.Width || recording.width || 1920),
+    height: Number(nestedCurrent.height || recording.Height || recording.height || 1080),
+    replayLengthSeconds: Number(recording.replay_duration || recording.ReplayDuration || 60)
+  };
+}
+function validateCaptureOptions(body) {
+  if (!body || typeof body !== 'object' || Array.isArray(body)) return 'Capture options require a JSON object';
+  if (body.engineMode !== 'FFmpeg' && body.engineMode !== 'Duluka') return 'engineMode must be FFmpeg or Duluka';
+  const apiOptions = body.engineMode === 'Duluka'
+    ? ['dxgi_desktop_duplication']
+    : ['ddagrab', 'gdigrab', 'gfxcapture'];
+  if (apiOptions.indexOf(body.apiCapture) < 0) return 'apiCapture is not supported for the selected engine';
+  const encoders = ['NVENC_H264', 'NVENC_HEVC', 'NVENC_AV1', 'QuickSync_H264', 'QuickSync_HEVC',
+    'AMF_H264', 'AMF_HEVC', 'LibX264', 'LibX265'];
+  if (encoders.indexOf(body.encoder) < 0) return 'encoder is not supported';
+  if (!Number.isInteger(body.encoderPreset) || body.encoderPreset < 1 || body.encoderPreset > 7) {
+    return 'encoderPreset must be an integer from 1 to 7';
+  }
+  if (typeof body.captureCursor !== 'boolean') return 'captureCursor must be a boolean';
+  return null;
+}
 // อ่าน body POST ทั้งก้อน → JSON (คืน null ถ้า parse ไม่ได้/ไม่มี body)
 function readBody(req, done) {
   let raw = '';
@@ -159,6 +269,57 @@ module.exports = function routeFloor(app, io) {
 
     // ---- POST desired state: retries must be safe and idempotent ----
     if (m === 'POST') {
+      if (p === '/DulukaCapture/v.1.0/settings') {
+        readBody(req, function (body) {
+          const validationError = validateCaptureOptions(body);
+          if (validationError) {
+            res.status(400).json({ type: 'Error', code: 4, codeText: 'ET_INVALID_DATA',
+              message: validationError });
+            return;
+          }
+          try {
+            const paths = captureConfigPaths();
+            if (!paths) {
+              res.status(503).json({ type: 'Error', code: -1, codeText: 'CAPTURE_CONFIG_UNAVAILABLE',
+                message: 'Unable to locate the shared NVIDIA ShadowPlay configuration directory' });
+              return;
+            }
+            const config = readJsonFile(paths.config, {});
+            const recordingKey = config.Recording ? 'Recording' : config.recording ? 'recording' : 'Recording';
+            const recording = config[recordingKey] || {};
+            const nested = recording.current && typeof recording.current === 'object';
+            const isDuluka = body.engineMode === 'Duluka';
+            const apiCapture = isDuluka ? 'ddagrab' : body.apiCapture;
+            if (nested) {
+              recording.engine_mode = body.engineMode;
+              recording.api_capture = apiCapture;
+              recording.encoder = body.encoder;
+              recording.encoder_now = body.encoder;
+              recording.current.encoder_preset = body.encoderPreset;
+            } else {
+              recording.EngineMode = body.engineMode;
+              recording.APICapture = apiCapture;
+              recording.Encoder = body.encoder;
+              recording.EncoderNow = body.encoder;
+              recording.EncoderPreset = body.encoderPreset;
+            }
+            config[recordingKey] = recording;
+            const engine = readJsonFile(paths.engine, {});
+            engine.ConfigVersion = engine.ConfigVersion || 1;
+            engine.CaptureMethod = apiCapture;
+            engine.Preset = 'p' + body.encoderPreset;
+            engine.CaptureCursor = body.captureCursor;
+            writeJsonFileAtomic(paths.config, config);
+            writeJsonFileAtomic(paths.engine, engine);
+            res.status(200).json(captureOptions(paths));
+          } catch (e) {
+            console.error('[osc-backend] capture options save failed: ' + e.message);
+            res.status(500).json({ type: 'Error', code: -1, codeText: 'CAPTURE_SETTINGS_SAVE_FAILED',
+              message: 'Unable to persist capture engine settings' });
+          }
+        });
+        return;
+      }
       if (p === '/ShadowPlay/v.1.0/OSC/MainView') {
         readBody(req, function (body) {
           if (!body || typeof body !== 'object' || Array.isArray(body)) {
@@ -548,6 +709,19 @@ module.exports = function routeFloor(app, io) {
     if (m === 'GET') {
       const G = function (body) { res.status(200).json(body); };
 
+      if (p === '/DulukaCapture/v.1.0/settings') {
+        try {
+          const paths = captureConfigPaths();
+          if (!paths) return res.status(503).json({ type: 'Error', code: -1,
+            codeText: 'CAPTURE_CONFIG_UNAVAILABLE',
+            message: 'Unable to locate the shared NVIDIA ShadowPlay configuration directory' });
+          return G(captureOptions(paths));
+        } catch (e) {
+          console.error('[osc-backend] capture options read failed: ' + e.message);
+          return res.status(500).json({ type: 'Error', code: -1, codeText: 'CAPTURE_SETTINGS_READ_FAILED',
+            message: 'Unable to read capture engine settings' });
+        }
+      }
       if (p === '/ShadowPlay/v.1.0/Capture/State') {
         if (state.recordRunning) return G({ captureMode: 0, recordingState: 1 });
         if (state.irRunning) return G({ captureMode: 1, recordingState: 1 });
